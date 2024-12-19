@@ -29,11 +29,11 @@ func newClient(config *pwmgrConfig) (*pwmgrClient, error) {
 		return nil, errors.New("client configuration was nil")
 	}
 
-	if config.Username == "" {
+	if config.RoleID == "" {
 		return nil, errors.New("client username was not defined")
 	}
 
-	if config.Password == "" {
+	if config.SecretID == "" {
 		return nil, errors.New("client password was not defined")
 	}
 

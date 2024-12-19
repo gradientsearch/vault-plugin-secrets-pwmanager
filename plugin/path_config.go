@@ -14,10 +14,10 @@ const (
 )
 
 // pwmgrConfig includes the minimum configuration
-// required to instantiate a new Pwmgr client.
+// required to instantiate a new Pwmgr client aka AppRole.
 type pwmgrConfig struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	RoleID   string `json:"role_id"`
+	SecretID string `json:"secret_id"`
 	URL      string `json:"url"`
 }
 
@@ -31,27 +31,27 @@ func pathConfig(b *pwmgrBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "config",
 		Fields: map[string]*framework.FieldSchema{
-			"username": {
+			"role_id": {
 				Type:        framework.TypeString,
-				Description: "The username to access Pwmgr Product API",
+				Description: "The RoleID for the pwmgr AppRole",
 				Required:    true,
 				DisplayAttrs: &framework.DisplayAttributes{
-					Name:      "Username",
+					Name:      "RoleID",
 					Sensitive: false,
 				},
 			},
-			"password": {
+			"secret_id": {
 				Type:        framework.TypeString,
-				Description: "The user's password to access Pwmgr Product API",
+				Description: "The SecretID for the AppRole",
 				Required:    true,
 				DisplayAttrs: &framework.DisplayAttributes{
-					Name:      "Password",
+					Name:      "SecretID",
 					Sensitive: true,
 				},
 			},
 			"url": {
 				Type:        framework.TypeString,
-				Description: "The URL for the Pwmgr Product API",
+				Description: "The URL for the current Vault server",
 				Required:    true,
 				DisplayAttrs: &framework.DisplayAttributes{
 					Name:      "URL",
@@ -98,8 +98,8 @@ func (b *pwmgrBackend) pathConfigRead(ctx context.Context, req *logical.Request,
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"username": config.Username,
-			"url":      config.URL,
+			"role_id": config.RoleID,
+			"url":     config.URL,
 		},
 	}, nil
 }
@@ -120,10 +120,10 @@ func (b *pwmgrBackend) pathConfigWrite(ctx context.Context, req *logical.Request
 		config = new(pwmgrConfig)
 	}
 
-	if username, ok := data.GetOk("username"); ok {
-		config.Username = username.(string)
+	if roleID, ok := data.GetOk("role_id"); ok {
+		config.RoleID = roleID.(string)
 	} else if !ok && createOperation {
-		return nil, fmt.Errorf("missing username in configuration")
+		return nil, fmt.Errorf("missing role_id in configuration")
 	}
 
 	if url, ok := data.GetOk("url"); ok {
@@ -132,10 +132,10 @@ func (b *pwmgrBackend) pathConfigWrite(ctx context.Context, req *logical.Request
 		return nil, fmt.Errorf("missing url in configuration")
 	}
 
-	if password, ok := data.GetOk("password"); ok {
-		config.Password = password.(string)
+	if secretID, ok := data.GetOk("secret_id"); ok {
+		config.SecretID = secretID.(string)
 	} else if !ok && createOperation {
-		return nil, fmt.Errorf("missing password in configuration")
+		return nil, fmt.Errorf("missing secret_id in configuration")
 	}
 
 	entry, err := logical.StorageEntryJSON(configStoragePath, config)
@@ -191,7 +191,7 @@ const pathConfigHelpDescription = `
 The Pwmgr secret backend requires credentials for managing
 JWTs issued to users working with the products API.
 
-You must sign up with a username and password and
-specify the Pwmgr address for the products API
+You must sign up with a role_id and secret_id and
+specify the Vault AppRole address
 before using this secrets backend.
 `

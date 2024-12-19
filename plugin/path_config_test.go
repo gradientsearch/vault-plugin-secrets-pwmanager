@@ -16,7 +16,7 @@ const (
 )
 
 // TestConfig mocks the creation, read, update, and delete
-// of the backend configuration for HashiCups.
+// of the backend configuration for Pwmgr.
 func TestConfig(t *testing.T) {
 	b, reqStorage := getTestBackend(t)
 

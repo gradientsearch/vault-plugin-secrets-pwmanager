@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	roleName   = "testhashicups"
+	roleName   = "testpwmgr"
 	testTTL    = int64(120)
 	testMaxTTL = int64(3600)
 )

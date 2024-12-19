@@ -29,9 +29,9 @@ func newAcceptanceTestEnv() (*testEnv, error) {
 		return nil, err
 	}
 	return &testEnv{
-		Username: os.Getenv(envVarHashiCupsUsername),
-		Password: os.Getenv(envVarHashiCupsPassword),
-		URL:      os.Getenv(envVarHashiCupsURL),
+		Username: os.Getenv(envVarPwmgrUsername),
+		Password: os.Getenv(envVarPwmgrPassword),
+		URL:      os.Getenv(envVarPwmgrURL),
 		Backend:  b,
 		Context:  ctx,
 		Storage:  &logical.InmemStorage{},

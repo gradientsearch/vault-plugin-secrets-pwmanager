@@ -6,8 +6,8 @@
     "inputs": [
         {
             "type": "promptString",
-            "id": "HASHICUPS_URL",
-            "description": "URL of HashiCups"
+            "id": "pwmgr_URL",
+            "description": "URL of Pwmgr"
         }
     ],
     "configurations": [
@@ -34,9 +34,9 @@
             ],
             "env": {
                 "VAULT_ACC":"1",
-                "TEST_HASHICUPS_USERNAME": "vault-plugin-testing",
-                "TEST_HASHICUPS_PASSWORD": "Testing!123",
-                "TEST_HASHICUPS_URL": "${input:HASHICUPS_URL}"
+                "TEST_pwmgr_USERNAME": "vault-plugin-testing",
+                "TEST_pwmgr_PASSWORD": "Testing!123",
+                "TEST_pwmgr_URL": "${input:pwmgr_URL}"
             }
         }
     ]

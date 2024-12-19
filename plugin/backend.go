@@ -2,7 +2,6 @@ package secretsengine
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-// Factory returns a new backend as logical.Backend
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	b := backend()
 	if err := b.Setup(ctx, conf); err != nil {
@@ -43,8 +41,16 @@ func backend() *pwmgrBackend {
 				"role/*",
 			},
 		},
-		Paths:       framework.PathAppend(),
-		Secrets:     []*framework.Secret{},
+		Paths: framework.PathAppend(
+			pathRole(&b),
+			[]*framework.Path{
+				pathConfig(&b),
+				pathCredentials(&b),
+			},
+		),
+		Secrets: []*framework.Secret{
+			b.pwmgrToken(),
+		},
 		BackendType: logical.TypeLogical,
 		Invalidate:  b.invalidate,
 	}
@@ -82,12 +88,26 @@ func (b *pwmgrBackend) getClient(ctx context.Context, s logical.Storage) (*pwmgr
 	b.lock.Lock()
 	unlockFunc = b.lock.Unlock
 
-	return nil, fmt.Errorf("need to return client")
+	config, err := getConfig(ctx, s)
+	if err != nil {
+		return nil, err
+	}
+
+	if config == nil {
+		config = new(pwmgrConfig)
+	}
+
+	b.client, err = newClient(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.client, nil
 }
 
 // backendHelp should contain help information for the backend
 const backendHelp = `
-The HashiCups secrets backend dynamically generates user tokens.
-After mounting this backend, credentials to manage HashiCups user tokens
+The Pwmgr secrets backend dynamically generates user tokens.
+After mounting this backend, credentials to manage Pwmgr user tokens
 must be configured with the "config/" endpoints.
 `

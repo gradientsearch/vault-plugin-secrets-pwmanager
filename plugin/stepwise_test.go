@@ -28,7 +28,7 @@ func TestAccUserToken(t *testing.T) {
 	}
 
 	roleName := "vault-stepwise-user-role"
-	username := os.Getenv(envVarHashiCupsUsername)
+	username := os.Getenv(envVarPwmgrUsername)
 
 	cred := new(string)
 	stepwise.Run(t, stepwise.Case{
@@ -48,14 +48,14 @@ var initSetup sync.Once
 func testAccPreCheck(t *testing.T) {
 	initSetup.Do(func() {
 		// Ensure test variables are set
-		if v := os.Getenv(envVarHashiCupsUsername); v == "" {
-			t.Skip(fmt.Printf("%s not set", envVarHashiCupsUsername))
+		if v := os.Getenv(envVarPwmgrUsername); v == "" {
+			t.Skip(fmt.Printf("%s not set", envVarPwmgrUsername))
 		}
-		if v := os.Getenv(envVarHashiCupsPassword); v == "" {
-			t.Skip(fmt.Printf("%s not set", envVarHashiCupsPassword))
+		if v := os.Getenv(envVarPwmgrPassword); v == "" {
+			t.Skip(fmt.Printf("%s not set", envVarPwmgrPassword))
 		}
-		if v := os.Getenv(envVarHashiCupsURL); v == "" {
-			t.Skip(fmt.Printf("%s not set", envVarHashiCupsURL))
+		if v := os.Getenv(envVarPwmgrURL); v == "" {
+			t.Skip(fmt.Printf("%s not set", envVarPwmgrURL))
 		}
 	})
 }
@@ -65,9 +65,9 @@ func testAccConfig(t *testing.T) stepwise.Step {
 		Operation: stepwise.UpdateOperation,
 		Path:      "config",
 		Data: map[string]interface{}{
-			"username": os.Getenv(envVarHashiCupsUsername),
-			"password": os.Getenv(envVarHashiCupsPassword),
-			"url":      os.Getenv(envVarHashiCupsURL),
+			"username": os.Getenv(envVarPwmgrUsername),
+			"password": os.Getenv(envVarPwmgrPassword),
+			"url":      os.Getenv(envVarPwmgrURL),
 		},
 	}
 }

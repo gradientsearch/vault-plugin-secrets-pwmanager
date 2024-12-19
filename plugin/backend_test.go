@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	envVarRunAccTests       = "VAULT_ACC"
-	envVarHashiCupsUsername = "TEST_HASHICUPS_USERNAME"
-	envVarHashiCupsPassword = "TEST_HASHICUPS_PASSWORD"
-	envVarHashiCupsURL      = "TEST_HASHICUPS_URL"
+	envVarRunAccTests   = "VAULT_ACC"
+	envVarPwmgrUsername = "TEST_pwmgr_USERNAME"
+	envVarPwmgrPassword = "TEST_pwmgr_PASSWORD"
+	envVarPwmgrURL      = "TEST_pwmgr_URL"
 )
 
 // getTestBackend will help you construct a test backend object.
@@ -77,7 +77,7 @@ func (e *testEnv) AddConfig(t *testing.T) {
 	require.Nil(t, err)
 }
 
-// AddUserTokenRole adds a role for the HashiCups
+// AddUserTokenRole adds a role for the Pwmgr
 // user token.
 func (e *testEnv) AddUserTokenRole(t *testing.T) {
 	req := &logical.Request{

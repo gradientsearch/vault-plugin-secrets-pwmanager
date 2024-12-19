@@ -10,7 +10,7 @@ plugin:
 run:
 	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins
 
-configure: enable appRole config secretMount userpass entity
+configure: enable appRole config secretMount userpass entity pwmgr
 
 enable:
 	vault secrets enable -path=pwmgr vault-password-manager-plugin
@@ -50,5 +50,8 @@ userpass:
 entity:
 	vault write /identity/entity/id/$(shell vault write -format json auth/userpass/login/stephen password=hashicorp | jq -r '.auth.entity_id' | tr -d "\n") name=stephen
 	vault policy write plugins/pwmgr-user-default policies/pwmgr_user_default.hcl
+
+pwmgr:
+	vault write pwmgr/role/stephen username=dontneed
 
 

@@ -19,8 +19,13 @@ type pwmgrClient struct {
 	Client *Clinet
 }
 
-func (p *pwmgrClient) SignOut() error                  { return nil }
-func (p *pwmgrClient) SignIn() (SignInResponse, error) { return SignInResponse{}, nil }
+func (p *pwmgrClient) SignOut() error { return nil }
+func (p *pwmgrClient) SignIn() (SignInResponse, error) {
+	return SignInResponse{
+		Token:  "fake token",
+		UserID: 1,
+	}, nil
+}
 
 // newClient creates a new client to access Pwmgr
 // and exposes it for any secrets or roles to use.

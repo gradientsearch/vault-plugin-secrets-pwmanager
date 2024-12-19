@@ -1,3 +1,3 @@
-path "pwmgr/creds/{identity.entity.name}" {
+path "pwmgr/creds/{{identity.entity.name}}" {
     capabilities = ["read"]
 }

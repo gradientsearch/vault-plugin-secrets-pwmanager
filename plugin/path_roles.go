@@ -7,10 +7,10 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-// hashiCupsRoleEntry defines the data required
+// pwmgrRoleEntry defines the data required
 // for a Vault role to access and call the HashiCups
 // token endpoints
-type hashiCupsRoleEntry struct {
+type pwmgrRoleEntry struct {
 	Username string        `json:"username"`
 	UserID   int           `json:"user_id"`
 	Token    string        `json:"token"`
@@ -20,7 +20,7 @@ type hashiCupsRoleEntry struct {
 }
 
 // toResponseData returns response data for a role
-func (r *hashiCupsRoleEntry) toResponseData() map[string]interface{} {
+func (r *pwmgrRoleEntry) toResponseData() map[string]interface{} {
 	respData := map[string]interface{}{
 		"ttl":      r.TTL.Seconds(),
 		"max_ttl":  r.MaxTTL.Seconds(),
@@ -34,7 +34,7 @@ func (r *hashiCupsRoleEntry) toResponseData() map[string]interface{} {
 // or not certain attributes should be displayed,
 // required, and named. You can also define different
 // path patterns to list all roles.
-func pathRole(b *hashiCupsBackend) []*framework.Path {
+func pathRole(b *pwmgrBackend) []*framework.Path {
 	return []*framework.Path{
 		{
 			Pattern:         "role/" + framework.GenericNameRegex("name"),

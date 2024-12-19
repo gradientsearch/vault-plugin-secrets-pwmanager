@@ -19,20 +19,20 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	return b, nil
 }
 
-// hashiCupsBackend defines an object that
+// pwmgrBackend defines an object that
 // extends the Vault backend and stores the
 // target API's client.
-type hashiCupsBackend struct {
+type pwmgrBackend struct {
 	*framework.Backend
 	lock   sync.RWMutex
-	client *hashiCupsClient
+	client *pwmgrClient
 }
 
 // backend defines the target API backend
 // for Vault. It must include each path
 // and the secrets it will store.
-func backend() *hashiCupsBackend {
-	var b = hashiCupsBackend{}
+func backend() *pwmgrBackend {
+	var b = pwmgrBackend{}
 
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
@@ -53,7 +53,7 @@ func backend() *hashiCupsBackend {
 
 // reset clears any client configuration for a new
 // backend to be configured
-func (b *hashiCupsBackend) reset() {
+func (b *pwmgrBackend) reset() {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	b.client = nil
@@ -61,7 +61,7 @@ func (b *hashiCupsBackend) reset() {
 
 // invalidate clears an existing client configuration in
 // the backend
-func (b *hashiCupsBackend) invalidate(ctx context.Context, key string) {
+func (b *pwmgrBackend) invalidate(ctx context.Context, key string) {
 	if key == "config" {
 		b.reset()
 	}
@@ -69,7 +69,7 @@ func (b *hashiCupsBackend) invalidate(ctx context.Context, key string) {
 
 // getClient locks the backend as it configures and creates a
 // a new client for the target API
-func (b *hashiCupsBackend) getClient(ctx context.Context, s logical.Storage) (*hashiCupsClient, error) {
+func (b *pwmgrBackend) getClient(ctx context.Context, s logical.Storage) (*pwmgrClient, error) {
 	b.lock.RLock()
 	unlockFunc := b.lock.RUnlock
 	defer func() { unlockFunc() }()

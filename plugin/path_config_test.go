@@ -38,14 +38,14 @@ func TestConfig(t *testing.T) {
 
 		err = testConfigUpdate(t, b, reqStorage, map[string]interface{}{
 			"username": username,
-			"url":      "http://hashicups:19090",
+			"url":      "http://pwmgr:19090",
 		})
 
 		assert.NoError(t, err)
 
 		err = testConfigRead(t, b, reqStorage, map[string]interface{}{
 			"username": username,
-			"url":      "http://hashicups:19090",
+			"url":      "http://pwmgr:19090",
 		})
 
 		assert.NoError(t, err)

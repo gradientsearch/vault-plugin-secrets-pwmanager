@@ -21,10 +21,10 @@ func TestAccUserToken(t *testing.T) {
 		t.SkipNow()
 	}
 	envOptions := &stepwise.MountOptions{
-		RegistryName:    "hashicups",
+		RegistryName:    "pwmgr",
 		PluginType:      stepwise.PluginTypeSecrets,
-		PluginName:      "vault-plugin-secrets-hashicups",
-		MountPathPrefix: "hashicups",
+		PluginName:      "vault-plugin-secrets-pwmgr",
+		MountPathPrefix: "pwmgr",
 	}
 
 	roleName := "vault-stepwise-user-role"
@@ -33,7 +33,7 @@ func TestAccUserToken(t *testing.T) {
 	cred := new(string)
 	stepwise.Run(t, stepwise.Case{
 		Precheck:    func() { testAccPreCheck(t) },
-		Environment: dockerEnvironment.NewEnvironment("hashicups", envOptions),
+		Environment: dockerEnvironment.NewEnvironment("pwmgr", envOptions),
 		Steps: []stepwise.Step{
 			testAccConfig(t),
 			testAccUserRole(t, roleName, username),

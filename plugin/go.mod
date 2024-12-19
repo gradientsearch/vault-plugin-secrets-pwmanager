@@ -1,9 +1,8 @@
-module github.com/hashicorp/vault-guides/plugins/vault-plugin-secrets-hashicups
+module vault-password-manager-plugin
 
 go 1.16
 
 require (
-	github.com/hashicorp-demoapp/hashicups-client-go v0.0.0-20210721190446-1df90c457bd4
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/vault-testing-stepwise v0.1.1
 	github.com/hashicorp/vault/api v1.1.1

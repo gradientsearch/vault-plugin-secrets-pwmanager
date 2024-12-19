@@ -12,9 +12,9 @@ const (
 	configStoragePath = "config"
 )
 
-// hashiCupsConfig includes the minimum configuration
+// pwmgrConfig includes the minimum configuration
 // required to instantiate a new HashiCups client.
-type hashiCupsConfig struct {
+type pwmgrConfig struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	URL      string `json:"url"`
@@ -26,7 +26,7 @@ type hashiCupsConfig struct {
 // required, and named. For example, password
 // is marked as sensitive and will not be output
 // when you read the configuration.
-func pathConfig(b *hashiCupsBackend) *framework.Path {
+func pathConfig(b *pwmgrBackend) *framework.Path {
 	return &framework.Path{
 		Pattern:         "config",
 		Fields:          map[string]*framework.FieldSchema{},
@@ -38,7 +38,7 @@ func pathConfig(b *hashiCupsBackend) *framework.Path {
 }
 
 // pathConfigExistenceCheck verifies if the configuration exists.
-func (b *hashiCupsBackend) pathConfigExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+func (b *pwmgrBackend) pathConfigExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
 	out, err := req.Storage.Get(ctx, req.Path)
 	if err != nil {
 		return false, fmt.Errorf("existence check failed: %w", err)
@@ -47,7 +47,7 @@ func (b *hashiCupsBackend) pathConfigExistenceCheck(ctx context.Context, req *lo
 	return out != nil, nil
 }
 
-func getConfig(ctx context.Context, s logical.Storage) (*hashiCupsConfig, error) {
+func getConfig(ctx context.Context, s logical.Storage) (*pwmgrConfig, error) {
 	entry, err := s.Get(ctx, configStoragePath)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func getConfig(ctx context.Context, s logical.Storage) (*hashiCupsConfig, error)
 		return nil, nil
 	}
 
-	config := new(hashiCupsConfig)
+	config := new(pwmgrConfig)
 	if err := entry.DecodeJSON(&config); err != nil {
 		return nil, fmt.Errorf("error reading root configuration: %w", err)
 	}

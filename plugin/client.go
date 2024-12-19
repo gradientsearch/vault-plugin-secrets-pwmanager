@@ -1,17 +1,21 @@
 package secretsengine
 
-import (
-	hashicups "github.com/hashicorp-demoapp/hashicups-client-go"
-)
+type Pwmgr struct {
+	Token string
+}
 
-// hashiCupsClient creates an object storing
+// pwmgrClient creates an object storing
 // the client.
-type hashiCupsClient struct {
-	*hashicups.Client
+type pwmgrClient struct {
+	Client Pwmgr
+}
+
+func (p *pwmgrClient) SignOut() error {
+	return nil
 }
 
 // newClient creates a new client to access HashiCups
 // and exposes it for any secrets or roles to use.
-func newClient(config *hashiCupsConfig) (*hashiCupsClient, error) {
-	return &hashiCupsClient{nil}, nil
+func newClient(config *pwmgrConfig) (*pwmgrClient, error) {
+	return &pwmgrClient{}, nil
 }

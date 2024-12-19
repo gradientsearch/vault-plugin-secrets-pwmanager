@@ -1,4 +1,4 @@
-# vault-plugin-secrets-hashicups
+# vault-plugin-secrets-pwmgr
 
 This secrets engine renews and revokes JSON Web Tokens (JWTs)
 for the HashiCorp demo application. It is shared here as
@@ -17,7 +17,7 @@ supporting content for the [Define Roles for the Secrets Engine](https://develop
 
 1. Build the secrets engine into a plugin using Go.
    ```shell
-   $ go build -o vault/plugins/vault-plugin-secrets-hashicups cmd/vault-plugin-secrets-hashicups/main.go
+   $ go build -o vault/plugins/vault-plugin-secrets-pwmgr cmd/vault-plugin-secrets-pwmgr/main.go
    ```
 
 1. You can find the binary in `vault/plugins/`.

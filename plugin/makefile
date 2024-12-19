@@ -10,23 +10,45 @@ plugin:
 run:
 	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins
 
+configure: enable appRole config secretMount userpass entity
+
 enable:
 	vault secrets enable -path=pwmgr vault-password-manager-plugin
 
 appRole:
+	vault policy write plugins/pwmgr-app-role policies/pwmgr_app_role.hcl && \
 	vault auth enable approle && \
 	vault write auth/approle/role/my-role \
     token_type=batch \
     secret_id_ttl=10m \
     token_ttl=20m \
     token_max_ttl=30m \
-    secret_id_num_uses=40
+    secret_id_num_uses=40 \
+	token_policies="plugins/pwmgr-app-role"
+
+readAppRole:
+	vault read auth/approle/role/my-role
 
 readConfig:
 	vault read pwmgr/config
 
 .SILENT:
 config:
-	export ROLE_ID=$(shell vault read -field=role_id  auth/approle/role/my-role/role-id ) \
-	export SECRET_ID=$(shell vault write -f -field=secret_id auth/approle/role/my-role/secret-id) && \
-	vault write pwmgr/config role_id=$$ROLE_ID secret_id=$$SECRET_ID url="http://localhost:8200"
+	export ROLE_ID= \
+	export SECRET_ID= && \
+	vault write pwmgr/config role_id=$(shell vault read -field=role_id  auth/approle/role/my-role/role-id ) \
+	secret_id=$(shell vault write -f -field=secret_id auth/approle/role/my-role/secret-id) \
+	url="http://localhost:8200"
+
+secretMount:
+	vault secrets enable -version=2 -path=pwmgrkv kv
+
+userpass:
+	vault auth enable userpass 
+	vault write auth/userpass/users/stephen password=hashicorp token_policies="plugins/pwmgr-user-default"
+
+entity:
+	vault write /identity/entity/id/$(shell vault write -format json auth/userpass/login/stephen password=hashicorp | jq -r '.auth.entity_id' | tr -d "\n") name=stephen
+	vault policy write plugins/pwmgr-user-default policies/pwmgr_user_default.hcl
+
+

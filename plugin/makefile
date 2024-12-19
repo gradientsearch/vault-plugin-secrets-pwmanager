@@ -18,7 +18,7 @@ enable:
 appRole:
 	vault policy write plugins/pwmgr-app-role policies/pwmgr_app_role.hcl && \
 	vault auth enable approle && \
-	vault write auth/approle/role/my-role \
+	vault write auth/approle/role/pwmgr \
     token_type=batch \
     secret_id_ttl=10m \
     token_ttl=20m \

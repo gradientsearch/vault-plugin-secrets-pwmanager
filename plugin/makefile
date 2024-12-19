@@ -34,8 +34,6 @@ readConfig:
 
 .SILENT:
 config:
-	export ROLE_ID= \
-	export SECRET_ID= && \
 	vault write pwmgr/config role_id=$(shell vault read -field=role_id  auth/approle/role/my-role/role-id ) \
 	secret_id=$(shell vault write -f -field=secret_id auth/approle/role/my-role/secret-id) \
 	url="http://localhost:8200"

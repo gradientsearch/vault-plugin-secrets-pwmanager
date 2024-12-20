@@ -2,7 +2,6 @@ package secretsengine
 
 import (
 	"context"
-	"log"
 	"strings"
 	"sync"
 
@@ -13,19 +12,6 @@ import (
 
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	b := backend()
-	b.storage = conf.StorageView
-
-	cfg, err := getConfig(ctx, b.storage)
-
-	if err == nil && cfg != nil {
-		b.client, err = newClient(cfg, b.logger)
-
-		if err != nil {
-			log.Println("error creating client")
-		}
-
-		go b.client.renewLoop()
-	}
 
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
@@ -75,11 +61,20 @@ func backend() *pwmgrBackend {
 		Secrets: []*framework.Secret{
 			b.pwmgrToken(),
 		},
-		BackendType: logical.TypeLogical,
-		Invalidate:  b.invalidate,
+		BackendType:    logical.TypeLogical,
+		Invalidate:     b.invalidate,
+		InitializeFunc: b.initialize,
 	}
 
 	return &b
+}
+
+func (b *pwmgrBackend) initialize(ctx context.Context, req *logical.InitializationRequest) error {
+	b.client = newClient(req.Storage, b.logger)
+
+	b.storage = req.Storage
+	go b.client.renewLoop()
+	return nil
 }
 
 // reset clears any client configuration for a new
@@ -87,7 +82,9 @@ func backend() *pwmgrBackend {
 func (b *pwmgrBackend) reset() {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	b.client.renew <- nil
+	if b.client != nil {
+		b.client.renew <- nil
+	}
 }
 
 // invalidate clears an existing client configuration in
@@ -122,7 +119,6 @@ func (b *pwmgrBackend) getClient(ctx context.Context, s logical.Storage) (*pwmgr
 		config = new(pwmgrConfig)
 	}
 
-	b.client, err = newClient(config, b.logger)
 	if err != nil {
 		return nil, err
 	}

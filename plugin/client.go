@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault/sdk/logical"
 )
 
 // This provides a default client configuration, but it's recommended
@@ -33,15 +33,14 @@ var defaultClient = http.Client{
 
 // Client provides support to access Hashicorp's Client product for keys.
 type pwmgrClient struct {
-	URL      string
-	Token    string
-	client   *http.Client
-	renew    chan (interface{})
-	done     chan (interface{})
-	roleID   string
-	secretID string
-	store    map[string]string
-	logger   hclog.Logger
+	URL     string
+	Token   string
+	client  *http.Client
+	renew   chan (interface{})
+	done    chan (interface{})
+	store   map[string]string
+	logger  hclog.Logger
+	storage logical.Storage
 }
 
 type SignInResponse struct {
@@ -68,15 +67,19 @@ type AuthRoleLoginResponse struct {
 }
 
 func (p *pwmgrClient) renewLoop() {
+
 	// TODO parameterize
 	t := time.NewTicker(45 * time.Minute)
 	for {
 		select {
 		case <-p.renew:
+			p.logger.Debug("renewing approle token")
 			if err := p.Login(); err != nil {
 				p.logger.Error(err.Error())
+			} else {
+				t.Reset(45 * time.Minute)
+				p.logger.Debug("renewing approle token successful")
 			}
-			t.Reset(45 * time.Minute)
 		case <-t.C:
 			p.renew <- nil
 
@@ -89,14 +92,22 @@ func (p *pwmgrClient) renewLoop() {
 func (p *pwmgrClient) SignOut() error { return nil }
 
 func (p *pwmgrClient) Login() error {
-	url := fmt.Sprintf("%s/v1/auth/approle/login", p.URL)
+	p.logger.Debug("starting app role request")
+	config, err := getConfig(context.TODO(), p.storage)
+
+	if config == nil || err != nil {
+		return fmt.Errorf("pwmgr mount not configured. configure at /config")
+	}
+	p.logger.Debug("config not nil")
+	p.logger.Debug(fmt.Sprintf("config %+v", config))
+	url := fmt.Sprintf("%s/v1/auth/approle/login", config.URL)
 
 	cfg := struct {
 		RoleID   string `json:"role_id"`
 		SecretID string `json:"secret_id"`
 	}{
-		RoleID:   p.roleID,
-		SecretID: p.secretID,
+		RoleID:   config.RoleID,
+		SecretID: config.SecretID,
 	}
 
 	var b bytes.Buffer
@@ -106,6 +117,7 @@ func (p *pwmgrClient) Login() error {
 
 	req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, url, &b)
 	if err != nil {
+		p.logger.Debug(fmt.Sprintf("error making app role request request: %s", err))
 		return fmt.Errorf("create request: %w", err)
 	}
 
@@ -115,6 +127,7 @@ func (p *pwmgrClient) Login() error {
 
 	resp, err := p.client.Do(req)
 	if err != nil {
+		p.logger.Debug("error doing app role request")
 		return fmt.Errorf("do: %w", err)
 	}
 	p.logger.Debug("client approle login successful")
@@ -126,41 +139,21 @@ func (p *pwmgrClient) Login() error {
 	p.logger.Debug("client AuthRoleLoginResponse", "auth", fmt.Sprintf("%+v", response))
 
 	p.Token = response.Auth.ClientToken
+	p.URL = config.URL
 
 	return nil
 }
 
 // newClient creates a new client to access Pwmgr
 // and exposes it for any secrets or roles to use.
-func newClient(config *pwmgrConfig, logger hclog.Logger) (*pwmgrClient, error) {
-	if config == nil {
-		return nil, errors.New("client configuration was nil")
-	}
-
-	if config.RoleID == "" {
-		return nil, errors.New("client role_id was not defined")
-	}
-
-	if config.SecretID == "" {
-		return nil, errors.New("client secret_id was not defined")
-	}
-
-	if config.URL == "" {
-		return nil, errors.New("client url was not defined")
-	}
-
+func newClient(storage logical.Storage, logger hclog.Logger) *pwmgrClient {
 	pc := pwmgrClient{
-		URL:      config.URL,
-		client:   &defaultClient,
-		store:    make(map[string]string),
-		renew:    make(chan (interface{})),
-		done:     make(chan (interface{})),
-		roleID:   config.RoleID,
-		secretID: config.SecretID,
-		logger:   logger,
+		client:  &defaultClient,
+		store:   make(map[string]string),
+		renew:   make(chan (interface{})),
+		done:    make(chan (interface{})),
+		logger:  logger,
+		storage: storage,
 	}
-
-	/* TODO add clean up logic and signaling*/
-	go pc.renewLoop()
-	return &pc, nil
+	return &pc
 }

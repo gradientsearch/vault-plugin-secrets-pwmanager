@@ -2,6 +2,7 @@ package secretsengine
 
 import (
 	"context"
+	"log"
 	"strings"
 	"sync"
 
@@ -11,9 +12,24 @@ import (
 
 func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend, error) {
 	b := backend()
+	b.storage = conf.StorageView
+
+	cfg, err := getConfig(ctx, b.storage)
+
+	if err == nil && cfg != nil {
+		b.client, err = newClient(cfg)
+
+		if err != nil {
+			log.Println("error creating client")
+		}
+
+		go b.client.autoRenew()
+	}
+
 	if err := b.Setup(ctx, conf); err != nil {
 		return nil, err
 	}
+
 	return b, nil
 }
 
@@ -22,8 +38,9 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 // target API's client.
 type pwmgrBackend struct {
 	*framework.Backend
-	lock   sync.RWMutex
-	client *pwmgrClient
+	lock    sync.RWMutex
+	client  *pwmgrClient
+	storage logical.Storage
 }
 
 // backend defines the target API backend
@@ -54,6 +71,7 @@ func backend() *pwmgrBackend {
 		BackendType: logical.TypeLogical,
 		Invalidate:  b.invalidate,
 	}
+
 	return &b
 }
 

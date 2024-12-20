@@ -21,21 +21,21 @@ appRole:
 	vault write auth/approle/role/pwmgr \
     token_type=batch \
     secret_id_ttl=10m \
-    token_ttl=20m \
-    token_max_ttl=30m \
-    secret_id_num_uses=40 \
+    token_ttl=60m \
+    token_max_ttl=120m \
+    secret_id_num_uses=0 \
 	token_policies="plugins/pwmgr-app-role"
 
 readAppRole:
-	vault read auth/approle/role/my-role
+	vault read auth/approle/role/pwmgr
 
 readConfig:
 	vault read pwmgr/config
 
-.SILENT:
+#.SILENT:
 config:
-	vault write pwmgr/config role_id=$(shell vault read -field=role_id  auth/approle/role/my-role/role-id ) \
-	secret_id=$(shell vault write -f -field=secret_id auth/approle/role/my-role/secret-id) \
+	vault write pwmgr/config role_id=$(shell vault read -field=role_id  auth/approle/role/pwmgr/role-id ) \
+	secret_id=$(shell vault write -f -field=secret_id auth/approle/role/pwmgr/secret-id) \
 	url="http://localhost:8200"
 
 secretMount:

@@ -9,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 type Client struct {
@@ -41,6 +43,7 @@ type pwmgrClient struct {
 	roleID   string
 	secretID string
 	store    map[string]string
+	logger   hclog.Logger
 }
 
 // SetToken allows the user to change out the token to use on calls.
@@ -53,8 +56,36 @@ type SignInResponse struct {
 	Token  string
 }
 
+type Auth struct {
+	Renewable     bool              `json:"renewable"`
+	LeaseDuration int               `json:"lease_duration"`
+	Metadata      map[string]string `json:"metadata"`
+	TokenPolicies []string          `json:"token_policies"`
+	Accessor      string            `json:"accessor"`
+	ClientToken   string            `json:"client_token"`
+}
+type AuthRoleLoginResponse struct {
+	Auth          Auth        `json:"auth"`
+	Warnings      interface{} `json:"warnings"`
+	WrapInfo      interface{} `json:wrap_info""`
+	Data          interface{} `json:"data"`
+	LeaseDuration int         `json:"lease_duration"`
+	Renewable     bool        `json:"renewable"`
+	LeaseID       string      `json:"lease_id"`
+}
+
+func (p *pwmgrClient) autoRenew() {
+	for {
+		if err := p.Login(); err != nil {
+			//		p.logger.Error(err.Error())
+		}
+		time.Sleep(45 * time.Minute)
+	}
+}
+
 func (p *pwmgrClient) SignOut() error { return nil }
-func (p *pwmgrClient) SignIn() error {
+
+func (p *pwmgrClient) Login() error {
 	url := fmt.Sprintf("%s/v1/auth/approle/role/pwmgr", p.URL)
 
 	cfg := struct {
@@ -84,7 +115,7 @@ func (p *pwmgrClient) SignIn() error {
 		return fmt.Errorf("do: %w", err)
 	}
 
-	var response map[string]interface{}
+	var response AuthRoleLoginResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return fmt.Errorf("json decode: %w", err)
 	}
@@ -118,5 +149,8 @@ func newClient(config *pwmgrConfig) (*pwmgrClient, error) {
 		roleID:   config.RoleID,
 		secretID: config.SecretID,
 	}
+
+	/* TODO add clean up logic and signaling*/
+	go pc.autoRenew()
 	return &pc, nil
 }

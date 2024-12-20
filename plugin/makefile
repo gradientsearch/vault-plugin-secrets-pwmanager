@@ -4,11 +4,16 @@ SHELL = $(if $(wildcard $(SHELL_PATH)),/bin/ash,/bin/bash)
 
 build: plugin run
 
+debug: plugin  run-debug
+
 plugin:
 	go build -o vault/plugins/vault-password-manager-plugin cmd/vault-password-manager-plugin/main.go
 
 run:
-	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins
+	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins -log-level=debug
+
+run-debug:
+	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins -log-level=debug 2>&1 | grep pwmgr
 
 configure: enable appRole config secretMount userpass entity pwmgr
 

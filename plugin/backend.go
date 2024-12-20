@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -17,13 +18,13 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	cfg, err := getConfig(ctx, b.storage)
 
 	if err == nil && cfg != nil {
-		b.client, err = newClient(cfg)
+		b.client, err = newClient(cfg, b.logger)
 
 		if err != nil {
 			log.Println("error creating client")
 		}
 
-		go b.client.autoRenew()
+		go b.client.renewLoop()
 	}
 
 	if err := b.Setup(ctx, conf); err != nil {
@@ -41,6 +42,7 @@ type pwmgrBackend struct {
 	lock    sync.RWMutex
 	client  *pwmgrClient
 	storage logical.Storage
+	logger  hclog.Logger
 }
 
 // backend defines the target API backend
@@ -48,7 +50,12 @@ type pwmgrBackend struct {
 // and the secrets it will store.
 func backend() *pwmgrBackend {
 	var b = pwmgrBackend{}
+	appLogger := hclog.New(&hclog.LoggerOptions{
+		Name:  "pwmgr",
+		Level: hclog.LevelFromString("DEBUG"),
+	})
 
+	b.logger = appLogger
 	b.Backend = &framework.Backend{
 		Help: strings.TrimSpace(backendHelp),
 		PathsSpecial: &logical.Paths{
@@ -80,7 +87,7 @@ func backend() *pwmgrBackend {
 func (b *pwmgrBackend) reset() {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	b.client = nil
+	b.client.renew <- nil
 }
 
 // invalidate clears an existing client configuration in
@@ -115,7 +122,7 @@ func (b *pwmgrBackend) getClient(ctx context.Context, s logical.Storage) (*pwmgr
 		config = new(pwmgrConfig)
 	}
 
-	b.client, err = newClient(config)
+	b.client, err = newClient(config, b.logger)
 	if err != nil {
 		return nil, err
 	}

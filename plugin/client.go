@@ -13,10 +13,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 )
 
-type Client struct {
-	Token string
-}
-
 // This provides a default client configuration, but it's recommended
 // this is replaced by the user with application specific settings using
 // the WithClient function at the time a GraphQL is constructed.
@@ -40,15 +36,12 @@ type pwmgrClient struct {
 	URL      string
 	Token    string
 	client   *http.Client
+	renew    chan (interface{})
+	done     chan (interface{})
 	roleID   string
 	secretID string
 	store    map[string]string
 	logger   hclog.Logger
-}
-
-// SetToken allows the user to change out the token to use on calls.
-func (v *Client) SetToken(token string) {
-	v.Token = token
 }
 
 type SignInResponse struct {
@@ -74,19 +67,29 @@ type AuthRoleLoginResponse struct {
 	LeaseID       string      `json:"lease_id"`
 }
 
-func (p *pwmgrClient) autoRenew() {
+func (p *pwmgrClient) renewLoop() {
+	// TODO parameterize
+	t := time.NewTicker(45 * time.Minute)
 	for {
-		if err := p.Login(); err != nil {
-			//		p.logger.Error(err.Error())
+		select {
+		case <-p.renew:
+			if err := p.Login(); err != nil {
+				p.logger.Error(err.Error())
+			}
+			t.Reset(45 * time.Minute)
+		case <-t.C:
+			p.renew <- nil
+
+		case <-p.done:
+			return
 		}
-		time.Sleep(45 * time.Minute)
 	}
 }
 
 func (p *pwmgrClient) SignOut() error { return nil }
 
 func (p *pwmgrClient) Login() error {
-	url := fmt.Sprintf("%s/v1/auth/approle/role/pwmgr", p.URL)
+	url := fmt.Sprintf("%s/v1/auth/approle/login", p.URL)
 
 	cfg := struct {
 		RoleID   string `json:"role_id"`
@@ -114,18 +117,22 @@ func (p *pwmgrClient) Login() error {
 	if err != nil {
 		return fmt.Errorf("do: %w", err)
 	}
+	p.logger.Debug("client approle login successful")
 
 	var response AuthRoleLoginResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return fmt.Errorf("json decode: %w", err)
 	}
+	p.logger.Debug("client AuthRoleLoginResponse", "auth", fmt.Sprintf("%+v", response))
+
+	p.Token = response.Auth.ClientToken
 
 	return nil
 }
 
 // newClient creates a new client to access Pwmgr
 // and exposes it for any secrets or roles to use.
-func newClient(config *pwmgrConfig) (*pwmgrClient, error) {
+func newClient(config *pwmgrConfig, logger hclog.Logger) (*pwmgrClient, error) {
 	if config == nil {
 		return nil, errors.New("client configuration was nil")
 	}
@@ -146,11 +153,14 @@ func newClient(config *pwmgrConfig) (*pwmgrClient, error) {
 		URL:      config.URL,
 		client:   &defaultClient,
 		store:    make(map[string]string),
+		renew:    make(chan (interface{})),
+		done:     make(chan (interface{})),
 		roleID:   config.RoleID,
 		secretID: config.SecretID,
+		logger:   logger,
 	}
 
 	/* TODO add clean up logic and signaling*/
-	go pc.autoRenew()
+	go pc.renewLoop()
 	return &pc, nil
 }

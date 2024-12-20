@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -96,24 +95,13 @@ func (b *pwmgrBackend) tokenRenew(ctx context.Context, req *logical.Request, d *
 
 // createToken calls the Pwmgr client to sign in and returns a new token
 func createToken(ctx context.Context, c *pwmgrClient, username string) (*pwmgrToken, error) {
-	response, err := c.SignIn()
-	if err != nil {
-		return nil, fmt.Errorf("error creating Pwmgr token: %w", err)
-	}
 
-	tokenID := uuid.New().String()
-
-	return &pwmgrToken{
-		UserID:   response.UserID,
-		Username: username,
-		TokenID:  tokenID,
-		Token:    response.Token,
-	}, nil
+	return &pwmgrToken{}, nil
 }
 
 // deleteToken calls the Pwmgr client to sign out and revoke the token
 func deleteToken(ctx context.Context, c *pwmgrClient, token string) error {
-	c.Client.Token = token
+	c.Token = token
 	err := c.SignOut()
 
 	if err != nil {

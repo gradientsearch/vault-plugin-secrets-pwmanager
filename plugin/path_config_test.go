@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	username = "vault-plugin-testing"
-	password = "Testing!123"
+	roleID   = "vault-plugin-testing"
+	secretID = "Testing!123"
 	url      = "http://localhost:19090"
 )
 
@@ -22,30 +22,30 @@ func TestConfig(t *testing.T) {
 
 	t.Run("Test Configuration", func(t *testing.T) {
 		err := testConfigCreate(t, b, reqStorage, map[string]interface{}{
-			"username": username,
-			"password": password,
-			"url":      url,
+			"role_id":   roleID,
+			"secret_id": secretID,
+			"url":       url,
 		})
 
 		assert.NoError(t, err)
 
 		err = testConfigRead(t, b, reqStorage, map[string]interface{}{
-			"username": username,
-			"url":      url,
+			"role_id": roleID,
+			"url":     url,
 		})
 
 		assert.NoError(t, err)
 
 		err = testConfigUpdate(t, b, reqStorage, map[string]interface{}{
-			"username": username,
-			"url":      "http://pwmgr:19090",
+			"role_id": roleID,
+			"url":     "http://pwmgr:19090",
 		})
 
 		assert.NoError(t, err)
 
 		err = testConfigRead(t, b, reqStorage, map[string]interface{}{
-			"username": username,
-			"url":      "http://pwmgr:19090",
+			"role_id": roleID,
+			"url":     "http://pwmgr:19090",
 		})
 
 		assert.NoError(t, err)

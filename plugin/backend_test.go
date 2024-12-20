@@ -134,7 +134,7 @@ func (e *testEnv) CleanupUserTokens(t *testing.T) {
 		if err != nil {
 			t.Fatal("fatal getting client")
 		}
-		client.Client.Token = string(token)
+		client.Token = string(token)
 		if err := client.SignOut(); err != nil {
 			t.Fatalf("unexpected error deleting user token: %s", err)
 		}

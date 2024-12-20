@@ -19,3 +19,5 @@ vault/plugins
 
 
 !.vscode/launch.json
+
+plugin.log

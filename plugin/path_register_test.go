@@ -2,8 +2,14 @@ package secretsengine
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -12,9 +18,9 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 
+	"github.com/lestrrat-go/jwx/v3/jwk"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/pbkdf2"
-	// "github.com/lestrrat-go/jwx/v3/jwk"
 )
 
 const (
@@ -200,4 +206,107 @@ func TestKeyDerivationHelper(t *testing.T) {
 			t.Fatalf("xored should match")
 		}
 	}
+
+	// Generate an RSA private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Convert the private key to JWK format
+	jwkKey, err := jwk.Import(privateKey)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Marshal the JWK key to JSON
+	jwkJson, err := json.Marshal(jwkKey)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pubkey, err := jwkKey.PublicKey()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Marshal the JWK key to JSON
+	pubJson, err := json.Marshal(pubkey)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	symmetricKey := make([]byte, 32)
+	_, err = rand.Read(symmetricKey)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	c, err := aes.NewCipher(xored)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, nonce)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	encSymmetricKey := gcm.Seal(nonce, nonce, symmetricKey, nil)
+
+	//Get the nonce size
+	nonceSize := gcm.NonceSize()
+
+	plaintext, err := gcm.Open(nil, nonce, encSymmetricKey[nonceSize:], nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	c2, err := aes.NewCipher(xored)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	gcm2, err := cipher.NewGCM(c2)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	nonce2 := make([]byte, gcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, nonce2)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	encPrivateKey := gcm2.Seal(nonce2, nonce2, jwkJson, nil)
+
+	plaintext2, err := gcm2.Open(nil, nonce2, encPrivateKey[nonceSize:], nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Printf("%s\n", hex.EncodeToString(plaintext))
+	fmt.Printf("%s\n", (plaintext2))
+	fmt.Printf("%s\n", jwkJson)
+	fmt.Printf("%s\n", pubJson)
 }

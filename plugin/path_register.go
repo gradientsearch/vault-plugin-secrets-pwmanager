@@ -39,25 +39,32 @@ func (r *pwmgrRegisterEntry) toResponseData() map[string]interface{} {
 func pathRegister(b *pwmgrBackend) []*framework.Path {
 	return []*framework.Path{
 		{
-			Pattern: "register/" + framework.GenericNameRegex("name"),
+			Pattern: "register",
 			Fields: map[string]*framework.FieldSchema{
-				"name": {
+				"uuid": {
 					Type:        framework.TypeLowerCaseString,
-					Description: "Name of the register",
+					Description: "unique id",
 					Required:    true,
 				},
-				"username": {
+				"encSymmetricKey": {
 					Type:        framework.TypeString,
-					Description: "The username for the Pwmgr product API",
+					Description: "encrypted key that encrypts the private key",
 					Required:    true,
 				},
-				"ttl": {
-					Type:        framework.TypeDurationSecond,
-					Description: "Default lease for generated credentials. If not set or set to 0, will use system default.",
+				"encryptedBy": {
+					Type:        framework.TypeString,
+					Description: "UUID of the key that encrypts the encSymmetricKey",
+					Required:    true,
 				},
-				"max_ttl": {
-					Type:        framework.TypeDurationSecond,
-					Description: "Maximum time for register. If not set or set to 0, will use system default.",
+				"publicKey": {
+					Type:        framework.TypeString,
+					Description: "public part of the key pair",
+					Required:    true,
+				},
+				"encPrivateKey": {
+					Type:        framework.TypeString,
+					Description: "private part of the key pair",
+					Required:    true,
 				},
 			},
 			Operations: map[logical.Operation]framework.OperationHandler{

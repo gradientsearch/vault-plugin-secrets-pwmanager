@@ -180,6 +180,13 @@ func randSeq(n int) string {
 	return string(b)
 }
 
+// user unlock key
+type UUK struct {
+	EntityID        string `json:"entity_id"`
+	Salt            string `json:"salt"`
+	EncSymmetricKey string `json:"encSymmetricKey"`
+}
+
 func TestKeyDerivation(t *testing.T) {
 	password := "super-secret"                                                                      // user password secret
 	version := "H1"                                                                                 // version of pwmgr - not secret
@@ -256,6 +263,9 @@ func TestKeyDerivation(t *testing.T) {
 	// 	return
 	// }
 
+	//16, 24, or 32 bytes to select
+	// AES-128, AES-192, or AES-256.
+	// Since symmetric key is 32 bytes this is AES-256
 	c, err := aes.NewCipher(twoSKD)
 	if err != nil {
 		fmt.Println(err)
@@ -286,6 +296,28 @@ func TestKeyDerivation(t *testing.T) {
 		return
 	}
 
+	iv := encSymmetricKey[:nonceSize]
+	skj, err := jwk.Import(encSymmetricKey[nonceSize:])
+	if err != nil {
+		t.Fatal("failed importing symmetric key to jwk")
+	}
+
+	skj.Set("kid", "mp")
+	skj.Set("iv", hex.EncodeToString(iv))
+	skj.Set("pc2", "650000")
+	skj.Set("pcs", hex.EncodeToString(initialSalt))
+	skj.Set("alg", "PBKDF2-HKDF")
+	skj.Set("enc", "A256GCM")
+
+	skjJsonBytes, _ := json.Marshal(skj)
+	set := jwk.NewSet()
+
+	skjJson := string(skjJsonBytes)
+
+	fmt.Println(skjJson)
+
+	set.AddKey(skj)
+
 	c2, err := aes.NewCipher(twoSKD)
 	if err != nil {
 		fmt.Println(err)
@@ -311,6 +343,10 @@ func TestKeyDerivation(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 		return
+	}
+
+	if string(jwkJson) != hex.EncodeToString(plaintext) {
+		t.Fatal("decrypted private key does not match original")
 	}
 
 	fmt.Printf("secretID: %s\n", secretID)

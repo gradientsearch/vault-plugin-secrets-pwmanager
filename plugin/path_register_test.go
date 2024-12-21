@@ -182,195 +182,168 @@ func randSeq(n int) string {
 }
 
 func TestKeyDerivation(t *testing.T) {
+	uuk := UUK{}
+	if id, err := uuid.GenerateUUID(); err != nil {
+		t.Fatalf("failed to create uuid for UUK: %s", err)
+	} else {
+		uuk.UUID = id
+	}
+
+	// set up required values
 	password := "super-secret"                                                                      // user password secret
 	version := "H1"                                                                                 // version of pwmgr - not secret
-	mount := "pwmgr"                                                                                // secret mount - not secret
-	secret := "BNIFFWPTTPOKHRYEHEPVJHFFJOFMGDRDMCBMRW"                                              // random secret user creates locally - secret
-	secretID := fmt.Sprintf("%s%s%s", version, mount, secret)                                       // combination Secret ID - secret
+	mount := "pwmgr"                                                                                // randomSeq mount - not randomSeq
+	randomSeq := "BNIFFWPTTPOKHRYEHEPVJHFFJOFMGDRDMCBMRW"                                           // random secret user creates locally - secret
+	secretKey := fmt.Sprintf("%s%s%s", version, mount, randomSeq)                                   // combination Secret ID - secret
 	entityID := "52638ce9-c2a1-6a28-85ed-e61f3e9a697e"                                              // vault entity id (use token to look this up) - not secret
 	initialSalt := []byte{154, 130, 13, 129, 242, 173, 81, 82, 69, 126, 236, 43, 235, 86, 104, 240} // 16 byte random salt (testing we hardcode it) not secret
 
-	saltKdf := hkdf.New(sha256.New, initialSalt, []byte(entityID), []byte("HKDF"))
-	salt := make([]byte, 32)
-	if _, err := io.ReadFull(saltKdf, salt); err != nil {
+	// need this initial salt for decrypting UUK
+	uuk.EncSymKey.P2s = hex.EncodeToString(initialSalt)
+	//-----------------------------------------------------------------------
+	// 2skd functions
+
+	// // hkdf 1
+	saltHash := hkdf.New(sha256.New, initialSalt, []byte(entityID), nil)
+	saltDerivedKey := make([]byte, 32)
+	if _, err := io.ReadFull(saltHash, saltDerivedKey); err != nil {
 		panic(err)
 	}
 
+	// // password hash
 	iter := 650000
+	uuk.EncSymKey.P2c = iter
 	keyLen := 32
 
-	passwordDk := pbkdf2.Key([]byte(password), salt, iter, keyLen, sha1.New)
+	passwordDerivedKey := pbkdf2.Key([]byte(password), saltDerivedKey, iter, keyLen, sha1.New)
 
-	secretIdKdf := hkdf.New(sha256.New, []byte(secretID), []byte(mount), []byte("HKDF"))
-	secretIdDk := make([]byte, 32)
-	if _, err := io.ReadFull(secretIdKdf, secretIdDk); err != nil {
+	// // hkdf 2
+	secretKeyHash := hkdf.New(sha256.New, []byte(secretKey), []byte(mount), []byte("HKDF"))
+	secretDerivedKey := make([]byte, 32)
+	if _, err := io.ReadFull(secretKeyHash, secretDerivedKey); err != nil {
 		panic(err)
 	}
 
-	// XOR the decoded byte slices
+	// // XOR passwordDk and secret
 	twoSKD := make([]byte, 32)
-	for i := range passwordDk {
-		// xor dk and key2
-		twoSKD[i] = passwordDk[i] ^ secretIdDk[i]
+	for i := range passwordDerivedKey {
+		twoSKD[i] = passwordDerivedKey[i] ^ secretDerivedKey[i]
 	}
 
-	// Generate an RSA private key
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	//-------------------------------------------------------
+	// // create symmetric key
+
+	symmetricKey := make([]byte, 32)
+	_, err := rand.Read(symmetricKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// // encrypt symetric key with 2skd key
+
+	//16, 24, or 32 bytes to select
+	// AES-128, AES-192, or AES-256.
+	// Since symmetric key is 32 bytes this is AES-256
+	twoSkdCipher, err := aes.NewCipher(twoSKD)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	twoSkdGcm, err := cipher.NewGCM(twoSkdCipher)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	symIv := make([]byte, twoSkdGcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, symIv)
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
 
-	symmetricKey, _ := hex.DecodeString("59a8e993838166a888bd0940bd30f640ba41807b5e2df42e15a67eb057f73d7e")
+	encSymmetricKey := twoSkdGcm.Seal(symIv, symIv, []byte(symmetricKey), nil)
 
-	// symmetricKey := make([]byte, 32)
-	// _, err = rand.Read(symmetricKey)
+	// //Get the nonce size
+	// nonceSize := gcm.NonceSize()
+
+	// plaintext, err := gcm.Open(nil, symIv, encSymmetricKey[nonceSize:], nil)
 	// if err != nil {
 	// 	fmt.Println(err)
 	// 	return
 	// }
 
-	//16, 24, or 32 bytes to select
-	// AES-128, AES-192, or AES-256.
-	// Since symmetric key is 32 bytes this is AES-256
-	c, err := aes.NewCipher(twoSKD)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	// // add info to uuk - needed for users to decrypt this symmetric key later
+	uuk.EncSymKey.Data = hex.EncodeToString(encSymmetricKey)
+	uuk.EncSymKey.Iv = hex.EncodeToString(symIv)
+	uuk.EncSymKey.Enc = "A256GCM"
+	uuk.EncSymKey.Kid = uuk.UUID
+	uuk.EncSymKey.Alg = "pbkdf2-hkdf"
 
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	encSymmetricKey := gcm.Seal(nonce, nonce, []byte(symmetricKey), nil)
-
-	//Get the nonce size
-	nonceSize := gcm.NonceSize()
-
-	plaintext, err := gcm.Open(nil, nonce, encSymmetricKey[nonceSize:], nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	iv := encSymmetricKey[:nonceSize]
-	symKey, err := jwk.Import(encSymmetricKey[nonceSize:])
-	if err != nil {
-		t.Fatal("failed importing symmetric key to jwk")
-	}
-
-	symKey.Set("kid", "mp")
-	symKey.Set("iv", hex.EncodeToString(iv))
-	symKey.Set("pc2", "650000")
-	symKey.Set("pcs", hex.EncodeToString(initialSalt))
-	symKey.Set("alg", "PBKDF2-HKDF")
-	symKey.Set("enc", "A256GCM")
-
-	uukJsonBytes, _ := json.Marshal(symKey)
-	set := jwk.NewSet()
-	uukJson := string(uukJsonBytes)
-	fmt.Println(uukJson)
-
-	set.AddKey(symKey)
-
-	c2, err := aes.NewCipher(symmetricKey)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	gcm2, err := cipher.NewGCM(c2)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	nonce2 := make([]byte, gcm2.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce2)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+	//------------------------------------------------------------
 	// Private Key
-	privkeyKid, err := uuid.GenerateUUID()
+	// Generate an RSA private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		t.Fatalf("error generating uuid: %s", err)
+		t.Fatal(err)
+	}
+
+	// // encrypt private key with symmetric key
+	symmetricKeyCipher, err := aes.NewCipher(symmetricKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	symmetricKeyGcm, err := cipher.NewGCM(symmetricKeyCipher)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	privKeyIV := make([]byte, symmetricKeyGcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, privKeyIV)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// Convert the private key to JWK format
 	jwkKey, err := jwk.Import(privateKey)
 	if err != nil {
-		fmt.Println(err)
+		t.Fatal(err)
 		return
 	}
 
 	// Marshal the JWK key to JSON
 	jwkJson, err := json.Marshal(jwkKey)
 	if err != nil {
-		fmt.Println(err)
+		t.Fatal(err)
 		return
 	}
 
+	encPrivateKey := symmetricKeyGcm.Seal(privKeyIV, privKeyIV, jwkJson, nil)
+
+	// add info to the encPrivKey
+	uuk.EncPriKey.Data = hex.EncodeToString(encPrivateKey[symmetricKeyGcm.NonceSize():])
+	uuk.EncPriKey.Kid = uuk.UUID
+	uuk.EncPriKey.Iv = hex.EncodeToString(privKeyIV)
+	uuk.EncPriKey.Enc = "A256GCM"
+
+	//-------------------------------------------------------
+	// pubkey
 	pubkey, err := jwkKey.PublicKey()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	pubkey.Set("kid", privkeyKid)
+	pubkey.Set("kid", uuk.UUID)
 
-	// Marshal the JWK key to JSON
-	pubJson, err := json.Marshal(pubkey)
+	uuk.PubKey = pubkey
+
+	//----------------------------------
+	// print uuk
+	uukJson, err := json.Marshal(uuk)
 	if err != nil {
-		fmt.Println(err)
-		return
+		t.Fatal(err)
 	}
-
-	encPrivateKey := gcm2.Seal(nonce2, nonce2, jwkJson, nil)
-	encPrivateKeyOnly := encPrivateKey[nonceSize:]
-	privkeyIV := nonce2
-
-	// plaintext2, err := gcm2.Open(nil, privkeyIV, encPrivateKeyOnly, nil)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// if string(jwkJson) != string(plaintext2) {
-	// 	t.Fatal("decrypted private key does not match original")
-	// }
-
-	jwkPrivKey := EncryptedPrivateKey{}
-
-	jwkPrivKey.Data = hex.EncodeToString(encPrivateKeyOnly)
-	jwkPrivKey.Kid = privkeyKid
-	jwkPrivKey.Enc = "A256GCM"
-	jwkPrivKey.Iv = hex.EncodeToString(privkeyIV)
-
-	pkjson, err := json.Marshal(jwkPrivKey)
-	if err != nil {
-		t.Fatalf("error marshaling jskPrivkey")
-	}
-
-	fmt.Printf("%s\n", string(pkjson))
-
-	symKey := UUK{}
-
-	fmt.Printf("secretID: %s\n", secretID)
-	fmt.Printf("%s\n", hex.EncodeToString(plaintext))
-	// fmt.Printf("%s\n", (plaintext2))
-	fmt.Printf("%s\n", jwkJson)
-	fmt.Printf("%s\n", pubJson)
+	fmt.Printf("%s", uukJson)
 }
 
 type EncryptedPrivateKey struct {
@@ -388,15 +361,15 @@ type EncryptedSymmetricKey struct {
 	Data string `json:"data"`
 	Cty  string `json:"cty"`
 	Alg  string `json:"alg"`
-	P2c  string `json:"p2c"`
+	P2c  int    `json:"p2c"`
 	P2s  string `json:"p2s"`
 }
 
 // user unlock key
 type UUK struct {
-	UUID        string              `json:"uuid"`
-	EncSymKey   EncryptedPrivateKey `json:"encSymKey"`
-	EncryptedBy string              `json:"encryptedBy"`
-	EncPriKey   EncryptedPrivateKey `json:"encPriKey"`
-	PubKey      interface{}         `json:"pubkey"`
+	UUID        string                `json:"uuid"`
+	EncSymKey   EncryptedSymmetricKey `json:"encSymKey"`
+	EncryptedBy string                `json:"encryptedBy"`
+	EncPriKey   EncryptedPrivateKey   `json:"encPriKey"`
+	PubKey      interface{}           `json:"pubkey"`
 }

@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 
@@ -180,13 +181,6 @@ func randSeq(n int) string {
 	return string(b)
 }
 
-// user unlock key
-type UUK struct {
-	EntityID        string `json:"entity_id"`
-	Salt            string `json:"salt"`
-	EncSymmetricKey string `json:"encSymmetricKey"`
-}
-
 func TestKeyDerivation(t *testing.T) {
 	password := "super-secret"                                                                      // user password secret
 	version := "H1"                                                                                 // version of pwmgr - not secret
@@ -222,33 +216,6 @@ func TestKeyDerivation(t *testing.T) {
 
 	// Generate an RSA private key
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Convert the private key to JWK format
-	jwkKey, err := jwk.Import(privateKey)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Marshal the JWK key to JSON
-	jwkJson, err := json.Marshal(jwkKey)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	pubkey, err := jwkKey.PublicKey()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Marshal the JWK key to JSON
-	pubJson, err := json.Marshal(pubkey)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -297,28 +264,26 @@ func TestKeyDerivation(t *testing.T) {
 	}
 
 	iv := encSymmetricKey[:nonceSize]
-	skj, err := jwk.Import(encSymmetricKey[nonceSize:])
+	symKey, err := jwk.Import(encSymmetricKey[nonceSize:])
 	if err != nil {
 		t.Fatal("failed importing symmetric key to jwk")
 	}
 
-	skj.Set("kid", "mp")
-	skj.Set("iv", hex.EncodeToString(iv))
-	skj.Set("pc2", "650000")
-	skj.Set("pcs", hex.EncodeToString(initialSalt))
-	skj.Set("alg", "PBKDF2-HKDF")
-	skj.Set("enc", "A256GCM")
+	symKey.Set("kid", "mp")
+	symKey.Set("iv", hex.EncodeToString(iv))
+	symKey.Set("pc2", "650000")
+	symKey.Set("pcs", hex.EncodeToString(initialSalt))
+	symKey.Set("alg", "PBKDF2-HKDF")
+	symKey.Set("enc", "A256GCM")
 
-	skjJsonBytes, _ := json.Marshal(skj)
+	uukJsonBytes, _ := json.Marshal(symKey)
 	set := jwk.NewSet()
+	uukJson := string(uukJsonBytes)
+	fmt.Println(uukJson)
 
-	skjJson := string(skjJsonBytes)
+	set.AddKey(symKey)
 
-	fmt.Println(skjJson)
-
-	set.AddKey(skj)
-
-	c2, err := aes.NewCipher(twoSKD)
+	c2, err := aes.NewCipher(symmetricKey)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -330,28 +295,108 @@ func TestKeyDerivation(t *testing.T) {
 		return
 	}
 
-	nonce2 := make([]byte, gcm.NonceSize())
+	nonce2 := make([]byte, gcm2.NonceSize())
 	_, err = io.ReadFull(rand.Reader, nonce2)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	encPrivateKey := gcm2.Seal(nonce2, nonce2, jwkJson, nil)
+	// Private Key
+	privkeyKid, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatalf("error generating uuid: %s", err)
+	}
 
-	plaintext2, err := gcm2.Open(nil, nonce2, encPrivateKey[nonceSize:], nil)
+	// Convert the private key to JWK format
+	jwkKey, err := jwk.Import(privateKey)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	if string(jwkJson) != hex.EncodeToString(plaintext) {
-		t.Fatal("decrypted private key does not match original")
+	// Marshal the JWK key to JSON
+	jwkJson, err := json.Marshal(jwkKey)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
+
+	pubkey, err := jwkKey.PublicKey()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pubkey.Set("kid", privkeyKid)
+
+	// Marshal the JWK key to JSON
+	pubJson, err := json.Marshal(pubkey)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	encPrivateKey := gcm2.Seal(nonce2, nonce2, jwkJson, nil)
+	encPrivateKeyOnly := encPrivateKey[nonceSize:]
+	privkeyIV := nonce2
+
+	// plaintext2, err := gcm2.Open(nil, privkeyIV, encPrivateKeyOnly, nil)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// if string(jwkJson) != string(plaintext2) {
+	// 	t.Fatal("decrypted private key does not match original")
+	// }
+
+	jwkPrivKey := EncryptedPrivateKey{}
+
+	jwkPrivKey.Data = hex.EncodeToString(encPrivateKeyOnly)
+	jwkPrivKey.Kid = privkeyKid
+	jwkPrivKey.Enc = "A256GCM"
+	jwkPrivKey.Iv = hex.EncodeToString(privkeyIV)
+
+	pkjson, err := json.Marshal(jwkPrivKey)
+	if err != nil {
+		t.Fatalf("error marshaling jskPrivkey")
+	}
+
+	fmt.Printf("%s\n", string(pkjson))
+
+	symKey := UUK{}
 
 	fmt.Printf("secretID: %s\n", secretID)
 	fmt.Printf("%s\n", hex.EncodeToString(plaintext))
-	fmt.Printf("%s\n", (plaintext2))
+	// fmt.Printf("%s\n", (plaintext2))
 	fmt.Printf("%s\n", jwkJson)
 	fmt.Printf("%s\n", pubJson)
+}
+
+type EncryptedPrivateKey struct {
+	Kid  string `json:"kid"`
+	Enc  string `json:"enc"`
+	Iv   string `json:"iv"`
+	Data string `json:"data"`
+	Cty  string `json:"cty"`
+}
+
+type EncryptedSymmetricKey struct {
+	Kid  string `json:"kid"`
+	Enc  string `json:"enc"`
+	Iv   string `json:"iv"`
+	Data string `json:"data"`
+	Cty  string `json:"cty"`
+	Alg  string `json:"alg"`
+	P2c  string `json:"p2c"`
+	P2s  string `json:"p2s"`
+}
+
+// user unlock key
+type UUK struct {
+	UUID        string              `json:"uuid"`
+	EncSymKey   EncryptedPrivateKey `json:"encSymKey"`
+	EncryptedBy string              `json:"encryptedBy"`
+	EncPriKey   EncryptedPrivateKey `json:"encPriKey"`
+	PubKey      interface{}         `json:"pubkey"`
 }

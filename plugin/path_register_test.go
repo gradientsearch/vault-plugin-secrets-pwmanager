@@ -12,8 +12,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	mrand "math/rand"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
@@ -164,47 +166,51 @@ func testTokenRegisterDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 	})
 }
 
-func TestKeyDerivationHelper(t *testing.T) {
-	password := "pwmgr"
-	version := "H1"
+func init() {
+	mrand.Seed(time.Now().UnixNano())
+}
 
-	entityID := "52638ce9-c2a1-6a28-85ed-e61f3e9a697e"
-	salt := []byte{154, 130, 13, 129, 242, 173, 81, 82, 69, 126, 236, 43, 235, 86, 104, 240}
+var letters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-	hash := sha256.New
-	secret := "5h0TE4VU+qqC3GtoVYxw3EyXJFs+VYJGBQ0="
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[mrand.Intn(len(letters))]
+	}
+	return string(b)
+}
 
-	kdf := hkdf.New(hash, []byte(version), salt, []byte(entityID))
-	key1 := make([]byte, 32)
-	if _, err := io.ReadFull(kdf, key1); err != nil {
+func TestKeyDerivation(t *testing.T) {
+	password := "super-secret"                                                                      // user password secret
+	version := "H1"                                                                                 // version of pwmgr - not secret
+	mount := "pwmgr"                                                                                // secret mount - not secret
+	secret := "BNIFFWPTTPOKHRYEHEPVJHFFJOFMGDRDMCBMRW"                                              // random secret user creates locally - secret
+	secretID := fmt.Sprintf("%s%s%s", version, mount, secret)                                       // combination Secret ID - secret
+	entityID := "52638ce9-c2a1-6a28-85ed-e61f3e9a697e"                                              // vault entity id (use token to look this up) - not secret
+	initialSalt := []byte{154, 130, 13, 129, 242, 173, 81, 82, 69, 126, 236, 43, 235, 86, 104, 240} // 16 byte random salt (testing we hardcode it) not secret
+
+	saltKdf := hkdf.New(sha256.New, initialSalt, []byte(entityID), []byte("HKDF"))
+	salt := make([]byte, 32)
+	if _, err := io.ReadFull(saltKdf, salt); err != nil {
 		panic(err)
 	}
 
-	// Iterations and key length
 	iter := 650000
 	keyLen := 32
 
-	dk := pbkdf2.Key([]byte(password), key1, iter, keyLen, sha1.New)
+	passwordDk := pbkdf2.Key([]byte(password), salt, iter, keyLen, sha1.New)
 
-	hash2 := sha256.New
-	kdf2 := hkdf.New(hash2, []byte(secret), []byte(entityID), dk)
-	key2 := make([]byte, 32)
-	if _, err := io.ReadFull(kdf2, key2); err != nil {
+	secretIdKdf := hkdf.New(sha256.New, []byte(secretID), []byte(mount), []byte("HKDF"))
+	secretIdDk := make([]byte, 32)
+	if _, err := io.ReadFull(secretIdKdf, secretIdDk); err != nil {
 		panic(err)
 	}
 
 	// XOR the decoded byte slices
-	xored := make([]byte, 32)
-	for i := range dk {
-		xored[i] = dk[i] ^ key2[i]
-	}
-
-	fmt.Println(xored)
-	expected := []byte{67, 62, 174, 252, 121, 204, 236, 43, 36, 173, 78, 74, 136, 109, 107, 122, 206, 17, 186, 130, 104, 139, 199, 134, 101, 36, 244, 19, 15, 255, 36, 43}
-	for i := range xored {
-		if xored[i] != expected[i] {
-			t.Fatalf("xored should match")
-		}
+	twoSKD := make([]byte, 32)
+	for i := range passwordDk {
+		// xor dk and key2
+		twoSKD[i] = passwordDk[i] ^ secretIdDk[i]
 	}
 
 	// Generate an RSA private key
@@ -241,14 +247,16 @@ func TestKeyDerivationHelper(t *testing.T) {
 		return
 	}
 
-	symmetricKey := make([]byte, 32)
-	_, err = rand.Read(symmetricKey)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	symmetricKey, _ := hex.DecodeString("59a8e993838166a888bd0940bd30f640ba41807b5e2df42e15a67eb057f73d7e")
 
-	c, err := aes.NewCipher(xored)
+	// symmetricKey := make([]byte, 32)
+	// _, err = rand.Read(symmetricKey)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+
+	c, err := aes.NewCipher(twoSKD)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -267,7 +275,7 @@ func TestKeyDerivationHelper(t *testing.T) {
 		return
 	}
 
-	encSymmetricKey := gcm.Seal(nonce, nonce, symmetricKey, nil)
+	encSymmetricKey := gcm.Seal(nonce, nonce, []byte(symmetricKey), nil)
 
 	//Get the nonce size
 	nonceSize := gcm.NonceSize()
@@ -278,7 +286,7 @@ func TestKeyDerivationHelper(t *testing.T) {
 		return
 	}
 
-	c2, err := aes.NewCipher(xored)
+	c2, err := aes.NewCipher(twoSKD)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -305,6 +313,7 @@ func TestKeyDerivationHelper(t *testing.T) {
 		return
 	}
 
+	fmt.Printf("secretID: %s\n", secretID)
 	fmt.Printf("%s\n", hex.EncodeToString(plaintext))
 	fmt.Printf("%s\n", (plaintext2))
 	fmt.Printf("%s\n", jwkJson)

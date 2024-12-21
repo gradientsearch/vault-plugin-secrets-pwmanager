@@ -50,6 +50,9 @@ userpass:
 	vault auth enable userpass 
 	vault write auth/userpass/users/stephen password=hashicorp token_policies="plugins/pwmgr-user-default,pwmgr/entity/stephen"
 
+login:
+	vault write -format json auth/userpass/login/stephen password=hashicorp
+
 entity:
 	vault write /identity/entity/id/$(shell vault write -format json auth/userpass/login/stephen password=hashicorp | jq -r '.auth.entity_id' | tr -d "\n") name=stephen
 	vault policy write plugins/pwmgr-user-default policies/pwmgr_user_default.hcl

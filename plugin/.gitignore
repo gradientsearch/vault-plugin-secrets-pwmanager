@@ -21,3 +21,5 @@ vault/plugins
 !.vscode/launch.json
 
 plugin.log
+
+__debug*

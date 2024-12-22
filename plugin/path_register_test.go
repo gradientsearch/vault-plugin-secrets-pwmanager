@@ -231,6 +231,7 @@ func createUUK(password string, version string, mount string, secretKey []byte, 
 		return UUK{}, err
 	}
 
+	fmt.Printf("symKey: %s\n", hex.EncodeToString(symmetricKey))
 	// // encrypt symetric key with 2skd key
 
 	//16, 24, or 32 bytes to select
@@ -252,10 +253,11 @@ func createUUK(password string, version string, mount string, secretKey []byte, 
 		return UUK{}, err
 	}
 
-	encSymmetricKey := twoSkdGcm.Seal(symIv, symIv, []byte(symmetricKey), nil)
+	encSymKeyIvPrefix := twoSkdGcm.Seal(symIv, symIv, symmetricKey, nil)
+	encSymKey := encSymKeyIvPrefix[twoSkdGcm.NonceSize():]
 
 	// // add info to uuk - needed for users to decrypt this symmetric key later
-	uuk.EncSymKey.Data = hex.EncodeToString(encSymmetricKey)
+	uuk.EncSymKey.Data = hex.EncodeToString(encSymKey)
 	uuk.EncSymKey.Iv = hex.EncodeToString(symIv)
 	uuk.EncSymKey.Enc = "A256GCM"
 	uuk.EncSymKey.Kid = uuk.UUID
@@ -298,10 +300,10 @@ func createUUK(password string, version string, mount string, secretKey []byte, 
 		return UUK{}, err
 	}
 
-	encPrivateKey := symmetricKeyGcm.Seal(privKeyIV, privKeyIV, jwkJson, nil)
-
+	encPrivateKeyIvPrefix := symmetricKeyGcm.Seal(privKeyIV, privKeyIV, jwkJson, nil)
+	encPrivKey := encPrivateKeyIvPrefix[symmetricKeyGcm.NonceSize():]
 	// add info to the encPrivKey
-	uuk.EncPriKey.Data = hex.EncodeToString(encPrivateKey[symmetricKeyGcm.NonceSize():])
+	uuk.EncPriKey.Data = hex.EncodeToString(encPrivKey)
 	uuk.EncPriKey.Kid = uuk.UUID
 	uuk.EncPriKey.Iv = hex.EncodeToString(privKeyIV)
 	uuk.EncPriKey.Enc = "A256GCM"
@@ -401,6 +403,8 @@ func TestKeyDerivation(t *testing.T) {
 		return
 	}
 
+	fmt.Printf("symKey: %s\n", hex.EncodeToString(symmetricKey))
+
 	symmetricKeyCipher, err := aes.NewCipher(symmetricKey)
 	if err != nil {
 		t.Fatal(err)
@@ -415,10 +419,15 @@ func TestKeyDerivation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error decoding private key encrypted data: %s", err)
 	}
-	privateKey, err := symmetricKeyGcm.Open(nil, symIv, encPrivateKey, nil)
+
+	privKeyIV, err := hex.DecodeString(uuk.EncPriKey.Iv)
 	if err != nil {
-		fmt.Println(err)
-		return
+		t.Fatalf("error decoding encPrivKey Iv: %s", err)
+	}
+
+	privateKey, err := symmetricKeyGcm.Open(nil, privKeyIV, encPrivateKey, nil)
+	if err != nil {
+		t.Fatalf("failed to decrypt private key: %s", err)
 	}
 
 	jwkPivKey, err := jwk.Import(privateKey)
@@ -431,7 +440,7 @@ func TestKeyDerivation(t *testing.T) {
 		t.Fatalf("error marshaling jwkJson: %s", err)
 	}
 
-	fmt.Println(jwkJson)
+	fmt.Println(string(jwkJson))
 
 }
 

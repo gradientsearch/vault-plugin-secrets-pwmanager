@@ -1,4 +1,4 @@
-module vault-password-manager-plugin
+module github.com/gradientsearch/vault-plugin-secrets-pwmanager
 
 go 1.22.6
 

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	pwmgr "vault-password-manager-plugin"
+	pwmgr "github.com/gradientsearch/vault-plugin-secrets-pwmanager"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"

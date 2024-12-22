@@ -166,6 +166,97 @@ func testTokenRegisterDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 		Storage:   s,
 	})
 }
+func TestKeyDerivation(t *testing.T) {
+	// set up required values
+	entityID := []byte("52638ce9-c2a1-6a28-85ed-e61f3e9a697e") // vault entity id (use token to look this up) - not secret
+	password := []byte("super-secret")                         // user password secret
+	mount := []byte("pwmgr")                                   // vault mount - not secret
+	version := "H1"                                            // version of pwmgr - not secret
+	randomSeq := make([]byte, 32)                              // rand 32 byte sequence - secret
+	if _, err := io.ReadFull(rand.Reader, randomSeq); err != nil {
+		t.Fatalf("error creating random sequence of characters: %s", err)
+	}
+
+	secretKey := []byte(fmt.Sprintf("%s%s%s", version, mount, randomSeq)) // combination Secret ID - secret
+
+	// create UUK
+	uuk := UUK{}
+	err := uuk.Build(password, mount, secretKey, entityID)
+	if err != nil {
+		t.Fatalf("error creating uuk: %s", err)
+	}
+
+	priKey, err := uuk.DecryptEncPriKey(password, mount, secretKey, entityID)
+	if err != nil {
+		t.Fatalf("error decrypting prikey: %s", err)
+	}
+
+	// encrypt data
+	const payload = `gopher`
+	encrypted, err := uuk.Encrypt(payload)
+	if err != nil {
+		t.Fatalf("error encrypting payload: %s", err)
+	}
+
+	decrypted, err := uuk.Decrypt(encrypted, priKey)
+	if err != nil {
+		t.Fatalf("error decrypting payload: %s", err)
+	}
+	if string(decrypted) != payload {
+		t.Fatalf("expected %s to equal %s", decrypted, payload)
+	}
+}
+
+type EncPriKey struct {
+	// uuid
+	Kid string `json:"kid"`
+	// encoding of data e.g. A256GCM
+	Enc string `json:"enc"`
+	// initialization vector used to encrypt the priv key
+	Iv string `json:"iv"`
+	// the encrypted priv key
+	Data string `json:"data"`
+	// format used for encrypted data e.g JWK format
+	Cty string `json:"cty"`
+}
+
+// EncSymKey contains the data required to unlock the
+// users private key.
+type EncSymKey struct {
+	// uuid of the private key
+	Kid string `json:"kid"`
+	// encoding used to encrypt the data e.g. A256GCM
+	Enc string `json:"enc"`
+	// initialization
+	Iv string `json:"iv"`
+	// encrypted symmetric key
+	Data string `json:"data"`
+	// content type
+	Cty string `json:"cty"`
+	// the algorithm used to encrypt the EncSymKey e.g. 2SKD PBDKF2-HKDF
+	Alg string `json:"alg"`
+	// PBDKF2 iterations e.g. 650000
+	P2c int `json:"p2c"`
+	// initial 16 byte random sequence for secret key derivation.
+	// used in the first hkdf function call
+	P2s string `json:"p2s"`
+}
+
+// user unlock key
+// The secret key encrypts the EncSymKey, the EncSymKey
+// encrypts the users PrivateKey
+type UUK struct {
+	// uuid of priv key
+	UUID string `json:"uuid"`
+	// symmetric key used to encrypt the EncPriKey
+	EncSymKey EncSymKey `json:"encSymKey"`
+	// mp a.k.a secret key
+	EncryptedBy string `json:"encryptedBy"`
+	// priv key used to encrypt `Safe` data
+	EncPriKey EncPriKey `json:"encPriKey"`
+	// pub key of the private key
+	PubKey interface{} `json:"pubkey"`
+}
 
 // withInitializationSalt generates a random 16 byte salt and stores the result in UUK.EncSymKey.P2s
 // this salt is required in the 2SKD func
@@ -456,95 +547,4 @@ func (uuk *UUK) Decrypt(encrypted []byte, priKey jwk.Key) ([]byte, error) {
 
 	}
 	return decrypted, nil
-}
-func TestKeyDerivation(t *testing.T) {
-	// set up required values
-	entityID := []byte("52638ce9-c2a1-6a28-85ed-e61f3e9a697e") // vault entity id (use token to look this up) - not secret
-	password := []byte("super-secret")                         // user password secret
-	mount := []byte("pwmgr")                                   // vault mount - not secret
-	version := "H1"                                            // version of pwmgr - not secret
-	randomSeq := make([]byte, 32)                              // rand 32 byte sequence - secret
-	if _, err := io.ReadFull(rand.Reader, randomSeq); err != nil {
-		t.Fatalf("error creating random sequence of characters: %s", err)
-	}
-
-	secretKey := []byte(fmt.Sprintf("%s%s%s", version, mount, randomSeq)) // combination Secret ID - secret
-
-	// create UUK
-	uuk := UUK{}
-	err := uuk.Build(password, mount, secretKey, entityID)
-	if err != nil {
-		t.Fatalf("error creating uuk: %s", err)
-	}
-
-	priKey, err := uuk.DecryptEncPriKey(password, mount, secretKey, entityID)
-	if err != nil {
-		t.Fatalf("error decrypting prikey: %s", err)
-	}
-
-	// encrypt data
-	const payload = `gopher`
-	encrypted, err := uuk.Encrypt(payload)
-	if err != nil {
-		t.Fatalf("error encrypting payload: %s", err)
-	}
-
-	decrypted, err := uuk.Decrypt(encrypted, priKey)
-	if err != nil {
-		t.Fatalf("error decrypting payload: %s", err)
-	}
-	if string(decrypted) != payload {
-		t.Fatalf("expected %s to equal %s", decrypted, payload)
-	}
-}
-
-type EncPriKey struct {
-	// uuid
-	Kid string `json:"kid"`
-	// encoding of data e.g. A256GCM
-	Enc string `json:"enc"`
-	// initialization vector used to encrypt the priv key
-	Iv string `json:"iv"`
-	// the encrypted priv key
-	Data string `json:"data"`
-	// format used for encrypted data e.g JWK format
-	Cty string `json:"cty"`
-}
-
-// EncSymKey contains the data required to unlock the
-// users private key.
-type EncSymKey struct {
-	// uuid of the private key
-	Kid string `json:"kid"`
-	// encoding used to encrypt the data e.g. A256GCM
-	Enc string `json:"enc"`
-	// initialization
-	Iv string `json:"iv"`
-	// encrypted symmetric key
-	Data string `json:"data"`
-	// content type
-	Cty string `json:"cty"`
-	// the algorithm used to encrypt the EncSymKey e.g. 2SKD PBDKF2-HKDF
-	Alg string `json:"alg"`
-	// PBDKF2 iterations e.g. 650000
-	P2c int `json:"p2c"`
-	// initial 16 byte random sequence for secret key derivation.
-	// used in the first hkdf function call
-	P2s string `json:"p2s"`
-}
-
-// user unlock key
-// The secret key encrypts the EncSymKey, the EncSymKey
-// encrypts the users PrivateKey
-type UUK struct {
-	// uuid of priv key
-	UUID string `json:"uuid"`
-	// symmetric key used to encrypt the EncPriKey
-	EncSymKey EncSymKey `json:"encSymKey"`
-	// mp a.k.a secret key
-	EncryptedBy string `json:"encryptedBy"`
-	// priv key used to encrypt `Safe` data
-	EncPriKey EncPriKey `json:"encPriKey"`
-	// pub key of the private key
-	PubKey interface{} `json:"pubkey"`
 }

@@ -167,6 +167,23 @@ func testTokenRegisterDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 	})
 }
 
+// initialize salt generates a random 16 byte salt and stores the result in UUK.EncSymKey.P2s
+func (uuk *UUK) withInitializeSalt() error {
+	initialSalt := make([]byte, 16)
+	_, err := rand.Read(initialSalt)
+	if err != nil {
+		return fmt.Errorf("error generating initialization salt: %s", err)
+	}
+
+	// need this initial salt for creating 2SKD and decrypting symkey in the future
+	uuk.EncSymKey.P2s = hex.EncodeToString(initialSalt)
+	return nil
+}
+
+func (uuk *UUK) withPasswordIterations(iterations int) {
+	uuk.EncSymKey.P2c = iterations
+}
+
 // compute fills in uuk from the derived 2SKD
 func (uuk *UUK) compute(password []byte, mount []byte, secretKey []byte, entityID []byte) error {
 	if id, err := uuid.GenerateUUID(); err != nil {
@@ -175,31 +192,25 @@ func (uuk *UUK) compute(password []byte, mount []byte, secretKey []byte, entityI
 		uuk.UUID = id
 	}
 
-	initialSalt := []byte{154, 130, 13, 129, 242, 173, 81, 82, 69, 126, 236, 43, 235, 86, 104, 240} // 16 byte random salt (testing we hardcode it) not secret
-	_, err := rand.Read(initialSalt)
-	if err != nil {
+	if err := uuk.withInitializeSalt(); err != nil {
 		return err
 	}
 
-	// need this initial salt for decrypting UUK
-	uuk.EncSymKey.P2s = hex.EncodeToString(initialSalt)
+	uuk.withPasswordIterations(650000)
 
 	//-----------------------------------------------------------------------
 	// 2skd functions
 
 	// // hkdf 1
-	saltHash := hkdf.New(sha256.New, initialSalt, entityID, nil)
+	saltHash := hkdf.New(sha256.New, []byte(uuk.EncSymKey.Iv), entityID, nil)
 	saltDerivedKey := make([]byte, 32)
 	if _, err := io.ReadFull(saltHash, saltDerivedKey); err != nil {
 		return err
 	}
 
-	// // password hash
-	iter := 650000
-	uuk.EncSymKey.P2c = iter
 	keyLen := 32
 
-	passwordDerivedKey := pbkdf2.Key(password, saltDerivedKey, iter, keyLen, sha1.New)
+	passwordDerivedKey := pbkdf2.Key(password, saltDerivedKey, uuk.EncSymKey.P2c, keyLen, sha1.New)
 
 	// // hkdf 2
 	secretKeyHash := hkdf.New(sha256.New, secretKey, mount, nil)
@@ -218,7 +229,7 @@ func (uuk *UUK) compute(password []byte, mount []byte, secretKey []byte, entityI
 	// // create symmetric key
 
 	symmetricKey := make([]byte, 32)
-	_, err = rand.Read(symmetricKey)
+	_, err := rand.Read(symmetricKey)
 	if err != nil {
 		return err
 	}
@@ -446,30 +457,53 @@ func TestKeyDerivation(t *testing.T) {
 	fmt.Printf("decrypted: %s\n", decrypted)
 }
 
-type EncryptedPrivateKey struct {
-	Kid  string `json:"kid"`
-	Enc  string `json:"enc"`
-	Iv   string `json:"iv"`
+type EncPriKey struct {
+	// uuid
+	Kid string `json:"kid"`
+	// encoding of data e.g. A256GCM
+	Enc string `json:"enc"`
+	// initialization vector used to encrypt the priv key
+	Iv string `json:"iv"`
+	// the encrypted priv key
 	Data string `json:"data"`
-	Cty  string `json:"cty"`
+	// format used for encrypted data e.g JWK format
+	Cty string `json:"cty"`
 }
 
-type EncryptedSymmetricKey struct {
-	Kid  string `json:"kid"`
-	Enc  string `json:"enc"`
-	Iv   string `json:"iv"`
+// EncSymKey contains the data required to unlock the
+// users private key.
+type EncSymKey struct {
+	// uuid of the private key
+	Kid string `json:"kid"`
+	// encoding used to encrypt the data e.g. A256GCM
+	Enc string `json:"enc"`
+	// initialization
+	Iv string `json:"iv"`
+	// encrypted symmetric key
 	Data string `json:"data"`
-	Cty  string `json:"cty"`
-	Alg  string `json:"alg"`
-	P2c  int    `json:"p2c"`
-	P2s  string `json:"p2s"`
+	// content type
+	Cty string `json:"cty"`
+	// the algorithm used to encrypt the EncSymKey e.g. 2SKD PBDKF2-HKDF
+	Alg string `json:"alg"`
+	// PBDKF2 iterations e.g. 650000
+	P2c int `json:"p2c"`
+	// initial 16 byte random sequence for secret key derivation.
+	// used in the first hkdf function call
+	P2s string `json:"p2s"`
 }
 
 // user unlock key
+// The secret key encrypts the EncSymKey, the EncSymKey
+// encrypts the users PrivateKey
 type UUK struct {
-	UUID        string                `json:"uuid"`
-	EncSymKey   EncryptedSymmetricKey `json:"encSymKey"`
-	EncryptedBy string                `json:"encryptedBy"`
-	EncPriKey   EncryptedPrivateKey   `json:"encPriKey"`
-	PubKey      interface{}           `json:"pubkey"`
+	// uuid of priv key
+	UUID string `json:"uuid"`
+	// symmetric key used to encrypt the EncPriKey
+	EncSymKey EncSymKey `json:"encSymKey"`
+	// mp a.k.a secret key
+	EncryptedBy string `json:"encryptedBy"`
+	// priv key used to encrypt `Safe` data
+	EncPriKey EncPriKey `json:"encPriKey"`
+	// pub key of the private key
+	PubKey interface{} `json:"pubkey"`
 }

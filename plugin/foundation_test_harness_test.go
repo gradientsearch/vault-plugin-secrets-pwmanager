@@ -38,13 +38,13 @@ const token = "root"
 const SUCCESS string = "😃"
 const FAILURE string = "😅"
 
-func BuildPlugin() error {
+func BuildPlugin(name string) error {
 	fmt.Printf("******************** LOGS (%s) ********************\n", "build output")
 
 	app := "go"
 	arg0 := "build"
 	arg1 := "-o"
-	arg2 := "vault/plugins/pwmanager"
+	arg2 := fmt.Sprintf("vault/plugins/%s/pwmanager", name)
 	arg3 := "cmd/vault-plugin-secrets-pwmanager/main.go"
 	fmt.Println("running build command: ", app, arg0, arg1, arg2, arg3)
 	cmd := exec.Command(app, arg0, arg1, arg2, arg3)
@@ -82,7 +82,7 @@ func StartDB(name string) (Container, error) {
 	const image = "hashicorp/vault:1.18.3"
 	const port = "8200"
 
-	dockerArgs := []string{"-e", "VAULT_DEV_ROOT_TOKEN_ID=" + token, "-e", "VAULT_DEV_LISTEN_ADDRESS=" + address, "-v", "./vault/plugins:/plugins"}
+	dockerArgs := []string{"-e", "VAULT_DEV_ROOT_TOKEN_ID=" + token, "-e", "VAULT_DEV_LISTEN_ADDRESS=" + address, "-v", fmt.Sprintf("./vault/plugins/%s:/plugins", name)}
 	appArgs := []string{"server", "-dev", "-dev-root-token-id=root", "-dev-plugin-dir=/plugins", "-log-level=debug"}
 
 	c, err := StartContainer(image, name, port, dockerArgs, appArgs)
@@ -139,7 +139,7 @@ type Test struct {
 // NewTestHarness creates a test Vault Server inside a Docker container. It returns
 // the Vault client to use as well as a function to call at the end of the test.
 func NewTestHarness(t *testing.T, name string) (*Test, error) {
-	if err := BuildPlugin(); err != nil {
+	if err := BuildPlugin(name); err != nil {
 		t.Fatalf("failed to build plugin: %s", err)
 	}
 

@@ -304,9 +304,13 @@ func (uuk *UUK) withEncryptedBy(eb string) {
 }
 
 // derives the 2SKD from provided parameters
-func (uuk *UUK) twoSkd(entityID, password, secretKey, mount []byte) ([]byte, error) {
+func (uuk *UUK) twoSkd(password, mount, secretKey, entityID []byte) ([]byte, error) {
+	initialSalt, err := hex.DecodeString(uuk.EncSymKey.P2s)
+	if err != nil {
+		return nil, err
+	}
 	// hkdf 1
-	saltHash := hkdf.New(sha256.New, []byte(uuk.EncSymKey.Iv), entityID, nil)
+	saltHash := hkdf.New(sha256.New, initialSalt, entityID, nil)
 	saltDerivedKey := make([]byte, 32)
 	if _, err := io.ReadFull(saltHash, saltDerivedKey); err != nil {
 		return nil, err
@@ -328,12 +332,12 @@ func (uuk *UUK) twoSkd(entityID, password, secretKey, mount []byte) ([]byte, err
 	for i := range passwordDerivedKey {
 		twoSKD[i] = passwordDerivedKey[i] ^ secretDerivedKey[i]
 	}
-
+	fmt.Println(hex.EncodeToString(twoSKD))
 	return twoSKD, nil
 }
 
 // Build fills in uuk from the derived 2SKD
-func (uuk *UUK) Build(password []byte, mount []byte, secretKey []byte, entityID []byte) error {
+func (uuk *UUK) Build(password, mount, secretKey, entityID []byte) error {
 	if id, err := uuid.GenerateUUID(); err != nil {
 		return fmt.Errorf("failed to create uuid for UUK: %s", err)
 	} else {
@@ -346,7 +350,7 @@ func (uuk *UUK) Build(password []byte, mount []byte, secretKey []byte, entityID 
 
 	uuk.withPasswordIterations(650000)
 
-	twoSKD, err := uuk.twoSkd(entityID, password, secretKey, mount)
+	twoSKD, err := uuk.twoSkd(password, mount, secretKey, entityID)
 	if err != nil {
 		return err
 	}
@@ -370,6 +374,71 @@ func (uuk *UUK) Build(password []byte, mount []byte, secretKey []byte, entityID 
 	return nil
 }
 
+func (uuk *UUK) DecryptEncPriKey(password, mount, secretKey, entityID []byte) (jwk.Key, error) {
+	twoSKD, err := uuk.twoSkd(password, mount, secretKey, entityID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create 2SKD %s", err)
+	}
+	twoSkdCipher, err := aes.NewCipher(twoSKD)
+	if err != nil {
+		return nil, err
+	}
+
+	twoSkdGcm, err := cipher.NewGCM(twoSkdCipher)
+	if err != nil {
+		return nil, err
+	}
+
+	symIv, err := hex.DecodeString(uuk.EncSymKey.Iv)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding symmetric iv: %s", err)
+	}
+
+	encSymKey, err := hex.DecodeString(uuk.EncSymKey.Data)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding symmetric data: %s", err)
+	}
+
+	symmetricKey, err := twoSkdGcm.Open(nil, symIv, encSymKey, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// retrieve private key
+
+	symmetricKeyCipher, err := aes.NewCipher(symmetricKey)
+	if err != nil {
+		return nil, err
+	}
+
+	symmetricKeyGcm, err := cipher.NewGCM(symmetricKeyCipher)
+	if err != nil {
+		return nil, err
+	}
+
+	encPrivateKey, err := hex.DecodeString(uuk.EncPriKey.Data)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding private key encrypted data: %s", err)
+	}
+
+	privKeyIV, err := hex.DecodeString(uuk.EncPriKey.Iv)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding encPrivKey Iv: %s", err)
+	}
+
+	jwkJson, err := symmetricKeyGcm.Open(nil, privKeyIV, encPrivateKey, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt private key: %s", err)
+	}
+
+	priKey, err := jwk.ParseKey(jwkJson)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing private key: %s", err)
+	}
+
+	return priKey, nil
+}
+
 func TestKeyDerivation(t *testing.T) {
 	// set up required values
 	entityID := []byte("52638ce9-c2a1-6a28-85ed-e61f3e9a697e") // vault entity id (use token to look this up) - not secret
@@ -390,97 +459,9 @@ func TestKeyDerivation(t *testing.T) {
 		t.Fatalf("error creating uuk: %s", err)
 	}
 
-	initialSalt, err := hex.DecodeString(uuk.EncSymKey.P2s)
+	priKey, err := uuk.DecryptEncPriKey(password, mount, secretKey, entityID)
 	if err != nil {
-		t.Fatalf("error decoding P2s")
-	}
-	// // hkdf 1
-	saltHash := hkdf.New(sha256.New, initialSalt, entityID, nil)
-	saltDerivedKey := make([]byte, 32)
-	if _, err := io.ReadFull(saltHash, saltDerivedKey); err != nil {
-		t.Fatalf("error computing salt derived key: %s", err)
-	}
-
-	// // password hash
-	keyLen := 32
-
-	passwordDerivedKey := pbkdf2.Key(password, saltDerivedKey, uuk.EncSymKey.P2c, keyLen, sha1.New)
-
-	// // hkdf 2
-	secretKeyHash := hkdf.New(sha256.New, secretKey, mount, nil)
-	secretDerivedKey := make([]byte, 32)
-	if _, err := io.ReadFull(secretKeyHash, secretDerivedKey); err != nil {
-		t.Fatalf("error computing secret derived key: %s", err)
-	}
-
-	// // XOR passwordDk and secret
-	twoSKD := make([]byte, 32)
-	for i := range passwordDerivedKey {
-		twoSKD[i] = passwordDerivedKey[i] ^ secretDerivedKey[i]
-	}
-
-	//-------------------------------------------------------
-	// // retrieve symmetric key
-
-	//16, 24, or 32 bytes to select
-	// AES-128, AES-192, or AES-256.
-	// Since symmetric key is 32 bytes this is AES-256
-	twoSkdCipher, err := aes.NewCipher(twoSKD)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	twoSkdGcm, err := cipher.NewGCM(twoSkdCipher)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	symIv, err := hex.DecodeString(uuk.EncSymKey.Iv)
-	if err != nil {
-		t.Fatalf("error decoding symmetric iv: %s", err)
-	}
-
-	encSymKey, err := hex.DecodeString(uuk.EncSymKey.Data)
-	if err != nil {
-		t.Fatalf("error decoding symmetric data: %s", err)
-	}
-
-	symmetricKey, err := twoSkdGcm.Open(nil, symIv, encSymKey, nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// retrieve private key
-
-	symmetricKeyCipher, err := aes.NewCipher(symmetricKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	symmetricKeyGcm, err := cipher.NewGCM(symmetricKeyCipher)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	encPrivateKey, err := hex.DecodeString(uuk.EncPriKey.Data)
-	if err != nil {
-		t.Fatalf("error decoding private key encrypted data: %s", err)
-	}
-
-	privKeyIV, err := hex.DecodeString(uuk.EncPriKey.Iv)
-	if err != nil {
-		t.Fatalf("error decoding encPrivKey Iv: %s", err)
-	}
-
-	jwkJson, err := symmetricKeyGcm.Open(nil, privKeyIV, encPrivateKey, nil)
-	if err != nil {
-		t.Fatalf("failed to decrypt private key: %s", err)
-	}
-
-	privKey, err := jwk.ParseKey(jwkJson)
-	if err != nil {
-		t.Fatalf("error parsing private key: %s", err)
+		t.Fatalf("error decrypting prikey: %s", err)
 	}
 
 	// encrypt data
@@ -491,7 +472,7 @@ func TestKeyDerivation(t *testing.T) {
 		return
 	}
 
-	decrypted, err := jwe.Decrypt(encrypted, jwe.WithKey(jwa.RSA_OAEP(), privKey))
+	decrypted, err := jwe.Decrypt(encrypted, jwe.WithKey(jwa.RSA_OAEP(), priKey))
 	if err != nil {
 		fmt.Printf("failed to decrypt payload: %s\n", err)
 		return

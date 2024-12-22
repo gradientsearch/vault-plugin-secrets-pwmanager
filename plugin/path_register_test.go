@@ -167,8 +167,9 @@ func testTokenRegisterDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 	})
 }
 
-// initialize salt generates a random 16 byte salt and stores the result in UUK.EncSymKey.P2s
-func (uuk *UUK) withInitializeSalt() error {
+// withInitializationSalt generates a random 16 byte salt and stores the result in UUK.EncSymKey.P2s
+// this salt is required in the 2SKD func
+func (uuk *UUK) withInitializationSalt() error {
 	initialSalt := make([]byte, 16)
 	_, err := rand.Read(initialSalt)
 	if err != nil {
@@ -180,8 +181,80 @@ func (uuk *UUK) withInitializeSalt() error {
 	return nil
 }
 
+// withPasswordIterations sets the iteration count used in the 2SKD func
 func (uuk *UUK) withPasswordIterations(iterations int) {
 	uuk.EncSymKey.P2c = iterations
+}
+
+// withEncSymKey creates a symmetric key, encrypts it using the 2SKD key and stores the encrypted
+// value in UUK.EncSymKey.Data, sets non secret attributes in UUK.EncSymKey.
+// Returns the plaintext symmetric key to be used for encrypting the UUK.EncPriKey
+func (uuk *UUK) withEncSymKey(twoSKD []byte) ([]byte, error) {
+	symmetricKey := make([]byte, 32)
+	_, err := rand.Read(symmetricKey)
+	if err != nil {
+		return nil, err
+	}
+
+	//16, 24, or 32 bytes to select
+	// AES-128, AES-192, or AES-256.
+	// Since symmetric key is 32 bytes this is AES-256
+	c, err := aes.NewCipher(twoSKD)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	iv := make([]byte, gcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, iv)
+	if err != nil {
+		return nil, err
+	}
+
+	encSymKeyIvPrefix := gcm.Seal(iv, iv, symmetricKey, nil)
+	encSymKey := encSymKeyIvPrefix[gcm.NonceSize():]
+
+	// add info to uuk - needed for users to decrypt this symmetric key later
+	uuk.EncSymKey.Data = hex.EncodeToString(encSymKey)
+	uuk.EncSymKey.Iv = hex.EncodeToString(iv)
+	uuk.EncSymKey.Enc = "A256GCM"
+	uuk.EncSymKey.Kid = uuk.UUID
+	uuk.EncSymKey.Alg = "pbkdf2-hkdf"
+
+	return symmetricKey, nil
+}
+
+// derives the 2SKD from provided parameters
+func (uuk *UUK) twoSkd(entityID, password, secretKey, mount []byte) ([]byte, error) {
+	// hkdf 1
+	saltHash := hkdf.New(sha256.New, []byte(uuk.EncSymKey.Iv), entityID, nil)
+	saltDerivedKey := make([]byte, 32)
+	if _, err := io.ReadFull(saltHash, saltDerivedKey); err != nil {
+		return nil, err
+	}
+
+	// pbkdf2
+	keyLen := 32
+	passwordDerivedKey := pbkdf2.Key(password, saltDerivedKey, uuk.EncSymKey.P2c, keyLen, sha1.New)
+
+	// hkdf 2
+	secretKeyHash := hkdf.New(sha256.New, secretKey, mount, nil)
+	secretDerivedKey := make([]byte, 32)
+	if _, err := io.ReadFull(secretKeyHash, secretDerivedKey); err != nil {
+		return nil, err
+	}
+
+	// XOR passwordDk and secret
+	twoSKD := make([]byte, 32)
+	for i := range passwordDerivedKey {
+		twoSKD[i] = passwordDerivedKey[i] ^ secretDerivedKey[i]
+	}
+
+	return twoSKD, nil
 }
 
 // compute fills in uuk from the derived 2SKD
@@ -192,79 +265,21 @@ func (uuk *UUK) compute(password []byte, mount []byte, secretKey []byte, entityI
 		uuk.UUID = id
 	}
 
-	if err := uuk.withInitializeSalt(); err != nil {
+	if err := uuk.withInitializationSalt(); err != nil {
 		return err
 	}
 
 	uuk.withPasswordIterations(650000)
 
-	//-----------------------------------------------------------------------
-	// 2skd functions
-
-	// // hkdf 1
-	saltHash := hkdf.New(sha256.New, []byte(uuk.EncSymKey.Iv), entityID, nil)
-	saltDerivedKey := make([]byte, 32)
-	if _, err := io.ReadFull(saltHash, saltDerivedKey); err != nil {
-		return err
-	}
-
-	keyLen := 32
-
-	passwordDerivedKey := pbkdf2.Key(password, saltDerivedKey, uuk.EncSymKey.P2c, keyLen, sha1.New)
-
-	// // hkdf 2
-	secretKeyHash := hkdf.New(sha256.New, secretKey, mount, nil)
-	secretDerivedKey := make([]byte, 32)
-	if _, err := io.ReadFull(secretKeyHash, secretDerivedKey); err != nil {
-		return err
-	}
-
-	// // XOR passwordDk and secret
-	twoSKD := make([]byte, 32)
-	for i := range passwordDerivedKey {
-		twoSKD[i] = passwordDerivedKey[i] ^ secretDerivedKey[i]
-	}
-
-	//-------------------------------------------------------
-	// // create symmetric key
-
-	symmetricKey := make([]byte, 32)
-	_, err := rand.Read(symmetricKey)
+	twoSKD, err := uuk.twoSkd(entityID, password, secretKey, mount)
 	if err != nil {
 		return err
 	}
 
-	// // encrypt symetric key with 2skd key
-
-	//16, 24, or 32 bytes to select
-	// AES-128, AES-192, or AES-256.
-	// Since symmetric key is 32 bytes this is AES-256
-	twoSkdCipher, err := aes.NewCipher(twoSKD)
+	symmetricKey, err := uuk.withEncSymKey(twoSKD)
 	if err != nil {
 		return err
 	}
-
-	twoSkdGcm, err := cipher.NewGCM(twoSkdCipher)
-	if err != nil {
-		return err
-	}
-
-	symIv := make([]byte, twoSkdGcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, symIv)
-	if err != nil {
-		return err
-	}
-
-	encSymKeyIvPrefix := twoSkdGcm.Seal(symIv, symIv, symmetricKey, nil)
-	encSymKey := encSymKeyIvPrefix[twoSkdGcm.NonceSize():]
-
-	// // add info to uuk - needed for users to decrypt this symmetric key later
-	uuk.EncSymKey.Data = hex.EncodeToString(encSymKey)
-	uuk.EncSymKey.Iv = hex.EncodeToString(symIv)
-	uuk.EncSymKey.Enc = "A256GCM"
-	uuk.EncSymKey.Kid = uuk.UUID
-	uuk.EncSymKey.Alg = "pbkdf2-hkdf"
-
 	//------------------------------------------------------------
 	// Private Key
 	// Generate an RSA private key

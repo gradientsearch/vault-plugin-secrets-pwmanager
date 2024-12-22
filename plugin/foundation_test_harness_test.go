@@ -23,9 +23,11 @@
 package secretsengine
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -36,6 +38,43 @@ const token = "root"
 const SUCCESS string = "😃"
 const FAILURE string = "😅"
 
+func BuildPlugin() error {
+	fmt.Printf("******************** LOGS (%s) ********************\n", "build output")
+
+	app := "go"
+	arg0 := "build"
+	arg1 := "-o"
+	arg2 := "vault/plugins/pwmanager"
+	arg3 := "cmd/vault-plugin-secrets-pwmanager/main.go"
+	fmt.Println("running build command: ", app, arg0, arg1, arg2, arg3)
+	cmd := exec.Command(app, arg0, arg1, arg2, arg3)
+	stdout, err := cmd.Output()
+
+	fmt.Println(string(stdout))
+
+	return err
+
+}
+
+func TailContainerLogs(c Container) {
+	app := "docker"
+	arg0 := "logs"
+	arg1 := "-f"
+	arg2 := c.Name
+	cmd := exec.Command(app, arg0, arg1, arg2)
+
+	stderr, _ := cmd.StderrPipe()
+	cmd.Start()
+
+	scanner := bufio.NewScanner(stderr)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		m := scanner.Text()
+		fmt.Println(m)
+	}
+	cmd.Wait()
+}
+
 // StartDB starts a database instance.
 func StartDB(name string) (Container, error) {
 	const address = "0.0.0.0:8200"
@@ -43,8 +82,8 @@ func StartDB(name string) (Container, error) {
 	const image = "hashicorp/vault:1.18.3"
 	const port = "8200"
 
-	dockerArgs := []string{"-e", "VAULT_DEV_ROOT_TOKEN_ID=" + token, "-e", "VAULT_DEV_LISTEN_ADDRESS=" + address}
-	appArgs := []string{}
+	dockerArgs := []string{"-e", "VAULT_DEV_ROOT_TOKEN_ID=" + token, "-e", "VAULT_DEV_LISTEN_ADDRESS=" + address, "-v", "./vault/plugins:/plugins"}
+	appArgs := []string{"server", "-dev", "-dev-root-token-id=root", "-dev-plugin-dir=/plugins", "-log-level=debug"}
 
 	c, err := StartContainer(image, name, port, dockerArgs, appArgs)
 	if err != nil {
@@ -93,21 +132,33 @@ type Test struct {
 	Buff     *bytes.Buffer
 	Teardown func()
 	t        *testing.T
-	Vault    *vault.Client
+	api      *vault.Client
+	c        *Container
 }
 
-// NewTest creates a test Vault Server inside a Docker container. It returns
+// NewTestHarness creates a test Vault Server inside a Docker container. It returns
 // the Vault client to use as well as a function to call at the end of the test.
-func NewTest(t *testing.T, c *Container, name string) *Test {
+func NewTestHarness(t *testing.T, name string) (*Test, error) {
+	if err := BuildPlugin(); err != nil {
+		t.Fatalf("failed to build plugin: %s", err)
+	}
+
+	c, err := StartDB(name)
+	if err != nil {
+		return nil, err
+	}
+
+	go TailContainerLogs(c)
+
 	// teardown is the function that should be invoked when the caller is done
 	// with the database.
 	teardown := func() {
 		t.Helper()
+		StopDB(&c)
 		fmt.Printf("******************** LOGS (%s) ********************\n", name)
 	}
 
 	config := vault.DefaultConfig()
-
 	config.Address = "http://" + c.HostPort
 
 	v, err := vault.NewClient(config)
@@ -131,10 +182,13 @@ func NewTest(t *testing.T, c *Container, name string) *Test {
 		Buff:     &buf,
 		Teardown: teardown,
 		t:        t,
-		Vault:    v,
+		api:      v,
+		c:        &c,
 	}
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+	WaitForDB(ctx, v, t)
 
-	return &test
+	return &test, nil
 }
 
 // StringPointer is a helper to get a *string from a string. It is in the tests

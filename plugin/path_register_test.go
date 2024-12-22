@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 )
@@ -148,4 +149,28 @@ func testTokenRegisterDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 		Path:      "register/" + registerName,
 		Storage:   s,
 	})
+}
+func TestRegisterUser(t *testing.T) {
+
+	th, err := NewTestHarness(t, "TestRegisterUser")
+	if err != nil {
+		t.Fatalf("failed to start Vault container")
+	}
+	defer th.Teardown()
+
+	client := th.api
+	mi := api.MountInput{
+		Type:        "pwmanager",
+		Description: "password manager for users",
+	}
+
+	if err := client.Sys().Mount("/pwmanager", &mi); err != nil {
+		t.Fatalf("failed to create pwmanager mount")
+	}
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// t.Log(hr.LastWAL)
+
 }

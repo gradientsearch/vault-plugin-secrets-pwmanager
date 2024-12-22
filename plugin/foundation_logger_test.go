@@ -21,6 +21,7 @@
  * For more information, see the repository's changelog or commit history.
  */
 // Package logger provides support for initializing the log system.
+
 package secretsengine
 
 import (

@@ -439,6 +439,24 @@ func (uuk *UUK) DecryptEncPriKey(password, mount, secretKey, entityID []byte) (j
 	return priKey, nil
 }
 
+// Convenience func to encrypt data encrypted with users pubkey
+func (uuk *UUK) Encrypt(payload string) ([]byte, error) {
+	encrypted, err := jwe.Encrypt([]byte(payload), jwe.WithKey(jwa.RSA_OAEP(), uuk.PubKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt payload: %s\n", err)
+	}
+	return encrypted, nil
+}
+
+// Convenience func to decrypt data encrypted with users prikey
+func (uuk *UUK) Decrypt(encrypted []byte, priKey jwk.Key) ([]byte, error) {
+	decrypted, err := jwe.Decrypt(encrypted, jwe.WithKey(jwa.RSA_OAEP(), priKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt payload: %s\n", err)
+
+	}
+	return decrypted, nil
+}
 func TestKeyDerivation(t *testing.T) {
 	// set up required values
 	entityID := []byte("52638ce9-c2a1-6a28-85ed-e61f3e9a697e") // vault entity id (use token to look this up) - not secret
@@ -466,22 +484,18 @@ func TestKeyDerivation(t *testing.T) {
 
 	// encrypt data
 	const payload = `gopher`
-	encrypted, err := jwe.Encrypt([]byte(payload), jwe.WithKey(jwa.RSA_OAEP(), uuk.PubKey))
+	encrypted, err := uuk.Encrypt(payload)
 	if err != nil {
-		fmt.Printf("failed to encrypt payload: %s\n", err)
-		return
+		t.Fatalf("error encrypting payload: %s", err)
 	}
 
-	decrypted, err := jwe.Decrypt(encrypted, jwe.WithKey(jwa.RSA_OAEP(), priKey))
+	decrypted, err := uuk.Decrypt(encrypted, priKey)
 	if err != nil {
-		fmt.Printf("failed to decrypt payload: %s\n", err)
-		return
+		t.Fatalf("error decrypting payload: %s", err)
 	}
 	if string(decrypted) != payload {
 		t.Fatalf("expected %s to equal %s", decrypted, payload)
 	}
-	fmt.Printf("encrypted: %s\n", encrypted)
-	fmt.Printf("decrypted: %s\n", decrypted)
 }
 
 type EncPriKey struct {

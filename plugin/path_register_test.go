@@ -228,6 +228,81 @@ func (uuk *UUK) withEncSymKey(twoSKD []byte) ([]byte, error) {
 	return symmetricKey, nil
 }
 
+// withEncPriKey encrypts creates a private key and encrypts it using the symmetric
+// key stored in UUK.EncSymKey, stores the encrypted value in UUK.EncPriKey.Data, sets
+// non secret attributes in UUK.EncPriKey, and returns the rsa private key
+func (uuk *UUK) withEncPriKey(symmetricKey []byte) (*rsa.PrivateKey, error) {
+	//------------------------------------------------------------
+	// Private Key
+	// Generate an RSA private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+
+	// encrypt private key with symmetric key
+	c, err := aes.NewCipher(symmetricKey)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	iv := make([]byte, gcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, iv)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the private key to JWK format
+	jwkKey, err := jwk.Import(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Marshal the JWK key to JSON
+	jwkJson, err := json.Marshal(jwkKey)
+	if err != nil {
+		return nil, err
+	}
+
+	encPrivateKeyIvPrefix := gcm.Seal(iv, iv, jwkJson, nil)
+	encPrivKey := encPrivateKeyIvPrefix[gcm.NonceSize():]
+
+	// add info to the EncPrivKey
+	uuk.EncPriKey.Data = hex.EncodeToString(encPrivKey)
+	uuk.EncPriKey.Kid = uuk.UUID
+	uuk.EncPriKey.Iv = hex.EncodeToString(iv)
+	uuk.EncPriKey.Enc = "A256GCM"
+
+	return privateKey, nil
+}
+
+// withPubKey extracts the pubKey from the private key and assigns it to UUK.PubKey
+func (uuk *UUK) withPubKey(prikey *rsa.PrivateKey) error {
+	jwkPriKey, err := jwk.Import(prikey)
+	if err != nil {
+		return err
+	}
+
+	pubkey, err := jwkPriKey.PublicKey()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	pubkey.Set("kid", uuk.UUID)
+
+	uuk.PubKey = pubkey
+	return nil
+}
+
+func (uuk *UUK) withEncryptedBy(eb string) {
+	uuk.EncryptedBy = eb
+}
+
 // derives the 2SKD from provided parameters
 func (uuk *UUK) twoSkd(entityID, password, secretKey, mount []byte) ([]byte, error) {
 	// hkdf 1
@@ -257,8 +332,8 @@ func (uuk *UUK) twoSkd(entityID, password, secretKey, mount []byte) ([]byte, err
 	return twoSKD, nil
 }
 
-// compute fills in uuk from the derived 2SKD
-func (uuk *UUK) compute(password []byte, mount []byte, secretKey []byte, entityID []byte) error {
+// Build fills in uuk from the derived 2SKD
+func (uuk *UUK) Build(password []byte, mount []byte, secretKey []byte, entityID []byte) error {
 	if id, err := uuid.GenerateUUID(); err != nil {
 		return fmt.Errorf("failed to create uuid for UUK: %s", err)
 	} else {
@@ -280,61 +355,17 @@ func (uuk *UUK) compute(password []byte, mount []byte, secretKey []byte, entityI
 	if err != nil {
 		return err
 	}
-	//------------------------------------------------------------
-	// Private Key
-	// Generate an RSA private key
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+
+	priKey, err := uuk.withEncPriKey(symmetricKey)
 	if err != nil {
 		return err
 	}
 
-	// // encrypt private key with symmetric key
-	symmetricKeyCipher, err := aes.NewCipher(symmetricKey)
-	if err != nil {
+	if err := uuk.withPubKey(priKey); err != nil {
 		return err
 	}
 
-	symmetricKeyGcm, err := cipher.NewGCM(symmetricKeyCipher)
-	if err != nil {
-		return err
-	}
-
-	privKeyIV := make([]byte, symmetricKeyGcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, privKeyIV)
-	if err != nil {
-		return err
-	}
-
-	// Convert the private key to JWK format
-	jwkKey, err := jwk.Import(privateKey)
-	if err != nil {
-		return err
-	}
-
-	// Marshal the JWK key to JSON
-	jwkJson, err := json.Marshal(jwkKey)
-	if err != nil {
-		return err
-	}
-
-	encPrivateKeyIvPrefix := symmetricKeyGcm.Seal(privKeyIV, privKeyIV, jwkJson, nil)
-	encPrivKey := encPrivateKeyIvPrefix[symmetricKeyGcm.NonceSize():]
-	// add info to the encPrivKey
-	uuk.EncPriKey.Data = hex.EncodeToString(encPrivKey)
-	uuk.EncPriKey.Kid = uuk.UUID
-	uuk.EncPriKey.Iv = hex.EncodeToString(privKeyIV)
-	uuk.EncPriKey.Enc = "A256GCM"
-
-	//-------------------------------------------------------
-	// pubkey
-	pubkey, err := jwkKey.PublicKey()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	pubkey.Set("kid", uuk.UUID)
-
-	uuk.PubKey = pubkey
+	uuk.withEncryptedBy("mp")
 
 	return nil
 }
@@ -354,7 +385,7 @@ func TestKeyDerivation(t *testing.T) {
 
 	// create UUK
 	uuk := UUK{}
-	err := uuk.compute(password, mount, secretKey, entityID)
+	err := uuk.Build(password, mount, secretKey, entityID)
 	if err != nil {
 		t.Fatalf("error creating uuk: %s", err)
 	}

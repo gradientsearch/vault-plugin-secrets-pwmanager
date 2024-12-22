@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwe"
 	"github.com/lestrrat-go/jwx/v3/jwk"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/pbkdf2"
@@ -425,22 +427,30 @@ func TestKeyDerivation(t *testing.T) {
 		t.Fatalf("error decoding encPrivKey Iv: %s", err)
 	}
 
-	privateKey, err := symmetricKeyGcm.Open(nil, privKeyIV, encPrivateKey, nil)
+	jwkJson, err := symmetricKeyGcm.Open(nil, privKeyIV, encPrivateKey, nil)
 	if err != nil {
 		t.Fatalf("failed to decrypt private key: %s", err)
 	}
 
-	jwkPivKey, err := jwk.Import(privateKey)
+	privKey, err := jwk.ParseKey(jwkJson)
 	if err != nil {
-		t.Fatalf("error importing private key: %s", err)
+		t.Fatalf("error parsing private key: %s", err)
 	}
 
-	jwkJson, err := json.Marshal(jwkPivKey)
+	const payload = `gopher`
+	encrypted, err := jwe.Encrypt([]byte(payload), jwe.WithKey(jwa.RSA_OAEP(), uuk.PubKey))
 	if err != nil {
-		t.Fatalf("error marshaling jwkJson: %s", err)
+		fmt.Printf("failed to encrypt payload: %s\n", err)
+		return
 	}
 
-	fmt.Println(string(jwkJson))
+	decrypted, err := jwe.Decrypt(encrypted, jwe.WithKey(jwa.RSA_OAEP(), privKey))
+	if err != nil {
+		fmt.Printf("failed to decrypt payload: %s\n", err)
+		return
+	}
+	fmt.Printf("encrypted: %s\n", encrypted)
+	fmt.Printf("decrypted: %s\n", decrypted)
 
 }
 

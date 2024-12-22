@@ -205,6 +205,8 @@ func TestKeyDerivation(t *testing.T) {
 	if string(decrypted) != payload {
 		t.Fatalf("expected %s to equal %s", decrypted, payload)
 	}
+
+	fmt.Println(uuk.Json())
 }
 
 type EncPriKey struct {
@@ -381,7 +383,7 @@ func (uuk *UUK) withPubKey(prikey *rsa.PrivateKey) error {
 
 	pubkey, err := jwkPriKey.PublicKey()
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	pubkey.Set("kid", uuk.UUID)
@@ -423,11 +425,45 @@ func (uuk *UUK) twoSkd(password, mount, secretKey, entityID []byte) ([]byte, err
 	for i := range passwordDerivedKey {
 		twoSKD[i] = passwordDerivedKey[i] ^ secretDerivedKey[i]
 	}
-	fmt.Println(hex.EncodeToString(twoSKD))
 	return twoSKD, nil
 }
 
 // Build fills in uuk from the derived 2SKD
+// facade pattern: The order of the with funcs called is important
+// since building modifies the required UUK attributes to properly
+// build the UUK data.
+// example json output of UUK struct
+//
+//	{
+//	  "uuid": "0bbf993d-8e10-6dd0-1aa3-80019b69e332",
+//	  "encSymKey":
+//	    {
+//	      "kid": "0bbf993d-8e10-6dd0-1aa3-80019b69e332",
+//	      "enc": "A256GCM",
+//	      "iv": "05e89fa122ecae403feda8dd",
+//	      "data": "95af1a39e798f9f4bcd401c778f2f4ed40eb9f56da8c8f9a1d7b0601777b37bfd2c369af0076f5b94e4be1622003fa8b",
+//	      "cty": "",
+//	      "alg": "pbkdf2-hkdf",
+//	      "p2c": 650000,
+//	      "p2s": "26d6ee5149c95425a0251651f8b07ac0",
+//	    },
+//	  "encryptedBy": "mp",
+//	  "encPriKey":
+//	    {
+//	      "kid": "0bbf993d-8e10-6dd0-1aa3-80019b69e332",
+//	      "enc": "A256GCM",
+//	      "iv": "647ffb7da1e70cd48370101b",
+//	      "data": "809311c7ec73c746fb5c0bfa78a70a010b81853...",
+//	      "cty": "",
+//	    },
+//	  "pubkey":
+//	    {
+//	      "e": "AQAB",
+//	      "kid": "0bbf993d-8e10-6dd0-1aa3-80019b69e332",
+//	      "kty": "RSA",
+//	      "n": "3gB8w0CbpMnZCiA6QSUeCXyAsx9v...",
+//	    },
+//	}
 func (uuk *UUK) Build(password, mount, secretKey, entityID []byte) error {
 	if id, err := uuid.GenerateUUID(); err != nil {
 		return fmt.Errorf("failed to create uuid for UUK: %s", err)
@@ -465,6 +501,8 @@ func (uuk *UUK) Build(password, mount, secretKey, entityID []byte) error {
 	return nil
 }
 
+// DecryptEncPriKey decrypts the UUK EncPriKey using the EncSymKey and the the users SecretKey
+// returns priv key used to encrypt payloads
 func (uuk *UUK) DecryptEncPriKey(password, mount, secretKey, entityID []byte) (jwk.Key, error) {
 	twoSKD, err := uuk.twoSkd(password, mount, secretKey, entityID)
 	if err != nil {
@@ -547,4 +585,13 @@ func (uuk *UUK) Decrypt(encrypted []byte, priKey jwk.Key) ([]byte, error) {
 
 	}
 	return decrypted, nil
+}
+
+// returns json string of the UUK struct
+func (uuk *UUK) Json() (string, error) {
+	if j, err := json.Marshal(uuk); err != nil {
+		return "", err
+	} else {
+		return string(j), nil
+	}
 }

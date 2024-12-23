@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -157,4 +158,15 @@ func newClient(storage logical.Storage, logger hclog.Logger) *pwmgrClient {
 		storage: storage,
 	}
 	return &pc
+}
+
+// pwmanger client wrapper over the vault api client. I want to be able
+// to extend the api client but can't since the api client exists in the
+// vault repo.
+type pwmanagerClient struct {
+	c *api.Client
+}
+
+func NewPwmanagerClient(c *api.Client) *pwmanagerClient {
+	return &pwmanagerClient{c: c}
 }

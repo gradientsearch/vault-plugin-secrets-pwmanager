@@ -132,7 +132,7 @@ type Test struct {
 	Buff     *bytes.Buffer
 	Teardown func()
 	t        *testing.T
-	api      *vault.Client
+	client   *pwmanagerClient
 	c        *Container
 }
 
@@ -177,12 +177,14 @@ func NewTestHarness(t *testing.T, name string) (*Test, error) {
 	var buf bytes.Buffer
 	log := NewLogger(&buf, LevelInfo, name, func(context.Context) string { return "00000000-0000-0000-0000-000000000000" })
 
+	client := NewPwmanagerClient(v)
+
 	test := Test{
 		Log:      log,
 		Buff:     &buf,
 		Teardown: teardown,
 		t:        t,
-		api:      v,
+		client:   client,
 		c:        &c,
 	}
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)

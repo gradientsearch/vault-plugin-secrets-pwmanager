@@ -31,6 +31,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/vault/api"
 	vault "github.com/hashicorp/vault/api"
 )
 
@@ -126,19 +127,19 @@ func WaitForDB(ctx context.Context, api *vault.Client, t *testing.T) {
 	}
 }
 
-// Test owns state for running and shutting down tests.
-type Test struct {
-	Log      *Logger
-	Buff     *bytes.Buffer
-	Teardown func()
-	t        *testing.T
-	client   *pwmanagerClient
-	c        *Container
+// TestHarness owns state for running and shutting down tests.
+type TestHarness struct {
+	Log       *Logger
+	Buff      *bytes.Buffer
+	Teardown  func()
+	Testing   *testing.T
+	Client    *pwmanagerClient
+	Container *Container
 }
 
 // NewTestHarness creates a test Vault Server inside a Docker container. It returns
 // the Vault client to use as well as a function to call at the end of the test.
-func NewTestHarness(t *testing.T, name string) (*Test, error) {
+func NewTestHarness(t *testing.T, name string, tailContainer bool) (*TestHarness, error) {
 	if err := BuildPlugin(name); err != nil {
 		t.Fatalf("failed to build plugin: %s", err)
 	}
@@ -148,7 +149,9 @@ func NewTestHarness(t *testing.T, name string) (*Test, error) {
 		return nil, err
 	}
 
-	go TailContainerLogs(c)
+	if tailContainer {
+		go TailContainerLogs(c)
+	}
 
 	// teardown is the function that should be invoked when the caller is done
 	// with the database.
@@ -179,13 +182,13 @@ func NewTestHarness(t *testing.T, name string) (*Test, error) {
 
 	client := NewPwmanagerClient(v)
 
-	test := Test{
-		Log:      log,
-		Buff:     &buf,
-		Teardown: teardown,
-		t:        t,
-		client:   client,
-		c:        &c,
+	test := TestHarness{
+		Log:       log,
+		Buff:      &buf,
+		Teardown:  teardown,
+		Testing:   t,
+		Client:    client,
+		Container: &c,
 	}
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
 	WaitForDB(ctx, v, t)
@@ -212,4 +215,34 @@ func IntPointer(i int) *int {
 // but it's useful in some tests.
 func FloatPointer(f float64) *float64 {
 	return &f
+}
+
+func (t *TestHarness) WithPwManagerMount() {
+
+	mi := api.MountInput{
+		Type:        "pwmanager",
+		Description: "password manager for users",
+	}
+
+	if err := t.Client.c.Sys().Mount("/pwmanager", &mi); err != nil {
+		t.Testing.Fatalf("failed to create pwmanager mount")
+	}
+}
+
+func (t *TestHarness) WithUserpassAuth(mount string, users []string) {
+	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
+		t.Testing.Fatalf("failed to create userpass mount")
+	}
+
+	for _, u := range users {
+
+		userInfo := UserInfo{
+			Password:      "gophers",
+			TokenPolicies: []string{"plugins/pwmgr-user-default", fmt.Sprintf("pwmgr/entity/%s", u)},
+		}
+
+		if err := t.Client.Userpass().User("userpass", u, userInfo); err != nil {
+			t.Testing.Fatalf("failed to create user %s", err)
+		}
+	}
 }

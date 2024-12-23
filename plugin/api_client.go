@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -149,6 +150,20 @@ type pwmanagerClient struct {
 	c *api.Client
 }
 
-func NewPwmanagerClient(c *api.Client) *pwmanagerClient {
-	return &pwmanagerClient{c: c}
+// New
+func NewClient(token string, hostPort string) (*pwmanagerClient, error) {
+	config := vault.DefaultConfig()
+	config.Address = "http://" + hostPort
+
+	client, err := vault.NewClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize Vault client: %v", err)
+	}
+
+	client.SetToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to vault: %s", err)
+	}
+
+	return &pwmanagerClient{c: client}, nil
 }

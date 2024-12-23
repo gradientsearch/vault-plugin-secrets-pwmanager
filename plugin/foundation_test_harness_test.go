@@ -32,10 +32,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	vault "github.com/hashicorp/vault/api"
 )
 
-const token = "root"
+const rootToken = "root"
 const SUCCESS string = "😃"
 const FAILURE string = "😅"
 
@@ -57,29 +56,10 @@ func BuildPlugin(name string) error {
 
 }
 
-func TailContainerLogs(c Container) {
-	app := "docker"
-	arg0 := "logs"
-	arg1 := "-f"
-	arg2 := c.Name
-	cmd := exec.Command(app, arg0, arg1, arg2)
-
-	stderr, _ := cmd.StderrPipe()
-	cmd.Start()
-
-	scanner := bufio.NewScanner(stderr)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		m := scanner.Text()
-		fmt.Println(m)
-	}
-	cmd.Wait()
-}
-
 // StartDB starts a database instance.
 func StartDB(name string) (Container, error) {
 	const address = "0.0.0.0:8200"
-	const token = token
+	const token = rootToken
 	const image = "hashicorp/vault:1.18.3"
 	const port = "8200"
 
@@ -104,27 +84,24 @@ func StopDB(c *Container) {
 	fmt.Println("Stopped:", c.Name)
 }
 
-// WaitForDB waits for vault to be ready then returns
-func WaitForDB(ctx context.Context, api *vault.Client, t *testing.T) {
-	for attempts := 1; ; attempts++ {
-		var err error
-		if _, err = api.Sys().Health(); err == nil {
-			t.Log("Connected To Vault")
-			break
-		}
+// Tail container logs will stream docker logs -f <container name>
+func TailContainerLogs(c Container) {
+	app := "docker"
+	arg0 := "logs"
+	arg1 := "-f"
+	arg2 := c.Name
+	cmd := exec.Command(app, arg0, arg1, arg2)
 
-		t.Log("Waiting For Vault")
+	stderr, _ := cmd.StderrPipe()
+	cmd.Start()
 
-		if ctx.Err() != nil {
-			t.Fatalf("context error aborting test: %s", err)
-		}
-
-		time.Sleep(time.Duration(attempts) * 100 * time.Millisecond)
-
-		if ctx.Err() != nil {
-			t.Fatalf("context error aborting: %s", err)
-		}
+	scanner := bufio.NewScanner(stderr)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		m := scanner.Text()
+		fmt.Println(m)
 	}
+	cmd.Wait()
 }
 
 // TestHarness owns state for running and shutting down tests.
@@ -138,7 +115,7 @@ type TestHarness struct {
 }
 
 // NewTestHarness creates a test Vault Server inside a Docker container. It returns
-// the Vault client to use as well as a function to call at the end of the test.
+// the Vault root client to use as well as a teardown function to call.
 func NewTestHarness(t *testing.T, name string, tailContainer bool) (*TestHarness, error) {
 	if err := BuildPlugin(name); err != nil {
 		t.Fatalf("failed to build plugin: %s", err)
@@ -161,64 +138,61 @@ func NewTestHarness(t *testing.T, name string, tailContainer bool) (*TestHarness
 		fmt.Printf("******************** LOGS (%s) ********************\n", name)
 	}
 
-	config := vault.DefaultConfig()
-	config.Address = "http://" + c.HostPort
-
-	v, err := vault.NewClient(config)
-	if err != nil {
-		t.Fatalf("unable to initialize Vault client: %v", err)
-	}
-
-	// Authenticate
-	// WARNING: This is just for testing.
-	// Don't do this in production!
-	v.SetToken(token)
-	if err != nil {
-		t.Fatalf("error connecting to vault: %s", err)
-	}
-
 	var buf bytes.Buffer
 	log := NewLogger(&buf, LevelInfo, name, func(context.Context) string { return "00000000-0000-0000-0000-000000000000" })
 
-	client := NewPwmanagerClient(v)
-
 	test := TestHarness{
-		Log:       log,
-		Buff:      &buf,
-		Teardown:  teardown,
-		Testing:   t,
-		Client:    client,
+		Log:      log,
+		Buff:     &buf,
+		Teardown: teardown,
+		Testing:  t,
+
 		Container: &c,
 	}
+
+	test.WithClient(rootToken)
+
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
-	WaitForDB(ctx, v, t)
+	test.WaitForDB(ctx)
 
 	return &test, nil
 }
 
-// StringPointer is a helper to get a *string from a string. It is in the tests
-// package because we normally don't want to deal with pointers to basic types
-// but it's useful in some tests.
-func StringPointer(s string) *string {
-	return &s
+// WaitForDB waits for vault to be ready then returns
+func (t *TestHarness) WaitForDB(ctx context.Context) {
+	for attempts := 1; ; attempts++ {
+		var err error
+		if _, err = t.Client.c.Sys().Health(); err == nil {
+			t.Testing.Log("Connected To Vault")
+			break
+		}
+
+		t.Testing.Log("Waiting For Vault")
+
+		if ctx.Err() != nil {
+			t.Testing.Fatalf("context error aborting test: %s", err)
+		}
+
+		time.Sleep(time.Duration(attempts) * 100 * time.Millisecond)
+
+		if ctx.Err() != nil {
+			t.Testing.Fatalf("context error aborting: %s", err)
+		}
+	}
 }
 
-// IntPointer is a helper to get a *int from a int. It is in the tests package
-// because we normally don't want to deal with pointers to basic types but it's
-// useful in some tests.
-func IntPointer(i int) *int {
-	return &i
+// Add pwmanagerClient to this testHarness
+func (t *TestHarness) WithClient(token string) {
+	if client, err := NewClient(token, t.Container.HostPort); err != nil {
+		t.Testing.Fatal(err)
+	} else {
+		t.Client = client
+	}
+
 }
 
-// FloatPointer is a helper to get a *float64 from a float64. It is in the tests
-// package because we normally don't want to deal with pointers to basic types
-// but it's useful in some tests.
-func FloatPointer(f float64) *float64 {
-	return &f
-}
-
+// Add a pwmanager secrets mount to vault server
 func (t *TestHarness) WithPwManagerMount() {
-
 	mi := api.MountInput{
 		Type:        "pwmanager",
 		Description: "password manager for users",
@@ -229,12 +203,13 @@ func (t *TestHarness) WithPwManagerMount() {
 	}
 }
 
-func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]LoginResponse {
+// add userpass auth mount to vault server with users
+func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]TestUser {
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
 		t.Testing.Fatalf("failed to create userpass mount")
 	}
 
-	lrs := map[string]LoginResponse{}
+	lrs := map[string]TestUser{}
 	for _, u := range users {
 
 		userInfo := UserInfo{
@@ -249,9 +224,25 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 		if lr, err := t.Client.Userpass().Login("userpass", u, userInfo); err != nil {
 			t.Testing.Fatalf("failed to create user %s", err)
 		} else {
-			lrs[u] = lr
+			tu := TestUser{LoginResponse: lr}
+			tu.WithClient(t)
+			lrs[u] = tu
 		}
 	}
 
 	return lrs
+}
+
+type TestUser struct {
+	LoginResponse LoginResponse
+	Client        *pwmanagerClient
+}
+
+// add pwmangerClient to this testuser
+func (t *TestUser) WithClient(th *TestHarness) {
+	if client, err := NewClient(t.LoginResponse.Auth.ClientToken, th.Container.HostPort); err != nil {
+		th.Testing.Fatal(err)
+	} else {
+		t.Client = client
+	}
 }

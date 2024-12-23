@@ -207,7 +207,7 @@ func (t *TestHarness) WithPwManagerMount() {
 }
 
 // add userpass auth mount to vault server with users
-func (t *TestHarness) WithUserpassAuth(mount string, users []string, policyTemplates []string) map[string]TestUser {
+func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]TestUser {
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
 		t.Testing.Fatalf("failed to create userpass mount")
 	}
@@ -235,20 +235,24 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string, policyTempl
 			// <mount>/1/uuid (we want to keep the safe name secret). The name of the safe will
 			// be stored in the safe metadata the user will be able to decrypt and the client will
 			// display the actual safe name
-			userSafesPaths := fmt.Sprintf("%s/%s", lr.Auth.EntityID)
+			userSafesPaths := fmt.Sprintf("%s/%s", "pwmanager", lr.Auth.EntityID)
 			userAccess := Access{lr.Auth.EntityID, map[SafePath]Capabilities{SafePath(userSafesPaths): Capabilities{"create", "read", "update", "patch", "delete", "list"}}}
 			defaultUserPolicyPath := "policies/pwmanager_user_default.tmpl"
 			fs, err := os.OpenFile(defaultUserPolicyPath, os.O_RDONLY, 0444)
 			if err != nil {
 				t.Testing.Fatalf("error opening %s policy: %s", defaultUserPolicyPath, err)
 			}
-			tmplFile, err := io.ReadAll(fs)
 
-			tmpl, err := template.New("test").Parse("{{.Count}} items are made of {{.Material}}")
+			tmplFile, err := io.ReadAll(fs)
+			if err != nil {
+				t.Testing.Fatalf("error reading %s file: %s", defaultUserPolicyPath, err)
+			}
+
+			tmpl, err := template.New("test").Parse(string(tmplFile))
 			if err != nil {
 				panic(err)
 			}
-			err = tmpl.Execute(os.Stdout, userAcces)
+			err = tmpl.Execute(os.Stdout, userAccess)
 			if err != nil {
 				panic(err)
 			}

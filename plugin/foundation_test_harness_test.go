@@ -204,6 +204,15 @@ func (t *TestHarness) WithPwManagerMount() {
 	}
 }
 
+// Add policies
+func (t *TestHarness) WithPolicies(policies map[string]string) {
+	for k, v := range policies {
+		if err := t.Client.c.Sys().PutPolicy(k, v); err != nil {
+			t.Testing.Fatalf("error creating policy %s: %s", k, err)
+		}
+	}
+}
+
 // add userpass auth mount to vault server with users
 func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]TestUser {
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
@@ -215,7 +224,7 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 
 		userInfo := UserInfo{
 			Password:      "gophers",
-			TokenPolicies: []string{fmt.Sprintf("%s/user_default", mount), fmt.Sprintf("%s/entity/%s", mount, u)},
+			TokenPolicies: []string{"default", fmt.Sprintf("%s/user/default", mount), fmt.Sprintf("%s/entity/%s", mount, u)},
 		}
 
 		if err := t.Client.Userpass().User("userpass", u, userInfo); err != nil {

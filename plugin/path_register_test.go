@@ -3,6 +3,7 @@ package secretsengine
 import (
 	"context"
 	"crypto/rand"
+	"os"
 	"strconv"
 	"testing"
 
@@ -181,7 +182,18 @@ func TestRegisterUser(t *testing.T) {
 
 	mount := "pwmanager"
 	th.WithPwManagerMount()
-	users := th.WithUserpassAuth("userpass", []string{"stephen", "frank", "bob", "alice"})
+
+	userPolicy, err := os.ReadFile("policies/pwmanager_user_default.hcl")
+	if err != nil {
+		th.Testing.Fatalf("error reading user policy: %s", err)
+	}
+
+	policies := map[string]string{
+		"pwmanager/user/default": string(userPolicy),
+	}
+
+	th.WithPolicies(policies)
+	users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"})
 	stephen := users["stephen"]
 
 	stephen.WithUUK(th)

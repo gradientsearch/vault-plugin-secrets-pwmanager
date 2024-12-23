@@ -212,7 +212,7 @@ func setRegister(ctx context.Context, s logical.Storage, entityId string, regist
 // getRegister gets the register from the Vault storage API
 func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, entityID string) (*pwmgrRegisterEntry, error) {
 	if entityID == "" {
-		return nil, fmt.Errorf("missing register name")
+		return nil, fmt.Errorf("missing register entity ID")
 	}
 
 	entry, err := s.Get(ctx, "register/"+entityID)

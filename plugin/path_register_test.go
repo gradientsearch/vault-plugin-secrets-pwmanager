@@ -198,7 +198,17 @@ func TestRegisterUser(t *testing.T) {
 
 	stephen.WithUUK(th)
 
-	if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err != nil {
-		th.Testing.Fatalf("error registering user: %s", err)
+	t.Logf("Register User")
+	{
+
+		if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err != nil {
+			th.Testing.Fatalf("\t%serror registering user: %s", FAILURE, err)
+		}
+		t.Logf("\t %s should be able to register user\n", SUCCESS)
+
+		if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err == nil {
+			th.Testing.Fatalf("\t%sshould not be allowed to register more than once: %s", FAILURE, err)
+		}
+		t.Logf("\t %s should not be able to register twice\n", SUCCESS)
 	}
 }

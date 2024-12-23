@@ -131,6 +131,10 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 		return nil, err
 	}
 
+	if registerEntry != nil {
+		return logical.ErrorResponse("user already registered"), nil
+	}
+
 	if registerEntry == nil {
 		registerEntry = &pwmgrRegisterEntry{}
 	}

@@ -92,11 +92,11 @@ type UUK struct {
 	// uuid of priv key
 	UUID string `json:"uuid"`
 	// symmetric key used to encrypt the EncPriKey
-	EncSymKey EncSymKey `json:"encSymKey"`
+	EncSymKey EncSymKey `json:"enc_sym_key"`
 	// mp a.k.a secret key
-	EncryptedBy string `json:"encryptedBy"`
+	EncryptedBy string `json:"encrypted_by"`
 	// priv key used to encrypt `Safe` data
-	EncPriKey EncPriKey `json:"encPriKey"`
+	EncPriKey EncPriKey `json:"enc_pri_key"`
 	// pub key of the private key
 	PubKey interface{} `json:"pubKey"`
 }
@@ -277,7 +277,7 @@ func (uuk *UUK) twoSkd(password, mount, secretKey, entityID []byte) ([]byte, err
 //
 //	{
 //	  "uuid": "0bbf993d-8e10-6dd0-1aa3-80019b69e332",
-//	  "encSymKey":
+//	  "enc_sym_key":
 //	    {
 //	      "kid": "0bbf993d-8e10-6dd0-1aa3-80019b69e332",
 //	      "enc": "A256GCM",
@@ -288,8 +288,8 @@ func (uuk *UUK) twoSkd(password, mount, secretKey, entityID []byte) ([]byte, err
 //	      "p2c": 650000,
 //	      "p2s": "26d6ee5149c95425a0251651f8b07ac0",
 //	    },
-//	  "encryptedBy": "mp",
-//	  "encPriKey":
+//	  "encrypted_by": "mp",
+//	  "enc_pri_key":
 //	    {
 //	      "kid": "0bbf993d-8e10-6dd0-1aa3-80019b69e332",
 //	      "enc": "A256GCM",

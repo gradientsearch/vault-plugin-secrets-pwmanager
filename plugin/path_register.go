@@ -16,11 +16,11 @@ type pwmgrRegisterEntry struct {
 	// uuid of priv key
 	UUID string `json:"uuid"`
 	// symmetric key used to encrypt the EncPriKey
-	EncSymKey EncSymKey `json:"encSymKey"`
+	EncSymKey EncSymKey `json:"enc_sym_key"`
 	// mp a.k.a secret key
-	EncryptedBy string `json:"encryptedBy"`
+	EncryptedBy string `json:"encrypted_by"`
 	// priv key used to encrypt `Safe` data
-	EncPriKey EncPriKey `json:"encPriKey"`
+	EncPriKey EncPriKey `json:"enc_pri_key"`
 	// pub key of the private key
 	PubKey map[string]string `json:"pubkey"`
 }
@@ -46,12 +46,12 @@ func pathRegister(b *pwmgrBackend) []*framework.Path {
 					Description: "unique id",
 					Required:    true,
 				},
-				"encSymKey": {
+				"enc_sym_key": {
 					Type:        framework.TypeMap,
 					Description: "encrypted key that encrypts the private key",
 					Required:    true,
 				},
-				"encryptedBy": {
+				"encrypted_by": {
 					Type:        framework.TypeString,
 					Description: "UUID of the key that encrypts the encSymmetricKey",
 					Required:    true,
@@ -61,7 +61,7 @@ func pathRegister(b *pwmgrBackend) []*framework.Path {
 					Description: "public part of the key pair",
 					Required:    true,
 				},
-				"encPriKey": {
+				"enc_pri_key": {
 					Type:        framework.TypeMap,
 					Description: "private part of the key pair",
 					Required:    true,
@@ -143,7 +143,7 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 		return nil, fmt.Errorf("missing username in register")
 	}
 
-	if encSymKey, ok := d.GetOk("encSymKey"); ok {
+	if encSymKey, ok := d.GetOk("enc_sym_key"); ok {
 		if err := mapstructure.Decode(encSymKey, &registerEntry.EncSymKey); err != nil {
 			return logical.ErrorResponse("error decoding encSymKey"), nil
 		}
@@ -151,13 +151,13 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 		return logical.ErrorResponse("must have encSymKey"), nil
 	}
 
-	if encryptedBy, ok := d.GetOk("encryptedBy"); ok {
+	if encryptedBy, ok := d.GetOk("encrypted_by"); ok {
 		registerEntry.EncryptedBy = encryptedBy.(string)
 	} else if createOperation {
 		return logical.ErrorResponse("must have encryptedBy"), nil
 	}
 
-	if encPriKey, ok := d.GetOk("encPriKey"); ok {
+	if encPriKey, ok := d.GetOk("enc_pri_key"); ok {
 		if err := mapstructure.Decode(encPriKey, &registerEntry.EncPriKey); err != nil {
 			return logical.ErrorResponse("error decoding encPriKey"), nil
 		}

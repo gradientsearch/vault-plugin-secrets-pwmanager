@@ -3,8 +3,8 @@ package secretsengine
 import (
 	"context"
 	"fmt"
-	"time"
 
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -13,21 +13,21 @@ import (
 // for a Vault register to access and call the Pwmgr
 // token endpoints
 type pwmgrRegisterEntry struct {
-	Username string        `json:"username"`
-	UserID   int           `json:"user_id"`
-	Token    string        `json:"token"`
-	TokenID  string        `json:"token_id"`
-	TTL      time.Duration `json:"ttl"`
-	MaxTTL   time.Duration `json:"max_ttl"`
+	// uuid of priv key
+	UUID string `json:"uuid"`
+	// symmetric key used to encrypt the EncPriKey
+	EncSymKey EncSymKey `json:"encSymKey"`
+	// mp a.k.a secret key
+	EncryptedBy string `json:"encryptedBy"`
+	// priv key used to encrypt `Safe` data
+	EncPriKey EncPriKey `json:"encPriKey"`
+	// pub key of the private key
+	PubKey map[string]string `json:"pubkey"`
 }
 
 // toResponseData returns response data for a register
 func (r *pwmgrRegisterEntry) toResponseData() map[string]interface{} {
-	respData := map[string]interface{}{
-		"ttl":      r.TTL.Seconds(),
-		"max_ttl":  r.MaxTTL.Seconds(),
-		"username": r.Username,
-	}
+	respData := map[string]interface{}{}
 	return respData
 }
 
@@ -46,8 +46,8 @@ func pathRegister(b *pwmgrBackend) []*framework.Path {
 					Description: "unique id",
 					Required:    true,
 				},
-				"encSymmetricKey": {
-					Type:        framework.TypeString,
+				"encSymKey": {
+					Type:        framework.TypeMap,
 					Description: "encrypted key that encrypts the private key",
 					Required:    true,
 				},
@@ -56,13 +56,13 @@ func pathRegister(b *pwmgrBackend) []*framework.Path {
 					Description: "UUID of the key that encrypts the encSymmetricKey",
 					Required:    true,
 				},
-				"publicKey": {
-					Type:        framework.TypeString,
+				"pubKey": {
+					Type:        framework.TypeMap,
 					Description: "public part of the key pair",
 					Required:    true,
 				},
-				"encPrivateKey": {
-					Type:        framework.TypeString,
+				"encPriKey": {
+					Type:        framework.TypeMap,
 					Description: "private part of the key pair",
 					Required:    true,
 				},
@@ -125,12 +125,8 @@ func (b *pwmgrBackend) pathRegistersRead(ctx context.Context, req *logical.Reque
 
 // pathRegistersWrite makes a request to Vault storage to update a register based on the attributes passed to the register configuration
 func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	name, ok := d.GetOk("name")
-	if !ok {
-		return logical.ErrorResponse("missing register name"), nil
-	}
 
-	registerEntry, err := b.getRegister(ctx, req.Storage, name.(string))
+	registerEntry, err := b.getRegister(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err
 	}
@@ -141,29 +137,44 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 
 	createOperation := (req.Operation == logical.CreateOperation)
 
-	if username, ok := d.GetOk("username"); ok {
-		registerEntry.Username = username.(string)
+	if uuid, ok := d.GetOk("uuid"); ok {
+		registerEntry.UUID = uuid.(string)
 	} else if !ok && createOperation {
 		return nil, fmt.Errorf("missing username in register")
 	}
 
-	if ttlRaw, ok := d.GetOk("ttl"); ok {
-		registerEntry.TTL = time.Duration(ttlRaw.(int)) * time.Second
+	if encSymKey, ok := d.GetOk("encSymKey"); ok {
+		if err := mapstructure.Decode(encSymKey, &registerEntry.EncSymKey); err != nil {
+			return logical.ErrorResponse("error decoding encSymKey"), nil
+		}
 	} else if createOperation {
-		registerEntry.TTL = time.Duration(d.Get("ttl").(int)) * time.Second
+		return logical.ErrorResponse("must have encSymKey"), nil
 	}
 
-	if maxTTLRaw, ok := d.GetOk("max_ttl"); ok {
-		registerEntry.MaxTTL = time.Duration(maxTTLRaw.(int)) * time.Second
+	if encryptedBy, ok := d.GetOk("encryptedBy"); ok {
+		registerEntry.EncryptedBy = encryptedBy.(string)
 	} else if createOperation {
-		registerEntry.MaxTTL = time.Duration(d.Get("max_ttl").(int)) * time.Second
+		return logical.ErrorResponse("must have encryptedBy"), nil
 	}
 
-	if registerEntry.MaxTTL != 0 && registerEntry.TTL > registerEntry.MaxTTL {
-		return logical.ErrorResponse("ttl cannot be greater than max_ttl"), nil
+	if encPriKey, ok := d.GetOk("encPriKey"); ok {
+		if err := mapstructure.Decode(encPriKey, &registerEntry.EncPriKey); err != nil {
+			return logical.ErrorResponse("error decoding encPriKey"), nil
+		}
+	} else if createOperation {
+		return logical.ErrorResponse("must have encPriKey"), nil
 	}
 
-	if err := setRegister(ctx, req.Storage, name.(string), registerEntry); err != nil {
+	if pubkey, ok := d.GetOk("pubKey"); ok {
+		if err := mapstructure.Decode(pubkey, &registerEntry.PubKey); err != nil {
+			return logical.ErrorResponse("error decoding encPriKey"), nil
+		}
+
+	} else if createOperation {
+		return logical.ErrorResponse("must have pubkey"), nil
+	}
+
+	if err := setRegister(ctx, req.Storage, req.EntityID, registerEntry); err != nil {
 		return nil, err
 	}
 
@@ -181,8 +192,8 @@ func (b *pwmgrBackend) pathRegistersDelete(ctx context.Context, req *logical.Req
 }
 
 // setRegister adds the register to the Vault storage API
-func setRegister(ctx context.Context, s logical.Storage, name string, registerEntry *pwmgrRegisterEntry) error {
-	entry, err := logical.StorageEntryJSON("register/"+name, registerEntry)
+func setRegister(ctx context.Context, s logical.Storage, entityId string, registerEntry *pwmgrRegisterEntry) error {
+	entry, err := logical.StorageEntryJSON("register/"+entityId, registerEntry)
 	if err != nil {
 		return err
 	}
@@ -199,12 +210,12 @@ func setRegister(ctx context.Context, s logical.Storage, name string, registerEn
 }
 
 // getRegister gets the register from the Vault storage API
-func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, name string) (*pwmgrRegisterEntry, error) {
-	if name == "" {
+func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, entityID string) (*pwmgrRegisterEntry, error) {
+	if entityID == "" {
 		return nil, fmt.Errorf("missing register name")
 	}
 
-	entry, err := s.Get(ctx, "register/"+name)
+	entry, err := s.Get(ctx, "register/"+entityID)
 	if err != nil {
 		return nil, err
 	}

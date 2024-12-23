@@ -98,7 +98,7 @@ type UUK struct {
 	// priv key used to encrypt `Safe` data
 	EncPriKey EncPriKey `json:"encPriKey"`
 	// pub key of the private key
-	PubKey interface{} `json:"pubkey"`
+	PubKey interface{} `json:"pubKey"`
 }
 
 // withInitializationSalt generates a random 16 byte salt and stores the result in UUK.EncSymKey.P2s
@@ -435,4 +435,19 @@ func (uuk *UUK) Json() (string, error) {
 	} else {
 		return string(j), nil
 	}
+}
+
+// returns json string of the UUK struct
+func (uuk *UUK) Map() (map[string]interface{}, error) {
+
+	j, err := json.Marshal(uuk)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]any)
+	if err := json.Unmarshal(j, &m); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }

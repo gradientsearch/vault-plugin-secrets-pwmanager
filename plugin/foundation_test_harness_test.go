@@ -269,11 +269,12 @@ type TestUser struct {
 	PwManagerMount string
 	Client         *pwmanagerClient
 	UUK            UUK
+	SecretData     TestUsersSecrets
 }
 
 type TestUsersSecrets struct {
 	Password  string
-	SecretKey string
+	SecretKey []byte
 }
 
 // add pwmangerClient to this testuser
@@ -287,13 +288,14 @@ func (t *TestUser) WithClient(th *TestHarness) {
 
 func (t *TestUser) WithUUK(th *TestHarness) {
 	uuk := UUK{}
-	password := "gopphers"
-	secretKey := make([]byte, 32)
-	if _, err := rand.Read(secretKey); err != nil {
+	userSecrets := TestUsersSecrets{}
+	userSecrets.Password = "gophers"
+	userSecrets.SecretKey = make([]byte, 32)
+	if _, err := rand.Read(userSecrets.SecretKey); err != nil {
 		th.Testing.Fatalf("error creating secret key: %s; ", err)
 	}
 
-	uuk.Build([]byte(password), []byte(t.PwManagerMount), secretKey, []byte(t.LoginResponse.Auth.EntityID))
+	uuk.Build([]byte(userSecrets.Password), []byte(t.PwManagerMount), userSecrets.SecretKey, []byte(t.LoginResponse.Auth.EntityID))
 	t.UUK = uuk
 }
 

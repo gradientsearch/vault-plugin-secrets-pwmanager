@@ -50,24 +50,6 @@ type SignInResponse struct {
 	Token  string
 }
 
-type Auth struct {
-	Renewable     bool              `json:"renewable"`
-	LeaseDuration int               `json:"lease_duration"`
-	Metadata      map[string]string `json:"metadata"`
-	TokenPolicies []string          `json:"token_policies"`
-	Accessor      string            `json:"accessor"`
-	ClientToken   string            `json:"client_token"`
-}
-type AuthRoleLoginResponse struct {
-	Auth          Auth        `json:"auth"`
-	Warnings      interface{} `json:"warnings"`
-	WrapInfo      interface{} `json:wrap_info""`
-	Data          interface{} `json:"data"`
-	LeaseDuration int         `json:"lease_duration"`
-	Renewable     bool        `json:"renewable"`
-	LeaseID       string      `json:"lease_id"`
-}
-
 func (p *pwmgrClient) renewLoop() {
 
 	// TODO parameterize
@@ -134,7 +116,7 @@ func (p *pwmgrClient) Login() error {
 	}
 	p.logger.Debug("client approle login successful")
 
-	var response AuthRoleLoginResponse
+	var response LoginResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return fmt.Errorf("json decode: %w", err)
 	}

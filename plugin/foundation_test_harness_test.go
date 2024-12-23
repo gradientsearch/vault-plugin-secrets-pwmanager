@@ -229,11 +229,12 @@ func (t *TestHarness) WithPwManagerMount() {
 	}
 }
 
-func (t *TestHarness) WithUserpassAuth(mount string, users []string) {
+func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]LoginResponse {
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
 		t.Testing.Fatalf("failed to create userpass mount")
 	}
 
+	lrs := map[string]LoginResponse{}
 	for _, u := range users {
 
 		userInfo := UserInfo{
@@ -244,5 +245,13 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) {
 		if err := t.Client.Userpass().User("userpass", u, userInfo); err != nil {
 			t.Testing.Fatalf("failed to create user %s", err)
 		}
+
+		if lr, err := t.Client.Userpass().Login("userpass", u, userInfo); err != nil {
+			t.Testing.Fatalf("failed to create user %s", err)
+		} else {
+			lrs[u] = lr
+		}
 	}
+
+	return lrs
 }

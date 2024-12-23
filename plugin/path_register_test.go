@@ -2,7 +2,9 @@ package secretsengine
 
 import (
 	"context"
+	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/vault/api"
@@ -167,10 +169,30 @@ func TestRegisterUser(t *testing.T) {
 	if err := client.Sys().Mount("/pwmanager", &mi); err != nil {
 		t.Fatalf("failed to create pwmanager mount")
 	}
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
-	// t.Log(hr.LastWAL)
+	if err := client.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
+		t.Fatalf("failed to create userpass mount")
+	}
 
+	req := client.NewRequest(http.MethodPost, "/v1/auth/userpass/users/stephen")
+
+	data := `
+{
+  "password": "gophers",
+  "token_policies":["plugins/pwmgr-user-default","pwmgr/entity/stephen"]
+}
+	`
+
+	req.Body = strings.NewReader(data)
+	req.Headers.Set("Content-Type", "application/json")
+	req.Headers.Set("Accept", "application/json")
+	resp, err := client.RawRequest(req)
+
+	if err != nil {
+		t.Fatalf("error creating user stephen: %s", err)
+	}
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected status code 200 but got %d", resp.StatusCode)
+	}
 }

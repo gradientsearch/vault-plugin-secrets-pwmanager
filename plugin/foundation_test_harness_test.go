@@ -27,6 +27,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html/template"
+	"io"
+	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -204,7 +207,7 @@ func (t *TestHarness) WithPwManagerMount() {
 }
 
 // add userpass auth mount to vault server with users
-func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]TestUser {
+func (t *TestHarness) WithUserpassAuth(mount string, users []string, policyTemplates []string) map[string]TestUser {
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
 		t.Testing.Fatalf("failed to create userpass mount")
 	}
@@ -226,8 +229,33 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 		} else {
 			tu := TestUser{LoginResponse: lr}
 			tu.WithClient(t)
+
+			// user has full access to all their safes. Safes are pathed using entity-id
+			// so if my id is 1 i have access to all safes under <mount>/1/*. a safe would be
+			// <mount>/1/uuid (we want to keep the safe name secret). The name of the safe will
+			// be stored in the safe metadata the user will be able to decrypt and the client will
+			// display the actual safe name
+			userSafesPaths := fmt.Sprintf("%s/%s", lr.Auth.EntityID)
+			userAccess := Access{lr.Auth.EntityID, map[SafePath]Capabilities{SafePath(userSafesPaths): Capabilities{"create", "read", "update", "patch", "delete", "list"}}}
+			defaultUserPolicyPath := "policies/pwmanager_user_default.tmpl"
+			fs, err := os.OpenFile(defaultUserPolicyPath, os.O_RDONLY, 0444)
+			if err != nil {
+				t.Testing.Fatalf("error opening %s policy: %s", defaultUserPolicyPath, err)
+			}
+			tmplFile, err := io.ReadAll(fs)
+
+			tmpl, err := template.New("test").Parse("{{.Count}} items are made of {{.Material}}")
+			if err != nil {
+				panic(err)
+			}
+			err = tmpl.Execute(os.Stdout, userAcces)
+			if err != nil {
+				panic(err)
+			}
+
 			lrs[u] = tu
 		}
+
 	}
 
 	return lrs
@@ -245,4 +273,11 @@ func (t *TestUser) WithClient(th *TestHarness) {
 	} else {
 		t.Client = client
 	}
+}
+
+type SafePath string
+type Capabilities []string
+type Access struct {
+	EntityID string
+	Safes    map[SafePath]Capabilities
 }

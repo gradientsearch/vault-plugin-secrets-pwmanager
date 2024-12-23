@@ -157,6 +157,15 @@ func TestRegisterUser(t *testing.T) {
 	}
 	defer th.Teardown()
 
+	mount := "pwmanager"
 	th.WithPwManagerMount()
-	th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"})
+	users := th.WithUserpassAuth("userpass", []string{"stephen", "frank", "bob", "alice"})
+	stephen := users["stephen"]
+
+	stephen.WithUUK(th)
+
+	if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err != nil {
+		th.Testing.Fatalf("error registering user: %s", err)
+	}
+
 }

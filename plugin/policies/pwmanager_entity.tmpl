@@ -1,0 +1,6 @@
+{{$first := true}}
+{{ range $safePath, $capabilities := .Safes }}
+path "{{ $safePath }}" {
+capabilities = [{{ range $idx, $capability := $capabilities }}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{ $capability }}"{{ end }}]
+}
+{{ end }}   

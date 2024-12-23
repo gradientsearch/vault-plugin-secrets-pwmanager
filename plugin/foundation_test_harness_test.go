@@ -26,10 +26,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
 	"fmt"
-	"html/template"
-	"io"
-	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -217,7 +215,7 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 
 		userInfo := UserInfo{
 			Password:      "gophers",
-			TokenPolicies: []string{"plugins/pwmgr-user-default", fmt.Sprintf("pwmgr/entity/%s", u)},
+			TokenPolicies: []string{fmt.Sprintf("%s/user_default", mount), fmt.Sprintf("%s/entity/%s", mount, u)},
 		}
 
 		if err := t.Client.Userpass().User("userpass", u, userInfo); err != nil {
@@ -227,47 +225,55 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 		if lr, err := t.Client.Userpass().Login("userpass", u, userInfo); err != nil {
 			t.Testing.Fatalf("failed to create user %s", err)
 		} else {
-			tu := TestUser{LoginResponse: lr}
+			tu := TestUser{LoginResponse: lr, PwManagerMount: mount}
 			tu.WithClient(t)
-
-			// user has full access to all their safes. Safes are pathed using entity-id
-			// so if my id is 1 i have access to all safes under <mount>/1/*. a safe would be
-			// <mount>/1/uuid (we want to keep the safe name secret). The name of the safe will
-			// be stored in the safe metadata the user will be able to decrypt and the client will
-			// display the actual safe name
-			userSafesPaths := fmt.Sprintf("%s/%s", "pwmanager", lr.Auth.EntityID)
-			userAccess := Access{lr.Auth.EntityID, map[SafePath]Capabilities{SafePath(userSafesPaths): Capabilities{"create", "read", "update", "patch", "delete", "list"}}}
-			defaultUserPolicyPath := "policies/pwmanager_user_default.tmpl"
-			fs, err := os.OpenFile(defaultUserPolicyPath, os.O_RDONLY, 0444)
-			if err != nil {
-				t.Testing.Fatalf("error opening %s policy: %s", defaultUserPolicyPath, err)
-			}
-
-			tmplFile, err := io.ReadAll(fs)
-			if err != nil {
-				t.Testing.Fatalf("error reading %s file: %s", defaultUserPolicyPath, err)
-			}
-
-			tmpl, err := template.New("test").Parse(string(tmplFile))
-			if err != nil {
-				panic(err)
-			}
-			err = tmpl.Execute(os.Stdout, userAccess)
-			if err != nil {
-				panic(err)
-			}
-
 			lrs[u] = tu
 		}
-
 	}
 
 	return lrs
 }
 
+// func policy() {
+// 	// user has full access to all their safes. Safes are pathed using entity-id
+// 			// so if my id is 1 i have access to all safes under <mount>/1/*. a safe would be
+// 			// <mount>/1/uuid (we want to keep the safe name secret). The name of the safe will
+// 			// be stored in the safe metadata the user will be able to decrypt and the client will
+// 			// display the actual safe name
+// 			userSafesPaths := fmt.Sprintf("%s/%s", "pwmanager", lr.Auth.EntityID)
+// 			userAccess := Access{lr.Auth.EntityID, map[SafePath]Capabilities{SafePath(userSafesPaths): Capabilities{"create", "read", "update", "patch", "delete", "list"}}}
+// 			defaultUserPolicyPath := "policies/pwmanager_user_default.tmpl"
+// 			fs, err := os.OpenFile(defaultUserPolicyPath, os.O_RDONLY, 0444)
+// 			if err != nil {
+// 				t.Testing.Fatalf("error opening %s policy: %s", defaultUserPolicyPath, err)
+// 			}
+
+// 			tmplFile, err := io.ReadAll(fs)
+// 			if err != nil {
+// 				t.Testing.Fatalf("error reading %s file: %s", defaultUserPolicyPath, err)
+// 			}
+
+// 			tmpl, err := template.New("test").Parse(string(tmplFile))
+// 			if err != nil {
+// 				t.Testing.Fatalf("error parsing template: %s", err)
+// 			}
+// 			var b bytes.Buffer
+// 			err = tmpl.Execute(&b, userAccess)
+// 			if err != nil {
+// 				t.Testing.Fatalf("error executing template: %s", err)
+// 			}
+
+// }
 type TestUser struct {
-	LoginResponse LoginResponse
-	Client        *pwmanagerClient
+	LoginResponse  LoginResponse
+	PwManagerMount string
+	Client         *pwmanagerClient
+	UUK            UUK
+}
+
+type TestUsersSecrets struct {
+	Password  string
+	SecretKey string
 }
 
 // add pwmangerClient to this testuser
@@ -277,6 +283,18 @@ func (t *TestUser) WithClient(th *TestHarness) {
 	} else {
 		t.Client = client
 	}
+}
+
+func (t *TestUser) WithUUK(th *TestHarness) {
+	uuk := UUK{}
+	password := "gopphers"
+	secretKey := make([]byte, 32)
+	if _, err := rand.Read(secretKey); err != nil {
+		th.Testing.Fatalf("error creating secret key: %s; ", err)
+	}
+
+	uuk.Build([]byte(password), []byte(t.PwManagerMount), secretKey, []byte(t.LoginResponse.Auth.EntityID))
+	t.UUK = uuk
 }
 
 type SafePath string

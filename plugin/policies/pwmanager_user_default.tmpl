@@ -1,6 +1,0 @@
-{{ range $safePath, $capabilities := .Safes }}
-path "{{ $safePath }}" {
-capabilities = [{{ range $idx, $capability := $capabilities }} "{{ $capability }}" {{if lt (add $idx  1) (len $capabilities) }}, {{ end }}   {{ end }}]
-}
-
-{{ end }} 

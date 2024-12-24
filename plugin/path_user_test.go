@@ -32,9 +32,9 @@ func TestUserUser(t *testing.T) {
 			_, err = testTokenUserCreate(t, b, s,
 				id,
 				map[string]interface{}{
-					"username": userID,
-					"ttl":      testTTL,
-					"max_ttl":  testMaxTTL,
+					"entity_id": userID,
+					"ttl":       testTTL,
+					"max_ttl":   testMaxTTL,
 				})
 			require.NoError(t, err)
 		}
@@ -46,9 +46,9 @@ func TestUserUser(t *testing.T) {
 
 	t.Run("Create User User - pass", func(t *testing.T) {
 		resp, err := testTokenUserCreate(t, b, s, userEntityID, map[string]interface{}{
-			"username": userEntityID,
-			"ttl":      testTTL,
-			"max_ttl":  testMaxTTL,
+			"entity_id": userEntityID,
+			"ttl":       testTTL,
+			"max_ttl":   testMaxTTL,
 		})
 
 		require.Nil(t, err)
@@ -62,7 +62,7 @@ func TestUserUser(t *testing.T) {
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.NotNil(t, resp)
-		require.Equal(t, resp.Data["username"], userEntityID)
+		require.Equal(t, resp.Data["entity_id"], userEntityID)
 	})
 	t.Run("Update User User", func(t *testing.T) {
 		resp, err := testTokenUserUpdate(t, b, s, map[string]interface{}{
@@ -81,7 +81,7 @@ func TestUserUser(t *testing.T) {
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.NotNil(t, resp)
-		require.Equal(t, resp.Data["username"], userEntityID)
+		require.Equal(t, resp.Data["entity_id"], userEntityID)
 	})
 
 	t.Run("Delete User User", func(t *testing.T) {

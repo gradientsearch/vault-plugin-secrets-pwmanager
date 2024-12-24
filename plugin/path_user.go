@@ -18,9 +18,8 @@ const (
 // for a Vault user to access and call the Pwmgr
 // token endpoints
 type pwmgrUserEntry struct {
-	Username string        `json:"username"`
-	UserID   int           `json:"user_id"`
 	EntityID string        `json:"entity_id"`
+	UserID   int           `json:"user_id"`
 	Token    string        `json:"token"`
 	TokenID  string        `json:"token_id"`
 	TTL      time.Duration `json:"ttl"`
@@ -47,9 +46,9 @@ type pwmgrUUKEntry struct {
 // toResponseData returns response data for a user
 func (r *pwmgrUserEntry) toResponseData() map[string]interface{} {
 	respData := map[string]interface{}{
-		"ttl":      r.TTL.Seconds(),
-		"max_ttl":  r.MaxTTL.Seconds(),
-		"username": r.Username,
+		"ttl":       r.TTL.Seconds(),
+		"max_ttl":   r.MaxTTL.Seconds(),
+		"entity_id": r.EntityID,
 	}
 	return respData
 }
@@ -104,12 +103,7 @@ func pathUser(b *pwmgrBackend) []*framework.Path {
 			Fields: map[string]*framework.FieldSchema{
 				"entity_id": {
 					Type:        framework.TypeLowerCaseString,
-					Description: "Name of the user",
-					Required:    true,
-				},
-				"username": {
-					Type:        framework.TypeString,
-					Description: "The username for the Pwmgr product API",
+					Description: "entity id of the user",
 					Required:    true,
 				},
 				"ttl": {
@@ -195,8 +189,8 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 
 	createOperation := (req.Operation == logical.CreateOperation)
 
-	if username, ok := d.GetOk("username"); ok {
-		userEntry.Username = username.(string)
+	if username, ok := d.GetOk("entity_id"); ok {
+		userEntry.EntityID = username.(string)
 	} else if !ok && createOperation {
 		return nil, fmt.Errorf("missing username in user")
 	}

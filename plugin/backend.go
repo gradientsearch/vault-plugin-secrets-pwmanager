@@ -59,9 +59,6 @@ func backend() *pwmgrBackend {
 				pathCredentials(&b),
 			},
 		),
-		Secrets: []*framework.Secret{
-			b.pwmgrToken(),
-		},
 		BackendType:    logical.TypeLogical,
 		Invalidate:     b.invalidate,
 		InitializeFunc: b.initialize,

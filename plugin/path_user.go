@@ -328,14 +328,15 @@ func (b *pwmgrBackend) getUser(ctx context.Context, s logical.Storage, entityID 
 }
 
 const (
-	pathUserHelpSynopsis    = `Manages the Vault user for generating Pwmgr tokens.`
+	pathUserHelpSynopsis    = `Provides access to configure users UUK.`
 	pathUserHelpDescription = `
-This path allows you to read and write users used to generate Pwmgr tokens.
-You can configure a user to manage a user's token by setting the username field.
+This path allows you to read and write users UUKs.
+This allows a user to let vault manage their encryption key bundle used to decrypt
+their pw vault data.
 `
 
-	pathUserListHelpSynopsis    = `List the existing users in Pwmgr backend`
-	pathUserListHelpDescription = `Users will be listed by the user name.`
+	pathUserListHelpSynopsis    = `List the existing users`
+	pathUserListHelpDescription = `Users will be listed by the entityID.`
 
 	pathRegisterHelpSynopsis    = `Manages the Vault register endpoint for users to store their UUK.`
 	pathRegisterHelpDescription = `

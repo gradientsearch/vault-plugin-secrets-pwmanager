@@ -225,14 +225,15 @@ func TestRegisterUser(t *testing.T) {
 
 		users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"}, "stephen")
 
-		for _, v := range users {
-			v.WithUUK(th)
+		for k := range users {
+			users[k].WithUUK(th)
 		}
 
 		stephen := users["stephen"]
 		frank := users["frank"]
+		bob := users["bob"]
 
-		t.Logf("Register User Register")
+		t.Logf("Register User")
 		{
 			for k, v := range users {
 				if err := v.Client.Users().Register(mount, v.UUK); err != nil {
@@ -242,7 +243,7 @@ func TestRegisterUser(t *testing.T) {
 			}
 		}
 
-		t.Log("Register User Register Twice")
+		t.Log("Register User Twice")
 		{
 			for k, v := range users {
 
@@ -251,6 +252,30 @@ func TestRegisterUser(t *testing.T) {
 				}
 				t.Logf("\t%s should not be able to register %s twice\n", SUCCESS, k)
 			}
+		}
+
+		t.Log("GET User")
+		{
+			for k, v := range users {
+				ue, err := v.Client.Users().Get(mount, v.LoginResponse.Auth.EntityID)
+				if err != nil || ue.UUK.EncryptedBy == "" {
+					t.Fatalf("\t%s %s should be able to get users UUK: %s", FAILURE, k, err)
+				}
+				t.Logf("\t%s %s should be able to get users UUK", SUCCESS, k)
+			}
+		}
+
+		t.Log("GET another User")
+		{
+			if _, err := stephen.Client.Users().Get(mount, frank.LoginResponse.Auth.EntityID); err == nil {
+				t.Fatalf("\t%s stephen should not be able to get franks uuk: %s", FAILURE, err)
+			}
+			t.Logf("\t%s stephen should not be able to get franks uuk\n", SUCCESS)
+
+			if _, err := frank.Client.Users().Get(mount, stephen.LoginResponse.Auth.EntityID); err == nil {
+				t.Fatalf("\t%s frank should not be able to get stephens uuk: %s", FAILURE, err)
+			}
+			t.Logf("\t%s frank should not be able to get stephens uuk\n", SUCCESS)
 		}
 
 		t.Log("Update User")
@@ -283,6 +308,29 @@ func TestRegisterUser(t *testing.T) {
 				t.Fatalf("\t%s stephen should be able to list users: %s", FAILURE, err)
 			}
 			t.Logf("\t%s stephen should be able to list users", SUCCESS)
+
+			if _, err := frank.Client.Users().List(mount); err == nil {
+				t.Fatalf("\t%s frank should not be able to list users: %s", FAILURE, err)
+			}
+			t.Logf("\t%s frank should not be able to list users", SUCCESS)
+		}
+
+		t.Log("Delete User")
+		{
+			if err := stephen.Client.Users().Delete(mount, bob.LoginResponse.Auth.EntityID); err != nil {
+				t.Fatalf("\t%s stephen should be able to delete user bob: %s", FAILURE, err)
+			}
+			t.Logf("\t%s stephen should be able to delete user bob", SUCCESS)
+
+			if err := frank.Client.Users().Delete(mount, bob.LoginResponse.Auth.EntityID); err == nil {
+				t.Fatalf("\t%s frank should not be able to delete user bob: %s", FAILURE, err)
+			}
+			t.Logf("\t%s frank should not be able to delete user bob", SUCCESS)
+
+			if err := frank.Client.Users().Delete(mount, frank.LoginResponse.Auth.EntityID); err == nil {
+				t.Fatalf("\t%s frank should not be able to delete user frank: %s", FAILURE, err)
+			}
+			t.Logf("\t%s frank should not be able to delete user frank", SUCCESS)
 		}
 	}
 }

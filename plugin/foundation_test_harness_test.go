@@ -215,13 +215,13 @@ func (t *TestHarness) WithPolicies(policies map[string]string) {
 }
 
 // add userpass auth mount to vault server with users
-func (t *TestHarness) WithUserpassAuth(mount string, users []string, adminUser string) map[string]TestUser {
+func (t *TestHarness) WithUserpassAuth(mount string, users []string, adminUser string) map[string]*TestUser {
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
 		t.Testing.Fatalf("failed to create userpass mount")
 	}
 	t.Testing.Log("successfully created /userpass mount ")
 
-	lrs := map[string]TestUser{}
+	lrs := map[string]*TestUser{}
 	for _, u := range users {
 
 		userInfo := UserInfo{
@@ -244,7 +244,7 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string, adminUser s
 			t.Testing.Logf("successfully logged in user %s to /userpass\n", u)
 			tu := TestUser{LoginResponse: lr, PwManagerMount: mount}
 			tu.WithClient(t)
-			lrs[u] = tu
+			lrs[u] = &tu
 		}
 	}
 

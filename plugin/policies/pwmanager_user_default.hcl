@@ -4,5 +4,5 @@ path "pwmanager/register" {
 }
 
 path "pwmanager/users/{{ identity.entity.id }}" {
-    capabilities = ["update"]
+    capabilities = ["update", "read"]
 }

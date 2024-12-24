@@ -53,7 +53,14 @@ func (c *Users) Register(mount string, uuk UUK) error {
 
 func (c *Users) Update(mount string, entityID string, uuk UUK) error {
 	r := c.c.NewRequest("POST", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
-	var data pwmgrUserEntry
+	data := struct {
+		EntityID string `json:"entity_id"`
+		UUK      UUK    `string:"uuk"`
+	}{
+		EntityID: entityID,
+		UUK:      uuk,
+	}
+
 	if err := r.SetJSONBody(data); err != nil {
 		return err
 	}
@@ -97,6 +104,48 @@ func (c *Users) List(mount string) ([]string, error) {
 	return result, nil
 }
 
+func (c *Users) Delete(mount string, entityID string) error {
+	r := c.c.NewRequest("DELETE", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+// Get returns a users UUK
+func (c *Users) Get(mount string, entityID string) (pwmgrUserEntry, error) {
+	r := c.c.NewRequest("GET", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return pwmgrUserEntry{}, err
+	}
+	defer resp.Body.Close()
+
+	secret, err := api.ParseSecret(resp.Body)
+	if err != nil {
+		return pwmgrUserEntry{}, err
+	}
+	if secret == nil || secret.Data == nil {
+		return pwmgrUserEntry{}, fmt.Errorf("data from server response is empty")
+	}
+
+	var result pwmgrUserEntry
+	err = mapstructure.Decode(secret.Data, &result)
+	if err != nil {
+		return pwmgrUserEntry{}, err
+	}
+	return result, nil
+}
+
 type EncPriKey struct {
 	// uuid
 	Kid string `json:"kid"`
@@ -114,22 +163,22 @@ type EncPriKey struct {
 // users private key.
 type EncSymKey struct {
 	// uuid of the private key
-	Kid string `json:"kid"`
+	Kid string `json:"kid" mapstructure:"kid"`
 	// encoding used to encrypt the data e.g. A256GCM
-	Enc string `json:"enc"`
+	Enc string `json:"enc" mapstructure:"enc"`
 	// initialization
-	Iv string `json:"iv"`
+	Iv string `json:"iv" mapstructure:"iv"`
 	// encrypted symmetric key
-	Data string `json:"data"`
+	Data string `json:"data" mapstructure:"data"`
 	// content type
-	Cty string `json:"cty"`
+	Cty string `json:"cty" mapstructure:"cty"`
 	// the algorithm used to encrypt the EncSymKey e.g. 2SKD PBDKF2-HKDF
-	Alg string `json:"alg"`
+	Alg string `json:"alg" mapstructure:"alg"`
 	// PBDKF2 iterations e.g. 650000
-	P2c int `json:"p2c"`
+	P2c int `json:"p2c" mapstructure:"p2c"`
 	// initial 16 byte random sequence for secret key derivation.
 	// used in the first hkdf function call
-	P2s string `json:"p2s"`
+	P2s string `json:"p2s" mapstructure:"p2s"`
 }
 
 // user unlock key

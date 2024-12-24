@@ -17,8 +17,8 @@ const (
 // for a Vault user to access and call the Pwmgr
 // token endpoints
 type pwmgrUserEntry struct {
-	EntityID string        `json:"entity_id"`
-	UUK      pwmgrUUKEntry `json:"uuk"`
+	EntityID string        `json:"entity_id" mapstructure:"entity_id"`
+	UUK      pwmgrUUKEntry `json:"uuk" mapstructure:"uuk"`
 }
 
 // pwmgrUUKEntry defines the data required
@@ -26,23 +26,24 @@ type pwmgrUserEntry struct {
 // token endpoints
 type pwmgrUUKEntry struct {
 	// uuid of priv key
-	UUID string `json:"uuid"`
+	UUID string `json:"uuid" mapstructure:"uuid"`
 	// symmetric key used to encrypt the EncPriKey
-	EncSymKey EncSymKey `json:"enc_sym_key"`
+	EncSymKey EncSymKey `json:"enc_sym_key" mapstructure:"enc_sym_key"`
 	// mp a.k.a secret key
-	EncryptedBy string `json:"encrypted_by"`
+	EncryptedBy string `json:"encrypted_by" mapstructure:"encrypted_by"`
 	// priv key used to encrypt `Safe` data
-	EncPriKey EncPriKey `json:"enc_pri_key"`
+	EncPriKey EncPriKey `json:"enc_pri_key" mapstructure:"enc_pri_key"`
 	// pub key of the private key
-	PubKey map[string]string `json:"pubkey"`
+	PubKey map[string]string `json:"pubkey" mapstructure:"pubkey"`
 }
 
 // toResponseData returns response data for a user
 func (r *pwmgrUserEntry) toResponseData() map[string]interface{} {
 	respData := map[string]interface{}{
-
 		"entity_id": r.EntityID,
+		"uuk":       r.UUK,
 	}
+
 	return respData
 }
 
@@ -195,7 +196,7 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 		return nil, fmt.Errorf("missing username in user")
 	}
 
-	if err := setUser(ctx, req.Storage, req.EntityID, userEntry); err != nil {
+	if err := b.setUser(ctx, req.Storage, req.EntityID, userEntry); err != nil {
 		return nil, err
 	}
 
@@ -268,7 +269,7 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 	userEntry.EntityID = req.EntityID
 	userEntry.UUK = registerEntry
 
-	if err := setUser(ctx, req.Storage, req.EntityID, &userEntry); err != nil {
+	if err := b.setUser(ctx, req.Storage, req.EntityID, &userEntry); err != nil {
 		return nil, err
 	}
 
@@ -286,7 +287,7 @@ func (b *pwmgrBackend) pathUserExistenceCheck(ctx context.Context, req *logical.
 }
 
 // setRegister adds the register to the Vault storage API
-func setUser(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwmgrUserEntry) error {
+func (b *pwmgrBackend) setUser(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwmgrUserEntry) error {
 	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/%s", USER_SCHEMA, entityID), registerEntry)
 	if err != nil {
 		return err
@@ -318,12 +319,12 @@ func (b *pwmgrBackend) getUser(ctx context.Context, s logical.Storage, entityID 
 		return nil, nil
 	}
 
-	var register pwmgrUserEntry
-
+	register := new(pwmgrUserEntry)
 	if err := entry.DecodeJSON(&register); err != nil {
 		return nil, err
 	}
-	return &register, nil
+
+	return register, nil
 }
 
 const (

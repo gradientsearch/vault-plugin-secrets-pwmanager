@@ -4,7 +4,6 @@ package secretsengine
 import (
 	"fmt"
 
-	"github.com/hashicorp/vault/api"
 	vault "github.com/hashicorp/vault/api"
 )
 
@@ -12,10 +11,10 @@ import (
 // to extend the api client but can't since the api client exists in the
 // vault repo.
 type pwmanagerClient struct {
-	c *api.Client
+	c *vault.Client
 }
 
-// New
+// NewClient returns a wrapped vault api client.
 func NewClient(token string, hostPort string) (*pwmanagerClient, error) {
 	config := vault.DefaultConfig()
 	config.Address = "http://" + hostPort
@@ -26,9 +25,6 @@ func NewClient(token string, hostPort string) (*pwmanagerClient, error) {
 	}
 
 	client.SetToken(token)
-	if err != nil {
-		return nil, fmt.Errorf("error connecting to vault: %s", err)
-	}
 
 	return &pwmanagerClient{c: client}, nil
 }

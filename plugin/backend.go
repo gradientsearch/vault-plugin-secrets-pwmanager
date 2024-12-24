@@ -50,26 +50,13 @@ func backend() *pwmgrBackend {
 			},
 		},
 		Paths: framework.PathAppend(
-			pathRole(&b),
 			pathUser(&b),
-			[]*framework.Path{
-				pathConfig(&b),
-				pathCredentials(&b),
-			},
 		),
-		BackendType:    logical.TypeLogical,
-		Invalidate:     b.invalidate,
-		InitializeFunc: b.initialize,
+		BackendType: logical.TypeLogical,
+		Invalidate:  b.invalidate,
 	}
 
 	return &b
-}
-
-func (b *pwmgrBackend) initialize(ctx context.Context, req *logical.InitializationRequest) error {
-
-	b.storage = req.Storage
-	go b.client.renewLoop()
-	return nil
 }
 
 // reset clears any client configuration for a new
@@ -77,9 +64,6 @@ func (b *pwmgrBackend) initialize(ctx context.Context, req *logical.Initializati
 func (b *pwmgrBackend) reset() {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if b.client != nil {
-		b.client.renew <- nil
-	}
 }
 
 // invalidate clears an existing client configuration in
@@ -88,37 +72,6 @@ func (b *pwmgrBackend) invalidate(ctx context.Context, key string) {
 	if key == "config" {
 		b.reset()
 	}
-}
-
-// getClient locks the backend as it configures and creates a
-// a new client for the target API
-func (b *pwmgrBackend) getClient(ctx context.Context, s logical.Storage) (*pwmgrClient, error) {
-	b.lock.RLock()
-	unlockFunc := b.lock.RUnlock
-	defer func() { unlockFunc() }()
-
-	if b.client != nil {
-		return b.client, nil
-	}
-
-	b.lock.RUnlock()
-	b.lock.Lock()
-	unlockFunc = b.lock.Unlock
-
-	config, err := getConfig(ctx, s)
-	if err != nil {
-		return nil, err
-	}
-
-	if config == nil {
-		config = new(pwmgrConfig)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return b.client, nil
 }
 
 // backendHelp should contain help information for the backend

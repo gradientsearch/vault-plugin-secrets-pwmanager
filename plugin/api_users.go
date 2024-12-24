@@ -509,7 +509,7 @@ func (uuk *UUK) DecryptEncPriKey(password, mount, secretKey, entityID []byte) (j
 func (uuk *UUK) Encrypt(payload string) ([]byte, error) {
 	encrypted, err := jwe.Encrypt([]byte(payload), jwe.WithKey(jwa.RSA_OAEP(), uuk.PubKey))
 	if err != nil {
-		return nil, fmt.Errorf("failed to encrypt payload: %s\n", err)
+		return nil, fmt.Errorf("failed to encrypt payload: %s", err)
 	}
 	return encrypted, nil
 }
@@ -518,7 +518,7 @@ func (uuk *UUK) Encrypt(payload string) ([]byte, error) {
 func (uuk *UUK) Decrypt(encrypted []byte, priKey jwk.Key) ([]byte, error) {
 	decrypted, err := jwe.Decrypt(encrypted, jwe.WithKey(jwa.RSA_OAEP(), priKey))
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt payload: %s\n", err)
+		return nil, fmt.Errorf("failed to decrypt payload: %s", err)
 
 	}
 	return decrypted, nil

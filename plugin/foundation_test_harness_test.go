@@ -152,7 +152,8 @@ func NewTestHarness(t *testing.T, name string, tailContainer bool) (*TestHarness
 
 	test.WithClient(rootToken)
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 	test.WaitForDB(ctx)
 
 	return &test, nil

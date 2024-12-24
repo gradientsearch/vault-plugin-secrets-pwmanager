@@ -215,7 +215,7 @@ func (t *TestHarness) WithPolicies(policies map[string]string) {
 }
 
 // add userpass auth mount to vault server with users
-func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]TestUser {
+func (t *TestHarness) WithUserpassAuth(mount string, users []string, adminUser string) map[string]TestUser {
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
 		t.Testing.Fatalf("failed to create userpass mount")
 	}
@@ -227,6 +227,10 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 		userInfo := UserInfo{
 			Password:      "gophers",
 			TokenPolicies: []string{"default", fmt.Sprintf("%s/user/default", mount), fmt.Sprintf("%s/entity/%s", mount, u)},
+		}
+
+		if u == adminUser {
+			userInfo.TokenPolicies = append(userInfo.TokenPolicies, fmt.Sprintf("%s/admin/default", mount))
 		}
 
 		if err := t.Client.Userpass().User("userpass", u, userInfo); err != nil {

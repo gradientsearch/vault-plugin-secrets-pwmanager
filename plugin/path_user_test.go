@@ -208,68 +208,81 @@ func TestRegisterUser(t *testing.T) {
 
 		userPolicy, err := os.ReadFile("policies/pwmanager_user_default.hcl")
 		if err != nil {
-			th.Testing.Fatalf("error reading user policy: %s", err)
+			t.Fatalf("error reading user policy: %s", err)
+		}
+
+		adminPolicy, err := os.ReadFile("policies/pwmanager_admin_default.hcl")
+		if err != nil {
+			t.Fatalf("error reading user policy: %s", err)
 		}
 
 		policies := map[string]string{
-			"pwmanager/user/default": string(userPolicy),
+			"pwmanager/user/default":  string(userPolicy),
+			"pwmanager/admin/default": string(adminPolicy),
 		}
 
 		th.WithPolicies(policies)
 
-		users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"})
+		users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"}, "stephen")
 
 		for _, v := range users {
 			v.WithUUK(th)
 		}
 
+		stephen := users["stephen"]
+		frank := users["frank"]
+
 		t.Logf("Register User Register")
 		{
-
 			for k, v := range users {
 				if err := v.Client.Users().Register(mount, v.UUK); err != nil {
-					th.Testing.Fatalf("\t%s error registering user %s: %s", FAILURE, k, err)
+					t.Fatalf("\t%s error registering user %s: %s", FAILURE, k, err)
 				}
 				t.Logf("\t%s should be able to register user %s\n", SUCCESS, k)
 			}
 		}
 
-		t.Logf("Register User Register Twice")
+		t.Log("Register User Register Twice")
 		{
 			for k, v := range users {
 
 				if err := v.Client.Users().Register(mount, v.UUK); err == nil {
-					th.Testing.Fatalf("\t%sshould not be allowed to register %s more than once: %s", FAILURE, k, err)
+					t.Fatalf("\t%sshould not be allowed to register %s more than once: %s", FAILURE, k, err)
 				}
 				t.Logf("\t%s should not be able to register %s twice\n", SUCCESS, k)
 			}
 		}
 
-		t.Logf("Update User")
+		t.Log("Update User")
 		{
 			for k, v := range users {
 				if err := v.Client.Users().Update(mount, v.LoginResponse.Auth.EntityID, v.UUK); err != nil {
-					th.Testing.Fatalf("\t%s error updating user %s: %s", FAILURE, k, err)
+					t.Fatalf("\t%s error updating user %s: %s", FAILURE, k, err)
 				}
 				t.Logf("\t%s should be able to update user %s\n", SUCCESS, k)
 			}
 		}
 
-		t.Logf("Update another User")
+		t.Log("Update another User")
 		{
-
-			stephen := users["stephen"]
-			frank := users["frank"]
-
 			if err := stephen.Client.Users().Update(mount, frank.LoginResponse.Auth.EntityID, stephen.UUK); err == nil {
-				th.Testing.Fatalf("\t%s stephen should not be able to update frank: %s", FAILURE, err)
+				t.Fatalf("\t%s stephen should not be able to update frank: %s", FAILURE, err)
 			}
 			t.Logf("\t%s stephen should not be able to update frank\n", SUCCESS)
 
 			if err := frank.Client.Users().Update(mount, stephen.LoginResponse.Auth.EntityID, stephen.UUK); err == nil {
-				th.Testing.Fatalf("\t%s frank should not be able to update stephen: %s", FAILURE, err)
+				t.Fatalf("\t%s frank should not be able to update stephen: %s", FAILURE, err)
 			}
 			t.Logf("\t%s frank should not be able to update stephen\n", SUCCESS)
+		}
+
+		t.Log("List users")
+		{
+			us, err := stephen.Client.Users().List(mount)
+			if err != nil || len(users) != len(us) {
+				t.Fatalf("\t%s stephen should be able to list users: %s", FAILURE, err)
+			}
+			t.Logf("\t%s stephen should be able to list users", SUCCESS)
 		}
 	}
 }

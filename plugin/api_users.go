@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/api"
 
@@ -52,14 +53,7 @@ func (c *Users) Register(mount string, uuk UUK) error {
 
 func (c *Users) Update(mount string, entityID string, uuk UUK) error {
 	r := c.c.NewRequest("POST", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
-	data := struct {
-		EntityID string `json:"entity_id"`
-		UUK      UUK    `json:"uuk"`
-	}{
-		EntityID: entityID,
-		UUK:      uuk,
-	}
-
+	var data pwmgrUserEntry
 	if err := r.SetJSONBody(data); err != nil {
 		return err
 	}
@@ -73,6 +67,34 @@ func (c *Users) Update(mount string, entityID string, uuk UUK) error {
 	defer resp.Body.Close()
 
 	return nil
+}
+
+// List returns a list of users
+func (c *Users) List(mount string) ([]string, error) {
+	r := c.c.NewRequest("LIST", fmt.Sprintf("/v1/%s/users/", mount))
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	secret, err := api.ParseSecret(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if secret == nil || secret.Data == nil {
+		return nil, fmt.Errorf("data from server response is empty")
+	}
+
+	var result []string
+	err = mapstructure.Decode(secret.Data["keys"], &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 type EncPriKey struct {

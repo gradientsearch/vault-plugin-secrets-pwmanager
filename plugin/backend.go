@@ -53,7 +53,7 @@ func backend() *pwmgrBackend {
 		},
 		Paths: framework.PathAppend(
 			pathRole(&b),
-			pathRegister(&b),
+			pathUser(&b),
 			[]*framework.Path{
 				pathConfig(&b),
 				pathCredentials(&b),

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/api"
 
@@ -23,17 +24,17 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-// PwManager is used to perform PwManager operations on Vault.
-type PwManager struct {
+// Users is used to perform Users operations on Vault.
+type Users struct {
 	c *api.Client
 }
 
-// PwManager is used to return the client for pwmanger API calls.
-func (c *pwmanagerClient) PwManager() *PwManager {
-	return &PwManager{c: c.c}
+// Users is used to return the client for Users API calls.
+func (c *pwmanagerClient) Users() *Users {
+	return &Users{c: c.c}
 }
 
-func (c *PwManager) Register(mount string, uuk UUK) error {
+func (c *Users) Register(mount string, uuk UUK) error {
 	r := c.c.NewRequest("POST", fmt.Sprintf("/v1/%s/register", mount))
 	if err := r.SetJSONBody(uuk); err != nil {
 		return err
@@ -48,6 +49,101 @@ func (c *PwManager) Register(mount string, uuk UUK) error {
 	defer resp.Body.Close()
 
 	return nil
+}
+
+func (c *Users) Update(mount string, entityID string, uuk UUK) error {
+	r := c.c.NewRequest("POST", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
+	data := struct {
+		EntityID string `json:"entity_id"`
+		UUK      UUK    `string:"uuk"`
+	}{
+		EntityID: entityID,
+		UUK:      uuk,
+	}
+
+	if err := r.SetJSONBody(data); err != nil {
+		return err
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+// List returns a list of users
+func (c *Users) List(mount string) ([]string, error) {
+	r := c.c.NewRequest("LIST", fmt.Sprintf("/v1/%s/users/", mount))
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	secret, err := api.ParseSecret(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if secret == nil || secret.Data == nil {
+		return nil, fmt.Errorf("data from server response is empty")
+	}
+
+	var result []string
+	err = mapstructure.Decode(secret.Data["keys"], &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Users) Delete(mount string, entityID string) error {
+	r := c.c.NewRequest("DELETE", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+// Get returns a users UUK
+func (c *Users) Get(mount string, entityID string) (pwmgrUserEntry, error) {
+	r := c.c.NewRequest("GET", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return pwmgrUserEntry{}, err
+	}
+	defer resp.Body.Close()
+
+	secret, err := api.ParseSecret(resp.Body)
+	if err != nil {
+		return pwmgrUserEntry{}, err
+	}
+	if secret == nil || secret.Data == nil {
+		return pwmgrUserEntry{}, fmt.Errorf("data from server response is empty")
+	}
+
+	var result pwmgrUserEntry
+	err = mapstructure.Decode(secret.Data, &result)
+	if err != nil {
+		return pwmgrUserEntry{}, err
+	}
+	return result, nil
 }
 
 type EncPriKey struct {
@@ -67,22 +163,22 @@ type EncPriKey struct {
 // users private key.
 type EncSymKey struct {
 	// uuid of the private key
-	Kid string `json:"kid"`
+	Kid string `json:"kid" mapstructure:"kid"`
 	// encoding used to encrypt the data e.g. A256GCM
-	Enc string `json:"enc"`
+	Enc string `json:"enc" mapstructure:"enc"`
 	// initialization
-	Iv string `json:"iv"`
+	Iv string `json:"iv" mapstructure:"iv"`
 	// encrypted symmetric key
-	Data string `json:"data"`
+	Data string `json:"data" mapstructure:"data"`
 	// content type
-	Cty string `json:"cty"`
+	Cty string `json:"cty" mapstructure:"cty"`
 	// the algorithm used to encrypt the EncSymKey e.g. 2SKD PBDKF2-HKDF
-	Alg string `json:"alg"`
+	Alg string `json:"alg" mapstructure:"alg"`
 	// PBDKF2 iterations e.g. 650000
-	P2c int `json:"p2c"`
+	P2c int `json:"p2c" mapstructure:"p2c"`
 	// initial 16 byte random sequence for secret key derivation.
 	// used in the first hkdf function call
-	P2s string `json:"p2s"`
+	P2s string `json:"p2s" mapstructure:"p2s"`
 }
 
 // user unlock key

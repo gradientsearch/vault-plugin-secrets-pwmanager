@@ -40,14 +40,12 @@ const SUCCESS string = "😃"
 const FAILURE string = "😅"
 
 func BuildPlugin(name string) error {
-	fmt.Printf("******************** LOGS (%s) ********************\n", "build output")
 
 	app := "go"
 	arg0 := "build"
 	arg1 := "-o"
 	arg2 := fmt.Sprintf("vault/plugins/%s/pwmanager", name)
 	arg3 := "cmd/vault-plugin-secrets-pwmanager/main.go"
-	fmt.Println("running build command: ", app, arg0, arg1, arg2, arg3)
 	cmd := exec.Command(app, arg0, arg1, arg2, arg3)
 	stdout, err := cmd.Output()
 
@@ -58,7 +56,7 @@ func BuildPlugin(name string) error {
 }
 
 // StartDB starts a database instance.
-func StartDB(name string) (Container, error) {
+func StartDB(name string, t *testing.T) (Container, error) {
 	const address = "0.0.0.0:8200"
 	const token = rootToken
 	const image = "hashicorp/vault:1.18.3"
@@ -72,17 +70,17 @@ func StartDB(name string) (Container, error) {
 		return Container{}, fmt.Errorf("starting container: %w", err)
 	}
 
-	fmt.Printf("Image:       %s\n", image)
-	fmt.Printf("ContainerID: %s\n", c.Name)
-	fmt.Printf("Host:        %s\n", c.HostPort)
+	t.Logf("Image:       %s\n", image)
+	t.Logf("ContainerID: %s\n", c.Name)
+	t.Logf("Host:        %s\n\n", c.HostPort)
 
 	return c, nil
 }
 
 // StopDB stops a running database instance.
-func StopDB(c *Container) {
+func StopDB(c *Container, t *testing.T) {
 	_ = StopContainer(c.Name)
-	fmt.Println("Stopped:", c.Name)
+	t.Log("Stopped:", c.Name)
 }
 
 // Tail container logs will stream docker logs -f <container name>
@@ -118,11 +116,13 @@ type TestHarness struct {
 // NewTestHarness creates a test Vault Server inside a Docker container. It returns
 // the Vault root client to use as well as a teardown function to call.
 func NewTestHarness(t *testing.T, name string, tailContainer bool) (*TestHarness, error) {
+	t.Logf("******************** LOGS (%s) ********************\n", name)
+
 	if err := BuildPlugin(name); err != nil {
 		t.Fatalf("failed to build plugin: %s", err)
 	}
 
-	c, err := StartDB(name)
+	c, err := StartDB(name, t)
 	if err != nil {
 		return nil, err
 	}
@@ -135,8 +135,7 @@ func NewTestHarness(t *testing.T, name string, tailContainer bool) (*TestHarness
 	// with the database.
 	teardown := func() {
 		t.Helper()
-		StopDB(&c)
-		fmt.Printf("******************** LOGS (%s) ********************\n", name)
+		StopDB(&c, t)
 	}
 
 	var buf bytes.Buffer
@@ -202,6 +201,7 @@ func (t *TestHarness) WithPwManagerMount() {
 	if err := t.Client.c.Sys().Mount("/pwmanager", &mi); err != nil {
 		t.Testing.Fatalf("failed to create pwmanager mount")
 	}
+	t.Testing.Log("successfully created pwmanager mount")
 }
 
 // Add policies
@@ -210,6 +210,7 @@ func (t *TestHarness) WithPolicies(policies map[string]string) {
 		if err := t.Client.c.Sys().PutPolicy(k, v); err != nil {
 			t.Testing.Fatalf("error creating policy %s: %s", k, err)
 		}
+		t.Testing.Logf("successfully created %s policy\n", k)
 	}
 }
 
@@ -218,6 +219,7 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 	if err := t.Client.c.Sys().EnableAuth("/userpass", "userpass", "userpass used for pwmanager users"); err != nil {
 		t.Testing.Fatalf("failed to create userpass mount")
 	}
+	t.Testing.Log("successfully created /userpass mount ")
 
 	lrs := map[string]TestUser{}
 	for _, u := range users {
@@ -230,10 +232,12 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string) map[string]
 		if err := t.Client.Userpass().User("userpass", u, userInfo); err != nil {
 			t.Testing.Fatalf("failed to create user %s", err)
 		}
+		t.Testing.Logf("successfully created user %s in /userpass\n", u)
 
 		if lr, err := t.Client.Userpass().Login("userpass", u, userInfo); err != nil {
 			t.Testing.Fatalf("failed to create user %s", err)
 		} else {
+			t.Testing.Logf("successfully logged in user %s to /userpass\n", u)
 			tu := TestUser{LoginResponse: lr, PwManagerMount: mount}
 			tu.WithClient(t)
 			lrs[u] = tu

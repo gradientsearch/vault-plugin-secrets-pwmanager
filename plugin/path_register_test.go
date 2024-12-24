@@ -173,42 +173,45 @@ func testTokenRegisterDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 	})
 }
 func TestRegisterUser(t *testing.T) {
-
-	th, err := NewTestHarness(t, "TestRegisterUser", false)
-	if err != nil {
-		t.Fatalf("failed to start Vault container")
-	}
-	defer th.Teardown()
-
 	mount := "pwmanager"
-	th.WithPwManagerMount()
 
-	userPolicy, err := os.ReadFile("policies/pwmanager_user_default.hcl")
-	if err != nil {
-		th.Testing.Fatalf("error reading user policy: %s", err)
-	}
-
-	policies := map[string]string{
-		"pwmanager/user/default": string(userPolicy),
-	}
-
-	th.WithPolicies(policies)
-	users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"})
-	stephen := users["stephen"]
-
-	stephen.WithUUK(th)
-
-	t.Logf("Register User")
+	t.Log("Test Registering User")
 	{
 
-		if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err != nil {
-			th.Testing.Fatalf("\t%serror registering user: %s", FAILURE, err)
+		th, err := NewTestHarness(t, "TestRegisterUser", false)
+		if err != nil {
+			t.Fatalf("\tfailed to create test harness")
 		}
-		t.Logf("\t %s should be able to register user\n", SUCCESS)
+		defer th.Teardown()
 
-		if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err == nil {
-			th.Testing.Fatalf("\t%sshould not be allowed to register more than once: %s", FAILURE, err)
+		th.WithPwManagerMount()
+
+		userPolicy, err := os.ReadFile("policies/pwmanager_user_default.hcl")
+		if err != nil {
+			th.Testing.Fatalf("error reading user policy: %s", err)
 		}
-		t.Logf("\t %s should not be able to register twice\n", SUCCESS)
+
+		policies := map[string]string{
+			"pwmanager/user/default": string(userPolicy),
+		}
+
+		th.WithPolicies(policies)
+
+		users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"})
+		stephen := users["stephen"]
+		stephen.WithUUK(th)
+
+		t.Logf("Register User")
+		{
+			if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err != nil {
+				th.Testing.Fatalf("\t%serror registering user: %s", FAILURE, err)
+			}
+			t.Logf("\t %s should be able to register user\n", SUCCESS)
+
+			if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err == nil {
+				th.Testing.Fatalf("\t%sshould not be allowed to register more than once: %s", FAILURE, err)
+			}
+			t.Logf("\t %s should not be able to register twice\n", SUCCESS)
+		}
 	}
 }

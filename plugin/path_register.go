@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
+const USER_SCHEMA string = "users"
+
 // pwmgrRegisterEntry defines the data required
 // for a Vault register to access and call the Pwmgr
 // token endpoints
@@ -25,17 +27,8 @@ type pwmgrRegisterEntry struct {
 	PubKey map[string]string `json:"pubkey"`
 }
 
-// toResponseData returns response data for a register
-func (r *pwmgrRegisterEntry) toResponseData() map[string]interface{} {
-	respData := map[string]interface{}{}
-	return respData
-}
-
 // pathRegister extends the Vault API with a `/register`
-// endpoint for the backend. You can choose whether
-// or not certain attributes should be displayed,
-// required, and named. You can also define different
-// path patterns to list all registers.
+// endpoint for the backend.
 func pathRegister(b *pwmgrBackend) []*framework.Path {
 	return []*framework.Path{
 		{
@@ -67,65 +60,20 @@ func pathRegister(b *pwmgrBackend) []*framework.Path {
 					Required:    true,
 				},
 			},
+			ExistenceCheck: b.pathUserExistenceCheck,
 			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.ReadOperation: &framework.PathOperation{
-					Callback: b.pathRegistersRead,
-				},
 				logical.CreateOperation: &framework.PathOperation{
 					Callback: b.pathRegistersWrite,
-				},
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.pathRegistersWrite,
-				},
-				logical.DeleteOperation: &framework.PathOperation{
-					Callback: b.pathRegistersDelete,
 				},
 			},
 			HelpSynopsis:    pathRegisterHelpSynopsis,
 			HelpDescription: pathRegisterHelpDescription,
 		},
-		{
-			Pattern: "register/?$",
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.ListOperation: &framework.PathOperation{
-					Callback: b.pathRegistersList,
-				},
-			},
-			HelpSynopsis:    pathRegisterListHelpSynopsis,
-			HelpDescription: pathRegisterListHelpDescription,
-		},
 	}
 }
 
-// pathRegistersList makes a request to Vault storage to retrieve a list of registers for the backend
-func (b *pwmgrBackend) pathRegistersList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entries, err := req.Storage.List(ctx, "register/")
-	if err != nil {
-		return nil, err
-	}
-
-	return logical.ListResponse(entries), nil
-}
-
-// pathRegistersRead makes a request to Vault storage to read a register and return response data
-func (b *pwmgrBackend) pathRegistersRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entry, err := b.getRegister(ctx, req.Storage, d.Get("name").(string))
-	if err != nil {
-		return nil, err
-	}
-
-	if entry == nil {
-		return nil, nil
-	}
-
-	return &logical.Response{
-		Data: entry.toResponseData(),
-	}, nil
-}
-
-// pathRegistersWrite makes a request to Vault storage to update a register based on the attributes passed to the register configuration
+// pathRegistersWrite makes a request to Vault storage to register a users UUK.
 func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-
 	registerEntry, err := b.getRegister(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err
@@ -135,9 +83,7 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 		return logical.ErrorResponse("user already registered"), nil
 	}
 
-	if registerEntry == nil {
-		registerEntry = &pwmgrRegisterEntry{}
-	}
+	registerEntry = &pwmgrRegisterEntry{}
 
 	createOperation := (req.Operation == logical.CreateOperation)
 
@@ -185,19 +131,19 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 	return nil, nil
 }
 
-// pathRegistersDelete makes a request to Vault storage to delete a register
-func (b *pwmgrBackend) pathRegistersDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	err := req.Storage.Delete(ctx, "register/"+d.Get("name").(string))
+// pathConfigExistenceCheck verifies if the configuration exists.
+func (b *pwmgrBackend) pathUserExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+	out, err := req.Storage.Get(ctx, fmt.Sprintf("%s/%s", "users", req.EntityID))
 	if err != nil {
-		return nil, fmt.Errorf("error deleting pwmgr register: %w", err)
+		return false, fmt.Errorf("existence check failed: %w", err)
 	}
 
-	return nil, nil
+	return out != nil, nil
 }
 
 // setRegister adds the register to the Vault storage API
-func setRegister(ctx context.Context, s logical.Storage, entityId string, registerEntry *pwmgrRegisterEntry) error {
-	entry, err := logical.StorageEntryJSON("register/"+entityId, registerEntry)
+func setRegister(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwmgrRegisterEntry) error {
+	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/%s", USER_SCHEMA, entityID), registerEntry)
 	if err != nil {
 		return err
 	}
@@ -219,7 +165,7 @@ func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, entit
 		return nil, fmt.Errorf("missing register entity ID")
 	}
 
-	entry, err := s.Get(ctx, "register/"+entityID)
+	entry, err := s.Get(ctx, fmt.Sprintf("%s/%s", USER_SCHEMA, entityID))
 	if err != nil {
 		return nil, err
 	}
@@ -237,12 +183,9 @@ func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, entit
 }
 
 const (
-	pathRegisterHelpSynopsis    = `Manages the Vault register for generating Pwmgr tokens.`
+	pathRegisterHelpSynopsis    = `Manages the Vault register endpoint for users to store their UUK.`
 	pathRegisterHelpDescription = `
-This path allows you to read and write registers used to generate Pwmgr tokens.
-You can configure a register to manage a user's token by setting the username field.
+This path allows you a user to register with the pwmanager. Upon successful 
+registration, the user (i.e. entityID and UUK) is added to the users schema.
 `
-
-	pathRegisterListHelpSynopsis    = `List the existing registers in Pwmgr backend`
-	pathRegisterListHelpDescription = `Registers will be listed by the register name.`
 )

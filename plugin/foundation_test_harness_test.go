@@ -37,7 +37,7 @@ import (
 
 const rootToken = "root"
 const SUCCESS string = "😃"
-const FAILURE string = "😅"
+const FAILURE string = "💣"
 
 func BuildPlugin(name string) error {
 

@@ -1,4 +1,4 @@
 # <mount>/<entity-id>
 path "pwmanager/register" {
-    capabilities = ["create", "update"]
+    capabilities = ["create"]
 }

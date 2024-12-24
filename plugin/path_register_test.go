@@ -204,7 +204,7 @@ func TestRegisterUser(t *testing.T) {
 		t.Logf("Register User")
 		{
 			if err := stephen.Client.PwManager().Register(mount, stephen.UUK); err != nil {
-				th.Testing.Fatalf("\t%serror registering user: %s", FAILURE, err)
+				th.Testing.Fatalf("\t%s error registering user: %s", FAILURE, err)
 			}
 			t.Logf("\t %s should be able to register user\n", SUCCESS)
 

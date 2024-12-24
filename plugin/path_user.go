@@ -172,9 +172,11 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 		return logical.ErrorResponse("missing entity id "), nil
 	}
 
+	// We don't want users updating other users UUKs
 	if req.EntityID != entityID {
 		return logical.ErrorResponse("users can only modify their own user information"), nil
 	}
+
 	userEntry, err := b.getUser(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err

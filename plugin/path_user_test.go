@@ -55,7 +55,7 @@ func TestUserUser(t *testing.T) {
 		require.Equal(t, resp.Data["entity_id"], USER_ENTITY_ID)
 	})
 	t.Run("Update User User", func(t *testing.T) {
-		resp, err := testTokenUserUpdate(t, b, s, map[string]interface{}{
+		resp, err := testTokenUserUpdate(t, b, s, USER_ENTITY_ID, map[string]interface{}{
 
 			"entity_id": USER_ENTITY_ID,
 			"uuk":       pwmgrUUKEntry{},
@@ -64,6 +64,23 @@ func TestUserUser(t *testing.T) {
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.Nil(t, resp)
+
+		otherUserEntityID, err := uuid.GenerateUUID()
+		if err != nil {
+			t.Fatalf("failed generating uuid: %s", err)
+		}
+		resp, err = testTokenUserUpdate(t, b, s, otherUserEntityID, map[string]interface{}{
+			"entity_id": otherUserEntityID,
+			"uuk":       pwmgrUUKEntry{},
+		})
+
+		if err != nil {
+			t.Fatalf("error making update request %s", err)
+		}
+
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.IsError())
+		require.Equal(t, resp.Error().Error(), "users can only modify their own user information", "error response changed")
 	})
 
 	t.Run("Re-read User User", func(t *testing.T) {
@@ -83,11 +100,11 @@ func TestUserUser(t *testing.T) {
 }
 
 // Utility function to update a user while, returning any response (including errors)
-func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, d map[string]interface{}) (*logical.Response, error) {
+func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, entityIDToUpdate string, d map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, USER_ENTITY_ID),
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, entityIDToUpdate),
 		Data:      d,
 		Storage:   s,
 		EntityID:  USER_ENTITY_ID, // !important users can only modify their own user information
@@ -97,9 +114,6 @@ func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, d map
 		return nil, err
 	}
 
-	if resp != nil && resp.IsError() {
-		t.Fatal(resp.Error())
-	}
 	return resp, nil
 }
 

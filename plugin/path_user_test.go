@@ -3,8 +3,8 @@ package secretsengine
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
@@ -24,8 +24,13 @@ func TestUserUser(t *testing.T) {
 
 	t.Run("List All Users", func(t *testing.T) {
 		for i := 1; i <= 10; i++ {
-			_, err := testTokenUserCreate(t, b, s,
-				userName+strconv.Itoa(i),
+			id, err := uuid.GenerateUUID()
+			if err != nil {
+				t.Fatalf("failed creating uuid for List All Users: %s", err)
+			}
+
+			_, err = testTokenUserCreate(t, b, s,
+				id,
 				map[string]interface{}{
 					"username": userID,
 					"ttl":      testTTL,
@@ -87,11 +92,11 @@ func TestUserUser(t *testing.T) {
 }
 
 // Utility function to create a user while, returning any response (including errors)
-func testTokenUserCreate(t *testing.T, b *pwmgrBackend, s logical.Storage, name string, d map[string]interface{}) (*logical.Response, error) {
+func testTokenUserCreate(t *testing.T, b *pwmgrBackend, s logical.Storage, entityID string, d map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.CreateOperation,
-		Path:      "user/" + name,
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, entityID),
 		Data:      d,
 		Storage:   s,
 	})
@@ -108,7 +113,7 @@ func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, d map
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "user/" + userName,
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userName),
 		Data:      d,
 		Storage:   s,
 	})
@@ -128,7 +133,7 @@ func testTokenUserRead(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logic
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
-		Path:      "user/" + userName,
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userName),
 		Storage:   s,
 	})
 }
@@ -138,7 +143,7 @@ func testTokenUserList(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logic
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ListOperation,
-		Path:      "user/",
+		Path:      fmt.Sprintf("%s/", USER_SCHEMA),
 		Storage:   s,
 	})
 }
@@ -148,7 +153,7 @@ func testTokenUserDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (*log
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.DeleteOperation,
-		Path:      "user/" + userName,
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userName),
 		Storage:   s,
 	})
 }
@@ -164,43 +169,6 @@ func TestUserRegister(t *testing.T) {
 		require.Nil(t, resp.Error())
 		require.Nil(t, resp)
 	})
-}
-
-// Utility function to create a register while, returning any response (including errors)
-func testTokenRegisterCreate(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logical.Response, error) {
-	t.Helper()
-
-	uuk := UUK{}
-	password := "gophers"
-	secretKey := make([]byte, 32)
-
-	if _, err := rand.Read(secretKey); err != nil {
-		t.Fatalf("error creating secret key: %s; ", err)
-	}
-
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		t.Fatalf("error generating UUID")
-	}
-	uuk.Build([]byte(password), []byte("pwmanager"), secretKey, []byte(id))
-	m, err := uuk.Map()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	resp, err := b.HandleRequest(context.Background(), &logical.Request{
-		Operation: logical.CreateOperation,
-		Path:      "register",
-		Data:      m,
-		Storage:   s,
-		EntityID:  id,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }
 
 func TestRegisterUser(t *testing.T) {
@@ -245,4 +213,41 @@ func TestRegisterUser(t *testing.T) {
 			t.Logf("\t %s should not be able to register twice\n", SUCCESS)
 		}
 	}
+}
+
+// Utility function to create a register while, returning any response (including errors)
+func testTokenRegisterCreate(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logical.Response, error) {
+	t.Helper()
+
+	uuk := UUK{}
+	password := "gophers"
+	secretKey := make([]byte, 32)
+
+	if _, err := rand.Read(secretKey); err != nil {
+		t.Fatalf("error creating secret key: %s; ", err)
+	}
+
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatalf("error generating UUID")
+	}
+	uuk.Build([]byte(password), []byte("pwmanager"), secretKey, []byte(id))
+	m, err := uuk.Map()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "register",
+		Data:      m,
+		Storage:   s,
+		EntityID:  id,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

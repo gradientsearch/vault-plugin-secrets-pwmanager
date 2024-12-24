@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
-const USER_SCHEMA string = "users"
+const (
+	USER_SCHEMA string = "users"
+)
 
 // pwmgrUserEntry defines the data required
 // for a Vault user to access and call the Pwmgr
@@ -98,9 +100,9 @@ func pathUser(b *pwmgrBackend) []*framework.Path {
 			HelpDescription: pathRegisterHelpDescription,
 		},
 		{
-			Pattern: "user/" + framework.GenericNameRegex("name"),
+			Pattern: fmt.Sprintf("%s/", USER_SCHEMA) + uuidRegex("entity_id"),
 			Fields: map[string]*framework.FieldSchema{
-				"name": {
+				"entity_id": {
 					Type:        framework.TypeLowerCaseString,
 					Description: "Name of the user",
 					Required:    true,
@@ -137,7 +139,7 @@ func pathUser(b *pwmgrBackend) []*framework.Path {
 			HelpDescription: pathUserHelpDescription,
 		},
 		{
-			Pattern: "user/?$",
+			Pattern: fmt.Sprintf("%s/?$", USER_SCHEMA),
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.ListOperation: &framework.PathOperation{
 					Callback: b.pathUsersList,
@@ -151,7 +153,7 @@ func pathUser(b *pwmgrBackend) []*framework.Path {
 
 // pathUsersList makes a request to Vault storage to retrieve a list of users for the backend
 func (b *pwmgrBackend) pathUsersList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entries, err := req.Storage.List(ctx, "user/")
+	entries, err := req.Storage.List(ctx, fmt.Sprintf("%s/", USER_SCHEMA))
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +163,7 @@ func (b *pwmgrBackend) pathUsersList(ctx context.Context, req *logical.Request, 
 
 // pathUsersRead makes a request to Vault storage to read a user and return response data
 func (b *pwmgrBackend) pathUsersRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entry, err := b.getUser(ctx, req.Storage, d.Get("name").(string))
+	entry, err := b.getUser(ctx, req.Storage, d.Get("entity_id").(string))
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +179,7 @@ func (b *pwmgrBackend) pathUsersRead(ctx context.Context, req *logical.Request, 
 
 // pathUsersWrite makes a request to Vault storage to update a user based on the attributes passed to the user configuration
 func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	name, ok := d.GetOk("name")
+	name, ok := d.GetOk("entity_id")
 	if !ok {
 		return logical.ErrorResponse("missing user name"), nil
 	}
@@ -224,7 +226,7 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 
 // pathUsersDelete makes a request to Vault storage to delete a user
 func (b *pwmgrBackend) pathUsersDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	err := req.Storage.Delete(ctx, "user/"+d.Get("name").(string))
+	err := req.Storage.Delete(ctx, fmt.Sprintf("%s/%s", USER_SCHEMA, d.Get("entity_id").(string)))
 	if err != nil {
 		return nil, fmt.Errorf("error deleting pwmgr user: %w", err)
 	}

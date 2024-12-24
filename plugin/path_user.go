@@ -3,7 +3,6 @@ package secretsengine
 import (
 	"context"
 	"fmt"
-	"time"
 
 	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -19,11 +18,6 @@ const (
 // token endpoints
 type pwmgrUserEntry struct {
 	EntityID string        `json:"entity_id"`
-	UserID   int           `json:"user_id"`
-	Token    string        `json:"token"`
-	TokenID  string        `json:"token_id"`
-	TTL      time.Duration `json:"ttl"`
-	MaxTTL   time.Duration `json:"max_ttl"`
 	UUK      pwmgrUUKEntry `json:"uuk"`
 }
 
@@ -46,8 +40,7 @@ type pwmgrUUKEntry struct {
 // toResponseData returns response data for a user
 func (r *pwmgrUserEntry) toResponseData() map[string]interface{} {
 	respData := map[string]interface{}{
-		"ttl":       r.TTL.Seconds(),
-		"max_ttl":   r.MaxTTL.Seconds(),
+
 		"entity_id": r.EntityID,
 	}
 	return respData
@@ -172,13 +165,17 @@ func (b *pwmgrBackend) pathUsersRead(ctx context.Context, req *logical.Request, 
 }
 
 // pathUsersWrite makes a request to Vault storage to update a user based on the attributes passed to the user configuration
+// this is only needed when a user updates their password, the client will reencrypt their UUK using the new password
 func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	name, ok := d.GetOk("entity_id")
+	entityID, ok := d.GetOk("entity_id")
 	if !ok {
-		return logical.ErrorResponse("missing user name"), nil
+		return logical.ErrorResponse("missing entity id "), nil
 	}
 
-	userEntry, err := b.getUser(ctx, req.Storage, name.(string))
+	if req.EntityID != entityID {
+		return logical.ErrorResponse("users can only modify their own user information"), nil
+	}
+	userEntry, err := b.getUser(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err
 	}
@@ -195,23 +192,7 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 		return nil, fmt.Errorf("missing username in user")
 	}
 
-	if ttlRaw, ok := d.GetOk("ttl"); ok {
-		userEntry.TTL = time.Duration(ttlRaw.(int)) * time.Second
-	} else if createOperation {
-		userEntry.TTL = time.Duration(d.Get("ttl").(int)) * time.Second
-	}
-
-	if maxTTLRaw, ok := d.GetOk("max_ttl"); ok {
-		userEntry.MaxTTL = time.Duration(maxTTLRaw.(int)) * time.Second
-	} else if createOperation {
-		userEntry.MaxTTL = time.Duration(d.Get("max_ttl").(int)) * time.Second
-	}
-
-	if userEntry.MaxTTL != 0 && userEntry.TTL > userEntry.MaxTTL {
-		return logical.ErrorResponse("ttl cannot be greater than max_ttl"), nil
-	}
-
-	if err := setUser(ctx, req.Storage, name.(string), userEntry); err != nil {
+	if err := setUser(ctx, req.Storage, req.EntityID, userEntry); err != nil {
 		return nil, err
 	}
 

@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	userEntityID = "928e91c7-db18-9673-4342-6f731c7f561a"
-	userID       = 1
+	USER_ENTITY_ID = "928e91c7-db18-9673-4342-6f731c7f561a"
+	userID         = 1
 )
 
 // TestUserUser uses a mock backend to check
@@ -29,13 +29,7 @@ func TestUserUser(t *testing.T) {
 				t.Fatalf("failed creating uuid for List All Users: %s", err)
 			}
 
-			_, err = testTokenUserCreate(t, b, s,
-				id,
-				map[string]interface{}{
-					"entity_id": userID,
-					"ttl":       testTTL,
-					"max_ttl":   testMaxTTL,
-				})
+			_, err = testTokenRegisterCreate(t, b, s, id)
 			require.NoError(t, err)
 		}
 
@@ -45,11 +39,7 @@ func TestUserUser(t *testing.T) {
 	})
 
 	t.Run("Create User User - pass", func(t *testing.T) {
-		resp, err := testTokenUserCreate(t, b, s, userEntityID, map[string]interface{}{
-			"entity_id": userEntityID,
-			"ttl":       testTTL,
-			"max_ttl":   testMaxTTL,
-		})
+		resp, err := testTokenRegisterCreate(t, b, s, USER_ENTITY_ID)
 
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
@@ -62,12 +52,13 @@ func TestUserUser(t *testing.T) {
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.NotNil(t, resp)
-		require.Equal(t, resp.Data["entity_id"], userEntityID)
+		require.Equal(t, resp.Data["entity_id"], USER_ENTITY_ID)
 	})
 	t.Run("Update User User", func(t *testing.T) {
 		resp, err := testTokenUserUpdate(t, b, s, map[string]interface{}{
-			"ttl":     "1m",
-			"max_ttl": "5h",
+
+			"entity_id": USER_ENTITY_ID,
+			"uuk":       pwmgrUUKEntry{},
 		})
 
 		require.Nil(t, err)
@@ -81,7 +72,7 @@ func TestUserUser(t *testing.T) {
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.NotNil(t, resp)
-		require.Equal(t, resp.Data["entity_id"], userEntityID)
+		require.Equal(t, resp.Data["entity_id"], USER_ENTITY_ID)
 	})
 
 	t.Run("Delete User User", func(t *testing.T) {
@@ -91,31 +82,15 @@ func TestUserUser(t *testing.T) {
 	})
 }
 
-// Utility function to create a user while, returning any response (including errors)
-func testTokenUserCreate(t *testing.T, b *pwmgrBackend, s logical.Storage, entityID string, d map[string]interface{}) (*logical.Response, error) {
-	t.Helper()
-	resp, err := b.HandleRequest(context.Background(), &logical.Request{
-		Operation: logical.CreateOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, entityID),
-		Data:      d,
-		Storage:   s,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
 // Utility function to update a user while, returning any response (including errors)
 func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, d map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userEntityID),
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, USER_ENTITY_ID),
 		Data:      d,
 		Storage:   s,
+		EntityID:  USER_ENTITY_ID, // !important users can only modify their own user information
 	})
 
 	if err != nil {
@@ -133,7 +108,7 @@ func testTokenUserRead(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logic
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userEntityID),
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, USER_ENTITY_ID),
 		Storage:   s,
 	})
 }
@@ -153,7 +128,7 @@ func testTokenUserDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (*log
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.DeleteOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userEntityID),
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, USER_ENTITY_ID),
 		Storage:   s,
 	})
 }
@@ -164,7 +139,7 @@ func TestUserRegister(t *testing.T) {
 	b, s := getTestBackend(t)
 
 	t.Run("Create User Register - pass", func(t *testing.T) {
-		resp, err := testTokenRegisterCreate(t, b, s)
+		resp, err := testTokenRegisterCreate(t, b, s, USER_ENTITY_ID)
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.Nil(t, resp)
@@ -216,7 +191,7 @@ func TestRegisterUser(t *testing.T) {
 }
 
 // Utility function to create a register while, returning any response (including errors)
-func testTokenRegisterCreate(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logical.Response, error) {
+func testTokenRegisterCreate(t *testing.T, b *pwmgrBackend, s logical.Storage, entityID string) (*logical.Response, error) {
 	t.Helper()
 
 	uuk := UUK{}
@@ -227,11 +202,7 @@ func testTokenRegisterCreate(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 		t.Fatalf("error creating secret key: %s; ", err)
 	}
 
-	id, err := uuid.GenerateUUID()
-	if err != nil {
-		t.Fatalf("error generating UUID")
-	}
-	uuk.Build([]byte(password), []byte("pwmanager"), secretKey, []byte(id))
+	uuk.Build([]byte(password), []byte("pwmanager"), secretKey, []byte(entityID))
 	m, err := uuk.Map()
 	if err != nil {
 		t.Fatal(err)
@@ -242,7 +213,7 @@ func testTokenRegisterCreate(t *testing.T, b *pwmgrBackend, s logical.Storage) (
 		Path:      "register",
 		Data:      m,
 		Storage:   s,
-		EntityID:  id,
+		EntityID:  entityID,
 	})
 
 	if err != nil {

@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	userName = "testpwmgr"
-	userID   = 1
+	userEntityID = "928e91c7-db18-9673-4342-6f731c7f561a"
+	userID       = 1
 )
 
 // TestUserUser uses a mock backend to check
@@ -45,8 +45,8 @@ func TestUserUser(t *testing.T) {
 	})
 
 	t.Run("Create User User - pass", func(t *testing.T) {
-		resp, err := testTokenUserCreate(t, b, s, userName, map[string]interface{}{
-			"username": userID,
+		resp, err := testTokenUserCreate(t, b, s, userEntityID, map[string]interface{}{
+			"username": userEntityID,
 			"ttl":      testTTL,
 			"max_ttl":  testMaxTTL,
 		})
@@ -62,7 +62,7 @@ func TestUserUser(t *testing.T) {
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.NotNil(t, resp)
-		require.Equal(t, resp.Data["username"], userID)
+		require.Equal(t, resp.Data["username"], userEntityID)
 	})
 	t.Run("Update User User", func(t *testing.T) {
 		resp, err := testTokenUserUpdate(t, b, s, map[string]interface{}{
@@ -81,7 +81,7 @@ func TestUserUser(t *testing.T) {
 		require.Nil(t, err)
 		require.Nil(t, resp.Error())
 		require.NotNil(t, resp)
-		require.Equal(t, resp.Data["username"], userID)
+		require.Equal(t, resp.Data["username"], userEntityID)
 	})
 
 	t.Run("Delete User User", func(t *testing.T) {
@@ -113,7 +113,7 @@ func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, d map
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userName),
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userEntityID),
 		Data:      d,
 		Storage:   s,
 	})
@@ -133,7 +133,7 @@ func testTokenUserRead(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logic
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userName),
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userEntityID),
 		Storage:   s,
 	})
 }
@@ -153,7 +153,7 @@ func testTokenUserDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (*log
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.DeleteOperation,
-		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userName),
+		Path:      fmt.Sprintf("%s/%s", USER_SCHEMA, userEntityID),
 		Storage:   s,
 	})
 }

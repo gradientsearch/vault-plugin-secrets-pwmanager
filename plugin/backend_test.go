@@ -10,7 +10,7 @@ import (
 
 // getTestBackend will help you construct a test backend object.
 // Update this function with your target backend.
-func getTestBackend(tb testing.TB) (*pwmgrBackend, logical.Storage) {
+func getTestBackend(tb testing.TB) (*pwManagerBackend, logical.Storage) {
 	tb.Helper()
 
 	config := logical.TestBackendConfig()
@@ -23,5 +23,5 @@ func getTestBackend(tb testing.TB) (*pwmgrBackend, logical.Storage) {
 		tb.Fatal(err)
 	}
 
-	return b.(*pwmgrBackend), config.StorageView
+	return b.(*pwManagerBackend), config.StorageView
 }

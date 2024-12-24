@@ -119,29 +119,29 @@ func (c *Users) Delete(mount string, entityID string) error {
 }
 
 // Get returns a users UUK
-func (c *Users) Get(mount string, entityID string) (pwmgrUserEntry, error) {
+func (c *Users) Get(mount string, entityID string) (pwManagerUserEntry, error) {
 	r := c.c.NewRequest("GET", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if err != nil {
-		return pwmgrUserEntry{}, err
+		return pwManagerUserEntry{}, err
 	}
 	defer resp.Body.Close()
 
 	secret, err := api.ParseSecret(resp.Body)
 	if err != nil {
-		return pwmgrUserEntry{}, err
+		return pwManagerUserEntry{}, err
 	}
 	if secret == nil || secret.Data == nil {
-		return pwmgrUserEntry{}, fmt.Errorf("data from server response is empty")
+		return pwManagerUserEntry{}, fmt.Errorf("data from server response is empty")
 	}
 
-	var result pwmgrUserEntry
+	var result pwManagerUserEntry
 	err = mapstructure.Decode(secret.Data, &result)
 	if err != nil {
-		return pwmgrUserEntry{}, err
+		return pwManagerUserEntry{}, err
 	}
 	return result, nil
 }

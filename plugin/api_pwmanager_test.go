@@ -11,8 +11,8 @@ func TestKeyDerivation(t *testing.T) {
 	// set up required values
 	entityID := []byte("52638ce9-c2a1-6a28-85ed-e61f3e9a697e") // vault entity id (use token to look this up) - not secret
 	password := []byte("super-secret")                         // user password secret
-	mount := []byte("pwmgr")                                   // vault mount - not secret
-	version := "H1"                                            // version of pwmgr - not secret
+	mount := []byte("pwManager")                               // vault mount - not secret
+	version := "H1"                                            // version of pwManager - not secret
 	randomSeq := make([]byte, 32)                              // rand 32 byte sequence - secret
 	if _, err := io.ReadFull(rand.Reader, randomSeq); err != nil {
 		t.Fatalf("error creating random sequence of characters: %s", err)

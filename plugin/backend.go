@@ -3,7 +3,6 @@ package secretsengine
 import (
 	"context"
 	"strings"
-	"sync"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -20,22 +19,21 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	return b, nil
 }
 
-// pwmgrBackend defines an object that
+// pwManagerBackend defines an object that
 // extends the Vault backend and stores the
 // target API's client.
-type pwmgrBackend struct {
+type pwManagerBackend struct {
 	*framework.Backend
-	lock   sync.RWMutex
 	logger hclog.Logger
 }
 
 // backend defines the target API backend
 // for Vault. It must include each path
 // and the secrets it will store.
-func backend() *pwmgrBackend {
-	var b = pwmgrBackend{}
+func backend() *pwManagerBackend {
+	var b = pwManagerBackend{}
 	appLogger := hclog.New(&hclog.LoggerOptions{
-		Name:  "pwmgr",
+		Name:  "pwManager",
 		Level: hclog.LevelFromString("DEBUG"),
 	})
 
@@ -44,39 +42,19 @@ func backend() *pwmgrBackend {
 		Help: strings.TrimSpace(backendHelp),
 		PathsSpecial: &logical.Paths{
 			LocalStorage: []string{},
-			SealWrapStorage: []string{
-				"config",
-				"role/*",
-			},
 		},
 		Paths: framework.PathAppend(
 			pathUser(&b),
 		),
 		BackendType: logical.TypeLogical,
-		Invalidate:  b.invalidate,
 	}
 
 	return &b
 }
 
-// reset clears any client configuration for a new
-// backend to be configured
-func (b *pwmgrBackend) reset() {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-}
-
-// invalidate clears an existing client configuration in
-// the backend
-func (b *pwmgrBackend) invalidate(ctx context.Context, key string) {
-	if key == "config" {
-		b.reset()
-	}
-}
-
 // backendHelp should contain help information for the backend
 const backendHelp = `
-The Pwmgr secrets backend dynamically generates user tokens.
-After mounting this backend, credentials to manage Pwmgr user tokens
-must be configured with the "config/" endpoints.
+The PwManager secrets backend manages access to encrypted user password vaults.
+After mounting this backend, users can register with this mount and start creating
+password vaults and adding secrets to those vaults via end-to-end encryption using 2KSD.
 `

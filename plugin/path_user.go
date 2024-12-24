@@ -92,28 +92,21 @@ func pathUser(b *pwmgrBackend) []*framework.Path {
 			HelpDescription: pathRegisterHelpDescription,
 		},
 		{
-			Pattern: fmt.Sprintf("%s/", USER_SCHEMA) + uuidRegex("entity_id"),
+			Pattern: fmt.Sprintf("%s/%s", USER_SCHEMA, uuidRegex("entity_id")),
 			Fields: map[string]*framework.FieldSchema{
 				"entity_id": {
 					Type:        framework.TypeLowerCaseString,
 					Description: "entity id of the user",
 					Required:    true,
 				},
-				"ttl": {
-					Type:        framework.TypeDurationSecond,
-					Description: "Default lease for generated credentials. If not set or set to 0, will use system default.",
-				},
-				"max_ttl": {
-					Type:        framework.TypeDurationSecond,
-					Description: "Maximum time for user. If not set or set to 0, will use system default.",
+				"uuk": {
+					Type:        framework.TypeMap,
+					Description: "the users uuk",
 				},
 			},
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.ReadOperation: &framework.PathOperation{
 					Callback: b.pathUsersRead,
-				},
-				logical.CreateOperation: &framework.PathOperation{
-					Callback: b.pathUsersWrite,
 				},
 				logical.UpdateOperation: &framework.PathOperation{
 					Callback: b.pathUsersWrite,
@@ -190,6 +183,14 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 
 	if username, ok := d.GetOk("entity_id"); ok {
 		userEntry.EntityID = username.(string)
+	} else if !ok && createOperation {
+		return nil, fmt.Errorf("missing username in user")
+	}
+
+	if uuk, ok := d.GetOk("uk"); ok {
+		if err := mapstructure.Decode(uuk, &userEntry.UUK); err != nil {
+			return logical.ErrorResponse("error decoding uuk"), nil
+		}
 	} else if !ok && createOperation {
 		return nil, fmt.Errorf("missing username in user")
 	}

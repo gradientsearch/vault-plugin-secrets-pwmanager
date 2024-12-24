@@ -50,6 +50,31 @@ func (c *Users) Register(mount string, uuk UUK) error {
 	return nil
 }
 
+func (c *Users) Update(mount string, entityID string, uuk UUK) error {
+	r := c.c.NewRequest("POST", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
+	data := struct {
+		EntityID string `json:"entity_id"`
+		UUK      UUK    `json:"uuk"`
+	}{
+		EntityID: entityID,
+		UUK:      uuk,
+	}
+
+	if err := r.SetJSONBody(data); err != nil {
+		return err
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	resp, err := c.c.RawRequestWithContext(ctx, r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
 type EncPriKey struct {
 	// uuid
 	Kid string `json:"kid"`

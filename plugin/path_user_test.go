@@ -236,15 +236,10 @@ func TestRegisterUser(t *testing.T) {
 
 		t.Logf("Update User")
 		{
-			if err := stephen.Client.Users().Register(mount, stephen.UUK); err != nil {
-				th.Testing.Fatalf("\t%s error registering user: %s", FAILURE, err)
+			if err := stephen.Client.Users().Update(mount, stephen.LoginResponse.Auth.EntityID, stephen.UUK); err != nil {
+				th.Testing.Fatalf("\t%s error updating user: %s", FAILURE, err)
 			}
-			t.Logf("\t %s should be able to register user\n", SUCCESS)
-
-			if err := stephen.Client.Users().Register(mount, stephen.UUK); err == nil {
-				th.Testing.Fatalf("\t%sshould not be allowed to register more than once: %s", FAILURE, err)
-			}
-			t.Logf("\t %s should not be able to register twice\n", SUCCESS)
+			t.Logf("\t %s should be able to update user\n", SUCCESS)
 		}
 	}
 }

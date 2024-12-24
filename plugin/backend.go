@@ -25,10 +25,8 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 // target API's client.
 type pwmgrBackend struct {
 	*framework.Backend
-	lock    sync.RWMutex
-	client  *pwmgrClient
-	storage logical.Storage
-	logger  hclog.Logger
+	lock   sync.RWMutex
+	logger hclog.Logger
 }
 
 // backend defines the target API backend
@@ -68,7 +66,6 @@ func backend() *pwmgrBackend {
 }
 
 func (b *pwmgrBackend) initialize(ctx context.Context, req *logical.InitializationRequest) error {
-	b.client = newClient(req.Storage, b.logger)
 
 	b.storage = req.Storage
 	go b.client.renewLoop()

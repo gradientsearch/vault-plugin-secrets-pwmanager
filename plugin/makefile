@@ -7,10 +7,10 @@ build: plugin run
 debug: plugin  run-debug
 
 plugin:
-	go build -o vault/plugins/vault-password-manager-plugin cmd/vault-password-manager-plugin/main.go
+	go build -o vault/plugins/local/pwmanager cmd/vault-plugin-secrets-pwmanager/main.go
 
 run:
-	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins -log-level=debug
+	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins/local -log-level=debug
 
 run-debug:
 	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins -log-level=debug 2>&1 | grep pwmgr
@@ -18,7 +18,7 @@ run-debug:
 configure: enable appRole config secretMount userpass entity pwmgr
 
 enable:
-	vault secrets enable -path=pwmgr vault-password-manager-plugin
+	vault secrets enable -path=pwmgr pwmanager
 
 appRole:
 	vault policy write plugins/pwmgr-app-role policies/pwmgr_app_role.hcl && \

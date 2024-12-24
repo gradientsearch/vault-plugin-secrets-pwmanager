@@ -1,3 +1,4 @@
+// TODO refactor wit vault/api client
 package secretsengine
 
 import (
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -46,24 +49,6 @@ type pwmgrClient struct {
 type SignInResponse struct {
 	UserID int
 	Token  string
-}
-
-type Auth struct {
-	Renewable     bool              `json:"renewable"`
-	LeaseDuration int               `json:"lease_duration"`
-	Metadata      map[string]string `json:"metadata"`
-	TokenPolicies []string          `json:"token_policies"`
-	Accessor      string            `json:"accessor"`
-	ClientToken   string            `json:"client_token"`
-}
-type AuthRoleLoginResponse struct {
-	Auth          Auth        `json:"auth"`
-	Warnings      interface{} `json:"warnings"`
-	WrapInfo      interface{} `json:wrap_info""`
-	Data          interface{} `json:"data"`
-	LeaseDuration int         `json:"lease_duration"`
-	Renewable     bool        `json:"renewable"`
-	LeaseID       string      `json:"lease_id"`
 }
 
 func (p *pwmgrClient) renewLoop() {
@@ -132,7 +117,7 @@ func (p *pwmgrClient) Login() error {
 	}
 	p.logger.Debug("client approle login successful")
 
-	var response AuthRoleLoginResponse
+	var response LoginResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return fmt.Errorf("json decode: %w", err)
 	}
@@ -156,4 +141,29 @@ func newClient(storage logical.Storage, logger hclog.Logger) *pwmgrClient {
 		storage: storage,
 	}
 	return &pc
+}
+
+// pwmanger client wrapper over the vault api client. I want to be able
+// to extend the api client but can't since the api client exists in the
+// vault repo.
+type pwmanagerClient struct {
+	c *api.Client
+}
+
+// New
+func NewClient(token string, hostPort string) (*pwmanagerClient, error) {
+	config := vault.DefaultConfig()
+	config.Address = "http://" + hostPort
+
+	client, err := vault.NewClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to initialize Vault client: %v", err)
+	}
+
+	client.SetToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to vault: %s", err)
+	}
+
+	return &pwmanagerClient{c: client}, nil
 }

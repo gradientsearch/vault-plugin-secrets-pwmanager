@@ -3,39 +3,32 @@ package secretsengine
 import (
 	"context"
 	"fmt"
-	"time"
 
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
+
+const USER_SCHEMA string = "users"
 
 // pwmgrRegisterEntry defines the data required
 // for a Vault register to access and call the Pwmgr
 // token endpoints
 type pwmgrRegisterEntry struct {
-	Username string        `json:"username"`
-	UserID   int           `json:"user_id"`
-	Token    string        `json:"token"`
-	TokenID  string        `json:"token_id"`
-	TTL      time.Duration `json:"ttl"`
-	MaxTTL   time.Duration `json:"max_ttl"`
-}
-
-// toResponseData returns response data for a register
-func (r *pwmgrRegisterEntry) toResponseData() map[string]interface{} {
-	respData := map[string]interface{}{
-		"ttl":      r.TTL.Seconds(),
-		"max_ttl":  r.MaxTTL.Seconds(),
-		"username": r.Username,
-	}
-	return respData
+	// uuid of priv key
+	UUID string `json:"uuid"`
+	// symmetric key used to encrypt the EncPriKey
+	EncSymKey EncSymKey `json:"enc_sym_key"`
+	// mp a.k.a secret key
+	EncryptedBy string `json:"encrypted_by"`
+	// priv key used to encrypt `Safe` data
+	EncPriKey EncPriKey `json:"enc_pri_key"`
+	// pub key of the private key
+	PubKey map[string]string `json:"pubkey"`
 }
 
 // pathRegister extends the Vault API with a `/register`
-// endpoint for the backend. You can choose whether
-// or not certain attributes should be displayed,
-// required, and named. You can also define different
-// path patterns to list all registers.
+// endpoint for the backend.
 func pathRegister(b *pwmgrBackend) []*framework.Path {
 	return []*framework.Path{
 		{
@@ -46,143 +39,111 @@ func pathRegister(b *pwmgrBackend) []*framework.Path {
 					Description: "unique id",
 					Required:    true,
 				},
-				"encSymmetricKey": {
-					Type:        framework.TypeString,
+				"enc_sym_key": {
+					Type:        framework.TypeMap,
 					Description: "encrypted key that encrypts the private key",
 					Required:    true,
 				},
-				"encryptedBy": {
+				"encrypted_by": {
 					Type:        framework.TypeString,
 					Description: "UUID of the key that encrypts the encSymmetricKey",
 					Required:    true,
 				},
-				"publicKey": {
-					Type:        framework.TypeString,
+				"pubKey": {
+					Type:        framework.TypeMap,
 					Description: "public part of the key pair",
 					Required:    true,
 				},
-				"encPrivateKey": {
-					Type:        framework.TypeString,
+				"enc_pri_key": {
+					Type:        framework.TypeMap,
 					Description: "private part of the key pair",
 					Required:    true,
 				},
 			},
+			ExistenceCheck: b.pathUserExistenceCheck,
 			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.ReadOperation: &framework.PathOperation{
-					Callback: b.pathRegistersRead,
-				},
 				logical.CreateOperation: &framework.PathOperation{
 					Callback: b.pathRegistersWrite,
-				},
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.pathRegistersWrite,
-				},
-				logical.DeleteOperation: &framework.PathOperation{
-					Callback: b.pathRegistersDelete,
 				},
 			},
 			HelpSynopsis:    pathRegisterHelpSynopsis,
 			HelpDescription: pathRegisterHelpDescription,
 		},
-		{
-			Pattern: "register/?$",
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.ListOperation: &framework.PathOperation{
-					Callback: b.pathRegistersList,
-				},
-			},
-			HelpSynopsis:    pathRegisterListHelpSynopsis,
-			HelpDescription: pathRegisterListHelpDescription,
-		},
 	}
 }
 
-// pathRegistersList makes a request to Vault storage to retrieve a list of registers for the backend
-func (b *pwmgrBackend) pathRegistersList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entries, err := req.Storage.List(ctx, "register/")
-	if err != nil {
-		return nil, err
-	}
-
-	return logical.ListResponse(entries), nil
-}
-
-// pathRegistersRead makes a request to Vault storage to read a register and return response data
-func (b *pwmgrBackend) pathRegistersRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entry, err := b.getRegister(ctx, req.Storage, d.Get("name").(string))
-	if err != nil {
-		return nil, err
-	}
-
-	if entry == nil {
-		return nil, nil
-	}
-
-	return &logical.Response{
-		Data: entry.toResponseData(),
-	}, nil
-}
-
-// pathRegistersWrite makes a request to Vault storage to update a register based on the attributes passed to the register configuration
+// pathRegistersWrite makes a request to Vault storage to register a users UUK.
 func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	name, ok := d.GetOk("name")
-	if !ok {
-		return logical.ErrorResponse("missing register name"), nil
-	}
-
-	registerEntry, err := b.getRegister(ctx, req.Storage, name.(string))
+	registerEntry, err := b.getRegister(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err
 	}
 
-	if registerEntry == nil {
-		registerEntry = &pwmgrRegisterEntry{}
+	if registerEntry != nil {
+		return logical.ErrorResponse("user already registered"), nil
 	}
+
+	registerEntry = &pwmgrRegisterEntry{}
 
 	createOperation := (req.Operation == logical.CreateOperation)
 
-	if username, ok := d.GetOk("username"); ok {
-		registerEntry.Username = username.(string)
+	if uuid, ok := d.GetOk("uuid"); ok {
+		registerEntry.UUID = uuid.(string)
 	} else if !ok && createOperation {
 		return nil, fmt.Errorf("missing username in register")
 	}
 
-	if ttlRaw, ok := d.GetOk("ttl"); ok {
-		registerEntry.TTL = time.Duration(ttlRaw.(int)) * time.Second
+	if encSymKey, ok := d.GetOk("enc_sym_key"); ok {
+		if err := mapstructure.Decode(encSymKey, &registerEntry.EncSymKey); err != nil {
+			return logical.ErrorResponse("error decoding encSymKey"), nil
+		}
 	} else if createOperation {
-		registerEntry.TTL = time.Duration(d.Get("ttl").(int)) * time.Second
+		return logical.ErrorResponse("must have encSymKey"), nil
 	}
 
-	if maxTTLRaw, ok := d.GetOk("max_ttl"); ok {
-		registerEntry.MaxTTL = time.Duration(maxTTLRaw.(int)) * time.Second
+	if encryptedBy, ok := d.GetOk("encrypted_by"); ok {
+		registerEntry.EncryptedBy = encryptedBy.(string)
 	} else if createOperation {
-		registerEntry.MaxTTL = time.Duration(d.Get("max_ttl").(int)) * time.Second
+		return logical.ErrorResponse("must have encryptedBy"), nil
 	}
 
-	if registerEntry.MaxTTL != 0 && registerEntry.TTL > registerEntry.MaxTTL {
-		return logical.ErrorResponse("ttl cannot be greater than max_ttl"), nil
+	if encPriKey, ok := d.GetOk("enc_pri_key"); ok {
+		if err := mapstructure.Decode(encPriKey, &registerEntry.EncPriKey); err != nil {
+			return logical.ErrorResponse("error decoding encPriKey"), nil
+		}
+	} else if createOperation {
+		return logical.ErrorResponse("must have encPriKey"), nil
 	}
 
-	if err := setRegister(ctx, req.Storage, name.(string), registerEntry); err != nil {
+	if pubkey, ok := d.GetOk("pubKey"); ok {
+		if err := mapstructure.Decode(pubkey, &registerEntry.PubKey); err != nil {
+			return logical.ErrorResponse("error decoding encPriKey"), nil
+		}
+
+	} else if createOperation {
+		return logical.ErrorResponse("must have pubkey"), nil
+	}
+
+	if err := setRegister(ctx, req.Storage, req.EntityID, registerEntry); err != nil {
 		return nil, err
 	}
 
 	return nil, nil
 }
 
-// pathRegistersDelete makes a request to Vault storage to delete a register
-func (b *pwmgrBackend) pathRegistersDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	err := req.Storage.Delete(ctx, "register/"+d.Get("name").(string))
+// pathConfigExistenceCheck verifies if the configuration exists.
+func (b *pwmgrBackend) pathUserExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+	out, err := req.Storage.Get(ctx, fmt.Sprintf("%s/%s", "users", req.EntityID))
 	if err != nil {
-		return nil, fmt.Errorf("error deleting pwmgr register: %w", err)
+		return false, fmt.Errorf("existence check failed: %w", err)
 	}
 
-	return nil, nil
+	return out != nil, nil
 }
 
 // setRegister adds the register to the Vault storage API
-func setRegister(ctx context.Context, s logical.Storage, name string, registerEntry *pwmgrRegisterEntry) error {
-	entry, err := logical.StorageEntryJSON("register/"+name, registerEntry)
+func setRegister(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwmgrRegisterEntry) error {
+	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/%s", USER_SCHEMA, entityID), registerEntry)
 	if err != nil {
 		return err
 	}
@@ -199,12 +160,12 @@ func setRegister(ctx context.Context, s logical.Storage, name string, registerEn
 }
 
 // getRegister gets the register from the Vault storage API
-func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, name string) (*pwmgrRegisterEntry, error) {
-	if name == "" {
-		return nil, fmt.Errorf("missing register name")
+func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, entityID string) (*pwmgrRegisterEntry, error) {
+	if entityID == "" {
+		return nil, fmt.Errorf("missing register entity ID")
 	}
 
-	entry, err := s.Get(ctx, "register/"+name)
+	entry, err := s.Get(ctx, fmt.Sprintf("%s/%s", USER_SCHEMA, entityID))
 	if err != nil {
 		return nil, err
 	}
@@ -222,12 +183,9 @@ func (b *pwmgrBackend) getRegister(ctx context.Context, s logical.Storage, name 
 }
 
 const (
-	pathRegisterHelpSynopsis    = `Manages the Vault register for generating Pwmgr tokens.`
+	pathRegisterHelpSynopsis    = `Manages the Vault register endpoint for users to store their UUK.`
 	pathRegisterHelpDescription = `
-This path allows you to read and write registers used to generate Pwmgr tokens.
-You can configure a register to manage a user's token by setting the username field.
+This path allows you a user to register with the pwmanager. Upon successful 
+registration, the user (i.e. entityID and UUK) is added to the users schema.
 `
-
-	pathRegisterListHelpSynopsis    = `List the existing registers in Pwmgr backend`
-	pathRegisterListHelpDescription = `Registers will be listed by the register name.`
 )

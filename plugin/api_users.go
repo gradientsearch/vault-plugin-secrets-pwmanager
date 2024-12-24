@@ -23,17 +23,17 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-// PwManager is used to perform PwManager operations on Vault.
-type PwManager struct {
+// Users is used to perform Users operations on Vault.
+type Users struct {
 	c *api.Client
 }
 
-// PwManager is used to return the client for pwmanger API calls.
-func (c *pwmanagerClient) PwManager() *PwManager {
-	return &PwManager{c: c.c}
+// Users is used to return the client for Users API calls.
+func (c *pwmanagerClient) Users() *Users {
+	return &Users{c: c.c}
 }
 
-func (c *PwManager) Register(mount string, uuk UUK) error {
+func (c *Users) Register(mount string, uuk UUK) error {
 	r := c.c.NewRequest("POST", fmt.Sprintf("/v1/%s/register", mount))
 	if err := r.SetJSONBody(uuk); err != nil {
 		return err

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	pwmgr "github.com/gradientsearch/vault-plugin-secrets-pwmanager"
+	pwManager "github.com/gradientsearch/vault-plugin-secrets-pwmanager"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
@@ -19,7 +19,7 @@ func main() {
 	tlsProviderFunc := api.VaultPluginTLSProvider(tlsConfig)
 
 	err := plugin.Serve(&plugin.ServeOpts{
-		BackendFactoryFunc: pwmgr.Factory,
+		BackendFactoryFunc: pwManager.Factory,
 		TLSProviderFunc:    tlsProviderFunc,
 	})
 	if err != nil {

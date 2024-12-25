@@ -57,7 +57,7 @@ func TestUserUser(t *testing.T) {
 		resp, err := testTokenUserUpdate(t, b, s, USER_ENTITY_ID, map[string]interface{}{
 
 			"entity_id": USER_ENTITY_ID,
-			"uuk":       pwmgrUUKEntry{},
+			"uuk":       pwManagerUUKEntry{},
 		})
 
 		require.Nil(t, err)
@@ -70,7 +70,7 @@ func TestUserUser(t *testing.T) {
 		}
 		resp, err = testTokenUserUpdate(t, b, s, otherUserEntityID, map[string]interface{}{
 			"entity_id": otherUserEntityID,
-			"uuk":       pwmgrUUKEntry{},
+			"uuk":       pwManagerUUKEntry{},
 		})
 
 		if err != nil {
@@ -99,7 +99,7 @@ func TestUserUser(t *testing.T) {
 }
 
 // Utility function to update a user while, returning any response (including errors)
-func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, entityIDToUpdate string, d map[string]interface{}) (*logical.Response, error) {
+func testTokenUserUpdate(t *testing.T, b *pwManagerBackend, s logical.Storage, entityIDToUpdate string, d map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
@@ -117,7 +117,7 @@ func testTokenUserUpdate(t *testing.T, b *pwmgrBackend, s logical.Storage, entit
 }
 
 // Utility function to read a user and return any errors
-func testTokenUserRead(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logical.Response, error) {
+func testTokenUserRead(t *testing.T, b *pwManagerBackend, s logical.Storage) (*logical.Response, error) {
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
@@ -127,7 +127,7 @@ func testTokenUserRead(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logic
 }
 
 // Utility function to list users and return any errors
-func testTokenUserList(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logical.Response, error) {
+func testTokenUserList(t *testing.T, b *pwManagerBackend, s logical.Storage) (*logical.Response, error) {
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ListOperation,
@@ -137,7 +137,7 @@ func testTokenUserList(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logic
 }
 
 // Utility function to delete a user and return any errors
-func testTokenUserDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (*logical.Response, error) {
+func testTokenUserDelete(t *testing.T, b *pwManagerBackend, s logical.Storage) (*logical.Response, error) {
 	t.Helper()
 	return b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.DeleteOperation,
@@ -147,7 +147,7 @@ func testTokenUserDelete(t *testing.T, b *pwmgrBackend, s logical.Storage) (*log
 }
 
 // Utility function to create a register while, returning any response (including errors)
-func testTokenRegisterCreate(t *testing.T, b *pwmgrBackend, s logical.Storage, entityID string) (*logical.Response, error) {
+func testTokenRegisterCreate(t *testing.T, b *pwManagerBackend, s logical.Storage, entityID string) (*logical.Response, error) {
 	t.Helper()
 
 	uuk := UUK{}

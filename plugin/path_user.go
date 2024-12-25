@@ -13,18 +13,18 @@ const (
 	USER_SCHEMA string = "users"
 )
 
-// pwmgrUserEntry defines the data required
-// for a Vault user to access and call the Pwmgr
+// pwManagerUserEntry defines the data required
+// for a Vault user to access and call the PwManager
 // token endpoints
-type pwmgrUserEntry struct {
-	EntityID string        `json:"entity_id" mapstructure:"entity_id"`
-	UUK      pwmgrUUKEntry `json:"uuk" mapstructure:"uuk"`
+type pwManagerUserEntry struct {
+	EntityID string            `json:"entity_id" mapstructure:"entity_id"`
+	UUK      pwManagerUUKEntry `json:"uuk" mapstructure:"uuk"`
 }
 
-// pwmgrUUKEntry defines the data required
-// for a Vault register to access and call the Pwmgr
+// pwManagerUUKEntry defines the data required
+// for a Vault register to access and call the PwManager
 // token endpoints
-type pwmgrUUKEntry struct {
+type pwManagerUUKEntry struct {
 	// uuid of priv key
 	UUID string `json:"uuid" mapstructure:"uuid"`
 	// symmetric key used to encrypt the EncPriKey
@@ -38,7 +38,7 @@ type pwmgrUUKEntry struct {
 }
 
 // toResponseData returns response data for a user
-func (r *pwmgrUserEntry) toResponseData() map[string]interface{} {
+func (r *pwManagerUserEntry) toResponseData() map[string]interface{} {
 	respData := map[string]interface{}{
 		"entity_id": r.EntityID,
 		"uuk":       r.UUK,
@@ -52,7 +52,7 @@ func (r *pwmgrUserEntry) toResponseData() map[string]interface{} {
 // or not certain attributes should be displayed,
 // required, and named. You can also define different
 // path patterns to list all users.
-func pathUser(b *pwmgrBackend) []*framework.Path {
+func pathUser(b *pwManagerBackend) []*framework.Path {
 	return []*framework.Path{
 		{
 			Pattern: "register",
@@ -133,7 +133,7 @@ func pathUser(b *pwmgrBackend) []*framework.Path {
 }
 
 // pathUsersList makes a request to Vault storage to retrieve a list of users for the backend
-func (b *pwmgrBackend) pathUsersList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *pwManagerBackend) pathUsersList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	entries, err := req.Storage.List(ctx, fmt.Sprintf("%s/", USER_SCHEMA))
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (b *pwmgrBackend) pathUsersList(ctx context.Context, req *logical.Request, 
 }
 
 // pathUsersRead makes a request to Vault storage to read a user and return response data
-func (b *pwmgrBackend) pathUsersRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *pwManagerBackend) pathUsersRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	entry, err := b.getUser(ctx, req.Storage, d.Get("entity_id").(string))
 	if err != nil {
 		return nil, err
@@ -160,7 +160,7 @@ func (b *pwmgrBackend) pathUsersRead(ctx context.Context, req *logical.Request, 
 
 // pathUsersWrite makes a request to Vault storage to update a user based on the attributes passed to the user configuration
 // this is only needed when a user updates their password, the client will reencrypt their UUK using the new password
-func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *pwManagerBackend) pathUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	entityID, ok := d.GetOk("entity_id")
 	if !ok {
 		return logical.ErrorResponse("missing entity id "), nil
@@ -177,7 +177,7 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 	}
 
 	if userEntry == nil {
-		userEntry = &pwmgrUserEntry{}
+		userEntry = &pwManagerUserEntry{}
 	}
 
 	createOperation := (req.Operation == logical.CreateOperation)
@@ -204,17 +204,17 @@ func (b *pwmgrBackend) pathUsersWrite(ctx context.Context, req *logical.Request,
 }
 
 // pathUsersDelete makes a request to Vault storage to delete a user
-func (b *pwmgrBackend) pathUsersDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *pwManagerBackend) pathUsersDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	err := req.Storage.Delete(ctx, fmt.Sprintf("%s/%s", USER_SCHEMA, d.Get("entity_id").(string)))
 	if err != nil {
-		return nil, fmt.Errorf("error deleting pwmgr user: %w", err)
+		return nil, fmt.Errorf("error deleting pwManager user: %w", err)
 	}
 
 	return nil, nil
 }
 
 // pathRegistersWrite makes a request to Vault storage to register a users UUK.
-func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	registerUser, err := b.getUser(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err
@@ -224,7 +224,7 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 		return logical.ErrorResponse("user already registered"), nil
 	}
 
-	registerEntry := pwmgrUUKEntry{}
+	registerEntry := pwManagerUUKEntry{}
 
 	createOperation := (req.Operation == logical.CreateOperation)
 
@@ -265,7 +265,7 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 		return logical.ErrorResponse("must have pubkey"), nil
 	}
 
-	userEntry := pwmgrUserEntry{}
+	userEntry := pwManagerUserEntry{}
 	userEntry.EntityID = req.EntityID
 	userEntry.UUK = registerEntry
 
@@ -277,7 +277,7 @@ func (b *pwmgrBackend) pathRegistersWrite(ctx context.Context, req *logical.Requ
 }
 
 // pathConfigExistenceCheck verifies if the configuration exists.
-func (b *pwmgrBackend) pathUserExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+func (b *pwManagerBackend) pathUserExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
 	out, err := req.Storage.Get(ctx, fmt.Sprintf("%s/%s", USER_SCHEMA, req.EntityID))
 	if err != nil {
 		return false, fmt.Errorf("existence check failed: %w", err)
@@ -287,7 +287,7 @@ func (b *pwmgrBackend) pathUserExistenceCheck(ctx context.Context, req *logical.
 }
 
 // setRegister adds the register to the Vault storage API
-func (b *pwmgrBackend) setUser(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwmgrUserEntry) error {
+func (b *pwManagerBackend) setUser(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwManagerUserEntry) error {
 	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/%s", USER_SCHEMA, entityID), registerEntry)
 	if err != nil {
 		return err
@@ -305,7 +305,7 @@ func (b *pwmgrBackend) setUser(ctx context.Context, s logical.Storage, entityID 
 }
 
 // getUser gets the register from the Vault storage API
-func (b *pwmgrBackend) getUser(ctx context.Context, s logical.Storage, entityID string) (*pwmgrUserEntry, error) {
+func (b *pwManagerBackend) getUser(ctx context.Context, s logical.Storage, entityID string) (*pwManagerUserEntry, error) {
 	if entityID == "" {
 		return nil, fmt.Errorf("missing register entity ID")
 	}
@@ -319,7 +319,7 @@ func (b *pwmgrBackend) getUser(ctx context.Context, s logical.Storage, entityID 
 		return nil, nil
 	}
 
-	register := new(pwmgrUserEntry)
+	register := new(pwManagerUserEntry)
 	if err := entry.DecodeJSON(&register); err != nil {
 		return nil, err
 	}

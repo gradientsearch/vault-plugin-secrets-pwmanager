@@ -6,8 +6,8 @@
     "inputs": [
         {
             "type": "promptString",
-            "id": "pwmgr_URL",
-            "description": "URL of Pwmgr"
+            "id": "pwManager_URL",
+            "description": "URL of PwManager"
         }
     ],
     "configurations": [
@@ -34,9 +34,9 @@
             ],
             "env": {
                 "VAULT_ACC":"1",
-                "TEST_pwmgr_USERNAME": "vault-plugin-testing",
-                "TEST_pwmgr_PASSWORD": "Testing!123",
-                "TEST_pwmgr_URL": "${input:pwmgr_URL}"
+                "TEST_pwManager_USERNAME": "vault-plugin-testing",
+                "TEST_pwManager_PASSWORD": "Testing!123",
+                "TEST_pwManager_URL": "${input:pwManager_URL}"
             }
         }
     ]

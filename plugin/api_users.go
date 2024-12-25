@@ -119,29 +119,29 @@ func (c *Users) Delete(mount string, entityID string) error {
 }
 
 // Get returns a users UUK
-func (c *Users) Get(mount string, entityID string) (pwmgrUserEntry, error) {
+func (c *Users) Get(mount string, entityID string) (pwManagerUserEntry, error) {
 	r := c.c.NewRequest("GET", fmt.Sprintf("/v1/%s/users/%s", mount, entityID))
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 	resp, err := c.c.RawRequestWithContext(ctx, r)
 	if err != nil {
-		return pwmgrUserEntry{}, err
+		return pwManagerUserEntry{}, err
 	}
 	defer resp.Body.Close()
 
 	secret, err := api.ParseSecret(resp.Body)
 	if err != nil {
-		return pwmgrUserEntry{}, err
+		return pwManagerUserEntry{}, err
 	}
 	if secret == nil || secret.Data == nil {
-		return pwmgrUserEntry{}, fmt.Errorf("data from server response is empty")
+		return pwManagerUserEntry{}, fmt.Errorf("data from server response is empty")
 	}
 
-	var result pwmgrUserEntry
+	var result pwManagerUserEntry
 	err = mapstructure.Decode(secret.Data, &result)
 	if err != nil {
-		return pwmgrUserEntry{}, err
+		return pwManagerUserEntry{}, err
 	}
 	return result, nil
 }
@@ -509,7 +509,7 @@ func (uuk *UUK) DecryptEncPriKey(password, mount, secretKey, entityID []byte) (j
 func (uuk *UUK) Encrypt(payload string) ([]byte, error) {
 	encrypted, err := jwe.Encrypt([]byte(payload), jwe.WithKey(jwa.RSA_OAEP(), uuk.PubKey))
 	if err != nil {
-		return nil, fmt.Errorf("failed to encrypt payload: %s\n", err)
+		return nil, fmt.Errorf("failed to encrypt payload: %s", err)
 	}
 	return encrypted, nil
 }
@@ -518,7 +518,7 @@ func (uuk *UUK) Encrypt(payload string) ([]byte, error) {
 func (uuk *UUK) Decrypt(encrypted []byte, priKey jwk.Key) ([]byte, error) {
 	decrypted, err := jwe.Decrypt(encrypted, jwe.WithKey(jwa.RSA_OAEP(), priKey))
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt payload: %s\n", err)
+		return nil, fmt.Errorf("failed to decrypt payload: %s", err)
 
 	}
 	return decrypted, nil

@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -55,8 +54,8 @@ type pwManagerBackend struct {
 	renew chan (interface{})
 	done  chan (interface{})
 
-	client  *http.Client
-	lock    sync.RWMutex
+	client *http.Client
+
 	storage logical.Storage
 
 	vaultToken string
@@ -68,6 +67,10 @@ type pwManagerBackend struct {
 // and the secrets it will store.
 func backend() *pwManagerBackend {
 	var b = pwManagerBackend{}
+
+	b.renew = make(chan interface{})
+	b.done = make(chan interface{})
+
 	appLogger := hclog.New(&hclog.LoggerOptions{
 		Name:  "pwManager",
 		Level: hclog.LevelFromString("DEBUG"),
@@ -82,17 +85,21 @@ func backend() *pwManagerBackend {
 		},
 		Paths: framework.PathAppend(
 			pathUser(&b),
+			[]*framework.Path{
+				pathConfig(&b),
+			},
 		),
 		BackendType:    logical.TypeLogical,
 		InitializeFunc: b.initialize,
 	}
 
+	go b.renewLoop()
 	return &b
 }
 
 func (b *pwManagerBackend) initialize(ctx context.Context, req *logical.InitializationRequest) error {
 	b.storage = req.Storage
-	go b.renewLoop()
+
 	return nil
 }
 func (p *pwManagerBackend) renewLoop() {
@@ -115,16 +122,6 @@ func (p *pwManagerBackend) renewLoop() {
 		case <-p.done:
 			return
 		}
-	}
-}
-
-// reset clears any client configuration for a new
-// backend to be configured
-func (b *pwManagerBackend) reset() {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	if b != nil {
-		b.renew <- nil
 	}
 }
 

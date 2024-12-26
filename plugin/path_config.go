@@ -148,7 +148,7 @@ func (b *pwManagerBackend) pathConfigWrite(ctx context.Context, req *logical.Req
 	}
 
 	// reset the client so the next invocation will pick up the new configuration
-	b.reset()
+	b.renew <- nil
 
 	return nil, nil
 }
@@ -158,13 +158,19 @@ func (b *pwManagerBackend) pathConfigDelete(ctx context.Context, req *logical.Re
 	err := req.Storage.Delete(ctx, configStoragePath)
 
 	if err == nil {
-		b.reset()
+		// reset the client so the next invocation will pick up the new configuration
+		b.renew <- nil
 	}
 
 	return nil, err
 }
 
 func getConfig(ctx context.Context, s logical.Storage) (*pwmgrConfig, error) {
+
+	if s == nil {
+		return nil, nil
+	}
+
 	entry, err := s.Get(ctx, configStoragePath)
 	if err != nil {
 		return nil, err

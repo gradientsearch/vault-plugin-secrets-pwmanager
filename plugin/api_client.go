@@ -24,7 +24,9 @@ func NewClient(token string, hostPort string) (*pwmanagerClient, error) {
 		return nil, fmt.Errorf("unable to initialize Vault client: %v", err)
 	}
 
-	client.SetToken(token)
+	if len(token) > 0 {
+		client.SetToken(token)
+	}
 
 	return &pwmanagerClient{c: client}, nil
 }

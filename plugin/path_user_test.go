@@ -14,6 +14,7 @@ import (
 
 const (
 	USER_ENTITY_ID = "928e91c7-db18-9673-4342-6f731c7f561a"
+	DEBUG_LOG      = true
 )
 
 // TestUserUser uses a mock backend to check
@@ -198,7 +199,7 @@ func TestRegisterUser(t *testing.T) {
 	t.Log("Test Registering User")
 	{
 
-		th, err := NewTestHarness(t, "TestRegisterUser", false)
+		th, err := NewTestHarness(t, "TestRegisterUser", DEBUG_LOG)
 		if err != nil {
 			t.Fatalf("\tfailed to create test harness")
 		}

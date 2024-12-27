@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Enroll from '../layouts/enroll.svelte';
+	import Locked from '../layouts/locked.svelte';
 	import Register from '../layouts/register.svelte';
 	import Unlocked from '../layouts/unlocked.svelte';
 
@@ -13,7 +14,8 @@
 		<div class="flex-1">
 			<!-- <Unlocked></Unlocked> -->
 			<!-- <Register></Register> -->
-			<Enroll></Enroll>
+			<!-- <Enroll></Enroll> -->
+             <Locked></Locked>
 		</div>
 	</div>
 </div>

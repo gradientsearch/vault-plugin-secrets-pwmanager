@@ -250,6 +250,17 @@ func TestRegisterUser(t *testing.T) {
 				}
 				t.Logf("\t%s should be able to register user %s\n", SUCCESS, k)
 			}
+
+			if mo, err := th.Client.c.Sys().ListMounts(); err != nil {
+				t.Fatalf("\t%s should be able to list mounts: %s", FAILURE, err)
+			} else {
+				for k, v := range users {
+					mountPath := fmt.Sprintf("vaults/%s/private/", v.LoginResponse.Auth.EntityID)
+					if _, ok := mo[mountPath]; !ok {
+						t.Fatalf("\t%s should be able to create vault mount for %s: %s", FAILURE, k, mountPath)
+					}
+				}
+			}
 		}
 
 		t.Log("Register User Twice")

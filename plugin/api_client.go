@@ -19,6 +19,10 @@ func NewClient(token string, hostPort string) (*pwmanagerClient, error) {
 	config := vault.DefaultConfig()
 	config.Address = "http://" + hostPort
 
+	// leaving this here as a reminder that this client
+	// sets default retries
+	// config.MaxRetryWait = 30 * time.Second
+	// config.MaxRetries = 0
 	client, err := vault.NewClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize Vault client: %v", err)

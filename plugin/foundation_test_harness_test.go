@@ -280,7 +280,7 @@ func (t *TestHarness) WithAppRole() error {
 	}
 
 	// NOTE this is running in a container so vault is listening on 8200 not the docker exposed port!
-	data = fmt.Sprintf(`{"role_id": "%s", "secret_id": "%s", "url": "%s"}`, rid.Data.RoleID, sd.Data.SecretID, "http://127.0.0.1:8200")
+	data = fmt.Sprintf(`{"role_id": "%s", "secret_id": "%s", "url": "%s"}`, rid.Data.RoleID, sd.Data.SecretID, "127.0.0.1:8200")
 	err = t.Client.PwManager().Config("pwmanager", data)
 	if err != nil {
 		t.Testing.Fatalf("error configuring pwmanager: %s\n", err)

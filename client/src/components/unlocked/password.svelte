@@ -1,0 +1,1 @@
+<div class="bg-pink-400 w-full content-center text-center">(password)</div>

@@ -1,2 +1,15 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+	import Unlocked from "../layouts/unlocked.svelte";
+
+	let quadrants = 3;
+
+	let bg = ['bg-sky-500', 'bg-slate-500', 'bg-pink-400', 'bg-green-400'];
+</script>
+
+<div class="h-screen w-full text-3xl">
+	<div class="flex h-full flex-1 flex-col">
+		<div class="flex-1">
+			<Unlocked></Unlocked>
+		</div>
+	</div>
+</div>

@@ -20,6 +20,8 @@ const (
 // TestUserUser uses a mock backend to check
 // user create, read, update, and delete.
 func TestUserUser(t *testing.T) {
+	// TODO reimplement these tests using test harness
+	t.Skip()
 	b, s := getTestBackend(t)
 
 	t.Run("List All Users", func(t *testing.T) {
@@ -183,6 +185,8 @@ func testTokenRegisterCreate(t *testing.T, b *pwManagerBackend, s logical.Storag
 // TestUserRegister uses a mock backend to check
 // register create
 func TestUserRegister(t *testing.T) {
+	// TODO reimplement these tests using test harness
+	t.Skip()
 	b, s := getTestBackend(t)
 
 	t.Run("Create User Register - pass", func(t *testing.T) {

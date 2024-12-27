@@ -1,6 +1,7 @@
 <script lang="ts">
-	import Register from "../layouts/register.svelte";
-	import Unlocked from "../layouts/unlocked.svelte";
+	import Enroll from '../layouts/enroll.svelte';
+	import Register from '../layouts/register.svelte';
+	import Unlocked from '../layouts/unlocked.svelte';
 
 	let quadrants = 3;
 
@@ -11,7 +12,8 @@
 	<div class="flex h-full flex-1 flex-col">
 		<div class="flex-1">
 			<!-- <Unlocked></Unlocked> -->
-             <Register></Register>
+			<!-- <Register></Register> -->
+			<Enroll></Enroll>
 		</div>
 	</div>
 </div>

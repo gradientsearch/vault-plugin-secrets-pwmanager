@@ -217,12 +217,20 @@ func TestRegisterUser(t *testing.T) {
 			t.Fatalf("error reading user policy: %s", err)
 		}
 
+		approlePolicy, err := os.ReadFile("policies/pwmanager_approle.hcl")
+		if err != nil {
+			t.Fatalf("error reading user policy: %s", err)
+		}
+
 		policies := map[string]string{
 			"pwmanager/user/default":  string(userPolicy),
 			"pwmanager/admin/default": string(adminPolicy),
+			"pwmanager/approle":       string(approlePolicy),
 		}
 
 		th.WithPolicies(policies)
+
+		th.WithAppRole()
 
 		users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"}, "stephen")
 

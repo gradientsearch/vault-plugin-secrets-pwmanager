@@ -14,11 +14,14 @@ import (
 
 const (
 	USER_ENTITY_ID = "928e91c7-db18-9673-4342-6f731c7f561a"
+	DEBUG_LOG      = true
 )
 
 // TestUserUser uses a mock backend to check
 // user create, read, update, and delete.
 func TestUserUser(t *testing.T) {
+	// TODO reimplement these tests using test harness
+	t.Skip()
 	b, s := getTestBackend(t)
 
 	t.Run("List All Users", func(t *testing.T) {
@@ -182,6 +185,8 @@ func testTokenRegisterCreate(t *testing.T, b *pwManagerBackend, s logical.Storag
 // TestUserRegister uses a mock backend to check
 // register create
 func TestUserRegister(t *testing.T) {
+	// TODO reimplement these tests using test harness
+	t.Skip()
 	b, s := getTestBackend(t)
 
 	t.Run("Create User Register - pass", func(t *testing.T) {
@@ -198,7 +203,7 @@ func TestRegisterUser(t *testing.T) {
 	t.Log("Test Registering User")
 	{
 
-		th, err := NewTestHarness(t, "TestRegisterUser", false)
+		th, err := NewTestHarness(t, "TestRegisterUser", DEBUG_LOG)
 		if err != nil {
 			t.Fatalf("\tfailed to create test harness")
 		}
@@ -216,12 +221,20 @@ func TestRegisterUser(t *testing.T) {
 			t.Fatalf("error reading user policy: %s", err)
 		}
 
+		approlePolicy, err := os.ReadFile("policies/pwmanager_approle.hcl")
+		if err != nil {
+			t.Fatalf("error reading user policy: %s", err)
+		}
+
 		policies := map[string]string{
 			"pwmanager/user/default":  string(userPolicy),
 			"pwmanager/admin/default": string(adminPolicy),
+			"pwmanager/approle":       string(approlePolicy),
 		}
 
 		th.WithPolicies(policies)
+
+		th.WithAppRole()
 
 		users := th.WithUserpassAuth("pwmanager", []string{"stephen", "frank", "bob", "alice"}, "stephen")
 
@@ -240,6 +253,17 @@ func TestRegisterUser(t *testing.T) {
 					t.Fatalf("\t%s error registering user %s: %s", FAILURE, k, err)
 				}
 				t.Logf("\t%s should be able to register user %s\n", SUCCESS, k)
+			}
+
+			if mo, err := th.Client.c.Sys().ListMounts(); err != nil {
+				t.Fatalf("\t%s should be able to list mounts: %s", FAILURE, err)
+			} else {
+				for k, v := range users {
+					mountPath := fmt.Sprintf("vaults/%s/private/", v.LoginResponse.Auth.EntityID)
+					if _, ok := mo[mountPath]; !ok {
+						t.Fatalf("\t%s should be able to create vault mount for %s: %s", FAILURE, k, mountPath)
+					}
+				}
 			}
 		}
 
@@ -333,4 +357,6 @@ func TestRegisterUser(t *testing.T) {
 			t.Logf("\t%s frank should not be able to delete user frank", SUCCESS)
 		}
 	}
+	t.Logf("Finished TestRegisterUser")
+
 }

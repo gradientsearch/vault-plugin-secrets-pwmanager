@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	mapstructure "github.com/go-viper/mapstructure/v2"
+	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -273,7 +274,15 @@ func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.
 		return nil, err
 	}
 
-	return nil, nil
+	// create private kv store
+	usersPrivateMountPath := fmt.Sprintf("vaults/%s/private", req.EntityID)
+	mi := api.MountInput{
+		Type: "kv-v2",
+	}
+	err = b.c.c.Sys().Mount(usersPrivateMountPath, &mi)
+	//	TODO Delete user on error creating private vault
+
+	return nil, err
 }
 
 // pathConfigExistenceCheck verifies if the configuration exists.

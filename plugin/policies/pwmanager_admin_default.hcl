@@ -5,4 +5,3 @@ path "pwmanager/users" {
 path "pwmanager/users/*" {
     capabilities = ["delete"]
 }
-

@@ -252,6 +252,43 @@ func (t *TestHarness) WithUserpassAuth(mount string, users []string, adminUser s
 	return lrs
 }
 
+func (t *TestHarness) WithAppRole() error {
+	mount := "approle"
+	err := t.Client.AppRole().Enable(mount)
+	if err != nil {
+		t.Testing.Fatalf("error creating app auth method: %s\n", err)
+	}
+
+	data := `{"token_policies": "pwmanager/approle", "token_type": "batch", "secret_id_num_uses": 0, "secret_id_ttl": 0}`
+
+	roleName := "pwmanager"
+
+	err = t.Client.AppRole().CreateRole(mount, roleName, data)
+	if err != nil {
+		t.Testing.Fatalf("error creating app role: %s\n", err)
+	}
+
+	rid, err := t.Client.AppRole().RoleID(mount, roleName)
+	if err != nil {
+		t.Testing.Fatalf("error creating app role: %s\n", err)
+	}
+
+	data = fmt.Sprintf(`{"role_id": "%s"}`, rid)
+	sd, err := t.Client.AppRole().SecretID(mount, roleName, data)
+	if err != nil {
+		t.Testing.Fatalf("error creating app role: %s\n", err)
+	}
+
+	// NOTE this is running in a container so vault is listening on 8200 not the docker exposed port!
+	data = fmt.Sprintf(`{"role_id": "%s", "secret_id": "%s", "url": "%s"}`, rid.Data.RoleID, sd.Data.SecretID, "127.0.0.1:8200")
+	err = t.Client.PwManager().Config("pwmanager", data)
+	if err != nil {
+		t.Testing.Fatalf("error configuring pwmanager: %s\n", err)
+	}
+
+	return nil
+}
+
 type TestUser struct {
 	LoginResponse  LoginResponse
 	PwManagerMount string

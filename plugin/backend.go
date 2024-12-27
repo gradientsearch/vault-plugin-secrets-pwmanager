@@ -55,6 +55,7 @@ type pwManagerBackend struct {
 	done  chan (interface{})
 
 	client *http.Client
+	c      *pwmanagerClient
 
 	storage logical.Storage
 
@@ -126,15 +127,16 @@ func (p *pwManagerBackend) renewLoop() {
 }
 
 func (p *pwManagerBackend) Login() error {
-	p.logger.Debug("starting app role request")
 	config, err := getConfig(context.TODO(), p.storage)
 
 	if config == nil || err != nil {
-		return fmt.Errorf("pwmgr mount not configured. configure at /config")
+		return fmt.Errorf("pwmanager mount not configured. configure at /config")
 	}
-	p.logger.Debug("config not nil")
-	p.logger.Debug(fmt.Sprintf("config %+v", config))
-	url := fmt.Sprintf("%s/v1/auth/approle/login", config.URL)
+
+	p.c, err = NewClient("", config.URL)
+	if err != nil {
+		return fmt.Errorf("error configuring pwmanagerClient: %s", err)
+	}
 
 	cfg := struct {
 		RoleID   string `json:"role_id"`
@@ -149,31 +151,16 @@ func (p *pwManagerBackend) Login() error {
 		return fmt.Errorf("encode data: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, url, &b)
-	if err != nil {
-		p.logger.Debug(fmt.Sprintf("error making app role request request: %s", err))
-		return fmt.Errorf("create request: %w", err)
-	}
-
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := p.client.Do(req)
+	// TODO config the app role mount
+	response, err := p.c.AppRole().Login("approle", b.String())
 	if err != nil {
 		p.logger.Debug("error doing app role request")
 		return fmt.Errorf("do: %w", err)
 	}
 	p.logger.Debug("client approle login successful")
 
-	var response LoginResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return fmt.Errorf("json decode: %w", err)
-	}
-	p.logger.Debug("client AuthRoleLoginResponse", "auth", fmt.Sprintf("%+v", response))
-
-	p.vaultToken = response.Auth.ClientToken
-	p.url = config.URL
+	p.c.c.SetToken(response.Auth.ClientToken)
+	p.renew <- nil
 
 	return nil
 }

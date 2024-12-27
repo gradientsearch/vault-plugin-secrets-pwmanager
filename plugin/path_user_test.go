@@ -342,4 +342,6 @@ func TestRegisterUser(t *testing.T) {
 			t.Logf("\t%s frank should not be able to delete user frank", SUCCESS)
 		}
 	}
+	t.Logf("Finished TestRegisterUser")
+
 }

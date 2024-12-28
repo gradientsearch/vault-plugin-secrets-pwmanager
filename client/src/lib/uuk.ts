@@ -28,7 +28,7 @@ interface EncSymKey {
     // the algorithm used to encrypt the EncSymKey e.g. 2SKD PBDKF2-HKDF
     Alg: string
     // PBDKF2 iterations e.g. 650000
-    P2c: string
+    P2c: number
     // initial 16 byte random sequence for secret key derivation.
     // used in the first hkdf function call
     P2s: string
@@ -77,6 +77,12 @@ function withInitializationSalt(uuk: UUK): UUK {
     return uuk;
 }
 
+function withPasswordIterations(uuk: UUK, iterations: number): UUK {
+    uuk.EncSymKey.P2c = iterations
+
+    return uuk
+}
+
 function newUUK(): UUK {
     let uuk: UUK = {
         EncPriKey: {},
@@ -90,6 +96,8 @@ function newUUK(): UUK {
 export async function buildUUK() {
     let uuk = newUUK()
     uuk = withInitializationSalt(uuk)
+    uuk = withPasswordIterations(uuk, 650000)
+
 
     return await crypto.subtle.generateKey('X25519', false /* extractable */, ['deriveKey']);
 }

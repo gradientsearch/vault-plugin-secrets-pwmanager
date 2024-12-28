@@ -73,7 +73,7 @@ func pathUser(b *pwManagerBackend) []*framework.Path {
 					Description: "UUID of the key that encrypts the encSymmetricKey",
 					Required:    true,
 				},
-				"pubKey": {
+				"pub_key": {
 					Type:        framework.TypeMap,
 					Description: "public part of the key pair",
 					Required:    true,
@@ -257,7 +257,7 @@ func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.
 		return logical.ErrorResponse("must have encPriKey"), nil
 	}
 
-	if pubkey, ok := d.GetOk("pubKey"); ok {
+	if pubkey, ok := d.GetOk("pub_key"); ok {
 		if err := mapstructure.Decode(pubkey, &registerEntry.PubKey); err != nil {
 			return logical.ErrorResponse("error decoding encPriKey"), nil
 		}

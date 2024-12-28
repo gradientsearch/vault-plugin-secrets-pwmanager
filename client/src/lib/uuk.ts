@@ -64,16 +64,25 @@ export function toHex(plain: string) {
         .join("");
 }
 
-function toString(hex: string) {
+function toString(hex: string): string {
     return hex.split(/(\w\w)/g)
         .filter(p => !!p)
         .map(c => String.fromCharCode(parseInt(c, 16)))
         .join("")
 }
 
+function toString2(hex: string): Uint8Array {
+    let sa = toString(hex).split(",")
+    let a = new Uint8Array(sa.length)
+    for (let i = 0; i < sa.length; i++) {
+        a[i] = Number(sa[i])
+    }
+    return a
+}
+
 
 function withInitializationSalt(uuk: UUK): UUK {
-    uuk.EncSymKey.P2s = toHex(crypto.getRandomValues(new Uint8Array(16)).toString());
+    uuk.EncSymKey.P2s = toHex(crypto.getRandomValues(new Uint8Array(16)).toString())
     return uuk;
 }
 
@@ -83,73 +92,63 @@ function withPasswordIterations(uuk: UUK, iterations: number): UUK {
     return uuk
 }
 
-async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<[UUK, Uint8Array]> {
-    const textEncoder = new TextEncoder();
-    let rawKey = textEncoder.encode(toString(uuk.EncSymKey.P2s))
-    let initialSalt = await window.crypto.subtle.importKey("raw", rawKey, "AES-GCM", true, [
-        'deriveKey'
+export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<[UUK, Uint8Array]> {
+
+    let rawKey = toString2(uuk.EncSymKey.P2s)
+    let initialSalt = await crypto.subtle.importKey("raw", rawKey, "HKDF", false, [
+        'deriveBits'
     ]);
 
     // HKDF 1
     const salt = entityID
     const info = new TextEncoder().encode('2SKD HKDF 1');
     const hkdf_params = { name: 'HKDF', hash: 'SHA-256', salt, info };
-    const gcm_params = { name: 'AES-GCM', length: 256 };
-    const saltDerivedKey = await crypto.subtle.deriveKey(
+    const saltDerivedKey = await crypto.subtle.deriveBits(
         hkdf_params,
         initialSalt,
-        gcm_params,
-        false /* extractable */,
-        ['encrypt', 'decrypt']
+        32 * 8
     );
 
 
-    // PBKDF
-    let passwordKey = await window.crypto.subtle.importKey("raw", password, "AES-GCM", true, [
-        'deriveKey'
-    ]);
+    const enc = new TextEncoder();
 
-    let keyLen = 32
-    let passwordDerivedKey = await window.crypto.subtle.deriveKey(
+    let passwordKey = await crypto.subtle.importKey(
+        "raw",
+        password,
+        "PBKDF2",
+        false,
+        ["deriveBits"],
+    );
+
+
+    let passwordDerivedKey = await crypto.subtle.deriveBits(
         {
             name: "PBKDF2",
-            salt,
-            iterations: uuk.EncSymKey.P2c,
+            salt: saltDerivedKey,
+            iterations: 100000,
             hash: "SHA-256",
         },
         passwordKey,
-        { name: "AES-GCM", length: keyLen },
-        true,
-        ["encrypt", "decrypt"],
+        32 * 8
     );
 
-
     // hkdf 2
-
-
-    let secretKeyCrypto = await window.crypto.subtle.importKey("raw", secretKey, "AES-GCM", true, [
-        'deriveKey'
+    let secretKeyCrypto = await crypto.subtle.importKey("raw", secretKey, "HKDF", false, [
+        'deriveBits'
     ]);
 
     // HKDF 2
     const hkdf2Salt = mount
     const hkdf2Info = new TextEncoder().encode('2SKD HKDF 2');
     const hkdf2_params = { name: 'HKDF', hash: 'SHA-256', salt: hkdf2Salt, info: hkdf2Info };
-    const gcm2_params = { name: 'AES-GCM', length: 256 };
-    const secretDerivedKey = await crypto.subtle.deriveKey(
+    const secretDerivedKey = await crypto.subtle.deriveBits(
         hkdf2_params,
         secretKeyCrypto,
-        gcm2_params,
-        false /* extractable */,
-        ['encrypt', 'decrypt']
+        32 * 8
     );
 
-    let exportedPasswordDerivedKey = await crypto.subtle.exportKey("raw", passwordDerivedKey)
-    let passwordDerivedKeyBytes = new Uint8Array(exportedPasswordDerivedKey);
-
-    let exportedSecretDerivedKey = await crypto.subtle.exportKey("raw", secretDerivedKey)
-    let secretDerivedKeyBytes = new Uint8Array(exportedSecretDerivedKey);
-
+    let passwordDerivedKeyBytes = new Uint8Array(passwordDerivedKey);
+    let secretDerivedKeyBytes = new Uint8Array(secretDerivedKey);
 
     // XOR passwordDk and secret
     let twoSKD = new Uint8Array(32)
@@ -201,8 +200,6 @@ export async function buildUUK(password: Uint8Array, mount: Uint8Array, secretKe
 
     let twoSkdHash: Uint8Array
     [uuk, twoSkdHash] = await twoSkd(uuk, password, mount, secretKey, entityID)
-
-
 
     return await crypto.subtle.generateKey('X25519', false /* extractable */, ['deriveKey']);
 }

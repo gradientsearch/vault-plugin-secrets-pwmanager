@@ -92,7 +92,7 @@ function withPasswordIterations(uuk: UUK, iterations: number): UUK {
     return uuk
 }
 
-export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<[UUK, Uint8Array]> {
+export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<Uint8Array> {
 
     let rawKey = toString2(uuk.EncSymKey.P2s)
     let initialSalt = await crypto.subtle.importKey("raw", rawKey, "HKDF", false, [
@@ -125,7 +125,7 @@ export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, 
         {
             name: "PBKDF2",
             salt: saltDerivedKey,
-            iterations: 100000,
+            iterations: uuk.EncSymKey.P2c,
             hash: "SHA-256",
         },
         passwordKey,
@@ -156,7 +156,7 @@ export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, 
         twoSKD[i] = passwordDerivedKeyBytes[i] ^ secretDerivedKeyBytes[i]
     }
 
-    return [uuk, twoSKD]
+    return twoSKD
 }
 
 
@@ -192,14 +192,13 @@ function newUUK(): UUK {
     return uuk
 }
 
-export async function buildUUK(password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array) {
+export async function buildUUK(password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<UUK> {
     let uuk = newUUK()
     uuk = withInitializationSalt(uuk)
     uuk = withPasswordIterations(uuk, 650000)
-    const textEncoder = new TextEncoder();
 
     let twoSkdHash: Uint8Array
-    [uuk, twoSkdHash] = await twoSkd(uuk, password, mount, secretKey, entityID)
+    let bits = await twoSkd(uuk, password, mount, secretKey, entityID)
 
-    return await crypto.subtle.generateKey('X25519', false /* extractable */, ['deriveKey']);
+    return uuk
 }

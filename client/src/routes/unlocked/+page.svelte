@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Header from "../components/unlocked/header.svelte";
-	import Password from "../components/unlocked/password.svelte";
-	import Sidebar from "../components/unlocked/sidebar.svelte";
-	import Vault from "../components/unlocked/vault.svelte";
+	import Header from "./components/header.svelte";
+	import Password from "./components/password.svelte";
+	import Sidebar from "./components/sidebar.svelte";
+	import Vault from "./components/vault.svelte";
 
 	let bg = ['bg-sky-500', 'bg-slate-500', 'bg-pink-400', 'bg-green-400'];
 </script>

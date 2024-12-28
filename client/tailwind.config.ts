@@ -488,6 +488,18 @@ export default {
 			DEFAULT: '1',
 		},
 		fontFamily: {
+			vault: [
+				'-apple-system',
+				 'BlinkMacSystemFont',
+				 'Segoe UI',
+				 'Helvetica',
+				 'Arial',
+				 'sans-serif',
+				 '"Apple Color Emoji"',
+				 '"Segoe UI Emoji"',
+				 '"Segoe UI Symbol"',
+			],
+			
 			sans: [
 				'ui-sans-serif',
 				'system-ui',

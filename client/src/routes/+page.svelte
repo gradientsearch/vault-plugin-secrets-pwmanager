@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
+	import Button from '../components/button.svelte';
 
 	//goto(`${base}/locked`)
 </script>
@@ -22,12 +23,7 @@
 
 			<!-- Base -->
 
-			<a
-				class="bg-blue-200 text-foreground_high_contrast hover:bg-blue-400 mt-6 inline-block w-[76px] rounded border py-2 text-center text-sm font-medium"
-				href="{base}/enroll"
-			>
-				Enroll
-			</a>
+			<Button href="{base}/enroll">Enroll</Button>
 		</div>
 
 		<div class="border-border_faint relative mt-14 block overflow-hidden border p-3 shadow-lg">
@@ -43,12 +39,9 @@
 				</p>
 			</div>
 
-			<a
-				class="bg-blue-200 text-foreground_high_contrast hover:bg-blue-400 mt-6 inline-block w-[76px] rounded border py-2 text-center text-sm font-medium"
-				href="{base}/register"
-			>
-				Register
-			</a>
+			
+			<Button href="{base}/register">register</Button>
+			
 		</div>
 	</div>
 </div>

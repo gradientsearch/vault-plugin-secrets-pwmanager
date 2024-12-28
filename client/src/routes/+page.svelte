@@ -4,18 +4,14 @@
 	import Button from '../components/button.svelte';
 	import Card from '../components/card.svelte';
 	import VaultIcon from '../components/vaultIcon.svelte';
+	import VaultIconAndText from '../components/vaultIconAndText.svelte';
 
 	//goto(`${base}/locked`)
 </script>
 
 <div class="flex h-full w-full justify-center">
-	<div class="mt-14 flex-row">
-		<div class="flex-row justify-center">
-			<div class="flex justify-center">
-				<VaultIcon></VaultIcon>
-			</div>
-			<p class="text-xs text-center">Vault Password Manager <a class="underline text-blue-200" href="https://github.com/gradientsearch/vault-plugin-secrets-pwmanager">plugin</a> by Stephen O'Dwyer</p>
-		</div>
+	<div class="flex-row">
+		<VaultIconAndText className="mt-14"></VaultIconAndText>
 		<Card
 			className="mt-6"
 			title="Enroll New Device"

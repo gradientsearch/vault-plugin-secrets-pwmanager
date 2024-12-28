@@ -1,18 +1,24 @@
 <script lang="ts">
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
+	import { onMount } from 'svelte';
 
 	class Register {
-		mount: string = ""
-		url: string = ""
-		token: string = ""
-		password: string = ""
-		retypedPassword: string = ""
+		mount: string = 'pwmanager';
+		url: string = 'http://localhost:8200';
+		token: string = '';
+		password: string = '';
+		retypedPassword: string = '';
 	}
 
-    let register = new Register()
+	let register = new Register();
+    
 
-	function onRegister() {}
+	function onRegister() {
+        //2skd code
+
+
+    }
 </script>
 
 <div class="flex h-full w-full justify-center">
@@ -41,7 +47,12 @@
 				</label>
 				<label class="block">
 					<span class="text-gray-700">Vault token</span>
-					<input type="password" multiple class="form-input mt-1 block w-full" bind:value={register.token} />
+					<input
+						type="password"
+						multiple
+						class="form-input mt-1 block w-full"
+						bind:value={register.token}
+					/>
 				</label>
 				<label class="block">
 					<span class="text-gray-700">Password Manager Password</span>
@@ -65,13 +76,8 @@
 				<Button fn={onRegister}>Register</Button>
 			</div>
 		</CardContainer>
-        <article class="max-w-sm text-wrap text-bre">
-        <p class="break-all">{JSON.stringify(register)} </p>
-    </article>
 	</div>
-    
 </div>
-
 
 <style>
 	label {

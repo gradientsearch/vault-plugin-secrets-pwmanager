@@ -58,7 +58,7 @@ export interface UUK {
     PubKey: PubKey
 }
 
-function toHex(plain: string) {
+export function toHex(plain: string) {
     return plain.split("")
         .map(c => c.charCodeAt(0).toString(16).padStart(2, "0"))
         .join("");
@@ -73,7 +73,7 @@ function toString(hex: string) {
 
 
 function withInitializationSalt(uuk: UUK): UUK {
-    uuk.EncSymKey.Iv = toHex(crypto.getRandomValues(new Uint8Array(16)).toString());
+    uuk.EncSymKey.P2s = toHex(crypto.getRandomValues(new Uint8Array(16)).toString());
     return uuk;
 }
 
@@ -83,20 +83,67 @@ function withPasswordIterations(uuk: UUK, iterations: number): UUK {
     return uuk
 }
 
+async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<[UUK, Uint8Array]> {
+    const textEncoder = new TextEncoder();
+    let rawKey = textEncoder.encode(toString(uuk.EncSymKey.P2s))
+    let initialSalt = await window.crypto.subtle.importKey("raw", rawKey, "AES-GCM", true, [
+        'deriveKey'
+    ]);
+    
+    // Derive a symmetric key from the result.
+    const salt = entityID
+    const info = new TextEncoder().encode('2SKD HKDF 1');
+    const hkdf_params = { name: 'HKDF', hash: 'SHA-256', salt, info };
+    const gcm_params = { name: 'AES-GCM', length: 256 };
+    const saltDerivedKey = await crypto.subtle.deriveKey(hkdf_params, initialSalt, gcm_params, false /* extractable */, ['encrypt', 'decrypt']);
+
+
+    // pb
+    return [uuk, new Uint8Array()]
+}
+
+
 function newUUK(): UUK {
     let uuk: UUK = {
-        EncPriKey: {},
-        EncSymKey: {},
-        PubKey: {},
+        EncPriKey: {
+            Kid: "",
+            Enc: "",
+            Iv: "",
+            Data: "",
+            Cty: ""
+        },
+        EncSymKey: {
+            Kid: "",
+            Enc: "",
+            Iv: "",
+            Data: "",
+            Cty: "",
+            Alg: "",
+            P2c: 0,
+            P2s: ""
+        },
+        PubKey: {
+            E: "",
+            Kid: "",
+            Kty: "",
+            N: ""
+        },
+        UUID: "",
+        EncryptedBy: ""
     }
     uuk.UUID = crypto.randomUUID();
     return uuk
 }
 
-export async function buildUUK() {
+export async function buildUUK(password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array) {
     let uuk = newUUK()
     uuk = withInitializationSalt(uuk)
     uuk = withPasswordIterations(uuk, 650000)
+    const textEncoder = new TextEncoder();
+
+    let twoSkdHash: Uint8Array
+    [uuk, twoSkdHash] = twoSkd(uuk, password, mount, secretKey, entityID)
+
 
 
     return await crypto.subtle.generateKey('X25519', false /* extractable */, ['deriveKey']);

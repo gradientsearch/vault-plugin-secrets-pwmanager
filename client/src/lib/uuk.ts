@@ -1,14 +1,14 @@
 
 interface EncPriKey {
-	Kid: string
-	// encoding of data e.g. A256GCM
-	Enc: string
-	// initialization vector used to encrypt the priv key
-	Iv: string
-	// the encrypted priv key
-	Data: string
-	// format used for encrypted data e.g JWK format
-	Cty: string
+    Kid: string
+    // encoding of data e.g. A256GCM
+    Enc: string
+    // initialization vector used to encrypt the priv key
+    Iv: string
+    // the encrypted priv key
+    Data: string
+    // format used for encrypted data e.g JWK format
+    Cty: string
 
 }
 
@@ -34,6 +34,13 @@ interface EncSymKey {
     P2s: string
 }
 
+interface PubKey {
+    E: string
+    Kid: string
+    Kty: string
+    N: string
+}
+
 
 // user unlock key
 // The secret key encrypts the EncSymKey, the EncSymKey
@@ -48,10 +55,41 @@ export interface UUK {
     // priv key used to encrypt
     EncPriKey: EncPriKey
     // pub key of the private key
-    PubKey: any
+    PubKey: PubKey
+}
+
+function toHex(plain: string) {
+    return plain.split("")
+        .map(c => c.charCodeAt(0).toString(16).padStart(2, "0"))
+        .join("");
+}
+
+function toString(hex: string) {
+    return hex.split(/(\w\w)/g)
+        .filter(p => !!p)
+        .map(c => String.fromCharCode(parseInt(c, 16)))
+        .join("")
 }
 
 
-async function uuk() {
-    await crypto.subtle.generateKey('X25519', false /* extractable */, ['deriveKey']);
+function withInitializationSalt(uuk: UUK): UUK {
+    uuk.EncSymKey.Iv = toHex(crypto.getRandomValues(new Uint8Array(16)).toString());
+    return uuk;
+}
+
+function newUUK(): UUK {
+    let uuk: UUK = {
+        EncPriKey: {},
+        EncSymKey: {},
+        PubKey: {},
+    }
+    uuk.UUID = crypto.randomUUID();
+    return uuk
+}
+
+export async function buildUUK() {
+    let uuk = newUUK()
+    uuk = withInitializationSalt(uuk)
+
+    return await crypto.subtle.generateKey('X25519', false /* extractable */, ['deriveKey']);
 }

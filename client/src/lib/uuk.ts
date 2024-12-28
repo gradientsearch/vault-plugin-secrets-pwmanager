@@ -1,6 +1,4 @@
 
-
-
 interface EncPriKey {
 	Kid: string
 	// encoding of data e.g. A256GCM
@@ -40,7 +38,7 @@ interface EncSymKey {
 // user unlock key
 // The secret key encrypts the EncSymKey, the EncSymKey
 // encrypts the users PrivateKey
-interface UUK {
+export interface UUK {
     // uuid of priv key
     UUID: string
     // symmetric key used to encrypt the EncPriKey

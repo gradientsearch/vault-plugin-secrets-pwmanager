@@ -1,7 +1,12 @@
-type JSONValue = string | number | boolean | null | JSONObject | JSONArray
-type JSONObject = { [key: string]: JSONValue }
-type JSONArray = JSONValue[]
+export type JSONValue = string | number | boolean | null | JSONObject | JSONArray
+export type JSONObject = { [key: string]: JSONValue }
+export type JSONArray = JSONValue[]
 
+/**
+ * 
+ * @param key json key
+ * @returns key converted to snake case
+ */
 function convertKey(key: string): string {
     let newKey = ""
     for (let i = 0; i < key.length; i++) {
@@ -19,9 +24,15 @@ function convertKey(key: string): string {
     return newKey
 }
 
-function convertCase(obj: JSONObject): JSONObject {
+/**
+ * Copied and updated from: @utkarshbhatt12
+ * https://bigcodenerd.org/blog/converting-json-keys-upper-lower-case-typescript/
+ *
+ */
+export function convertCase(obj: JSONObject): JSONObject {
     return Object.fromEntries(
         Object.entries(obj).map(([key, value]) => [
+            convertKey(key),
             typeof value === 'object' && value !== null
                 ? Array.isArray(value)
                     ? value.map((item) =>
@@ -30,7 +41,7 @@ function convertCase(obj: JSONObject): JSONObject {
                             : item
                     )
                     : convertCase(value as JSONObject)
-                : convertKey(value as string),
+                : value,
         ])
     )
 }

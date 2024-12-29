@@ -231,6 +231,25 @@ function withPubkey(uuk: UUK, pubkey: JsonWebKey): UUK {
 
 	return uuk;
 }
+export async function decryptEncPriKey(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array) {
+    let twoSKD = await twoSkd(uuk, password, mount, secretKey, entityID)
+    let twoSKDKey = await crypto.subtle.importKey('raw', twoSKD, 'AES-GCM', false, ['decrypt']);
+
+    // decrypt symmetric key with 2skd
+    let symIv = hexToBytes(uuk.EncSymKey.Iv)
+    let encSymKey = hexToBytes(uuk.EncSymKey.Data)
+    let symKey = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: symIv }, twoSKDKey, encSymKey);
+
+    let symmetricKey =  await crypto.subtle.importKey('raw', symKey, 'AES-GCM', false, ['decrypt']);
+
+    // decrypt priv key using symmetric key
+    let priIV = hexToBytes(uuk.EncPriKey.Iv)
+    let encPriKey = hexToBytes(uuk.EncPriKey.Data)
+    let priKey = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: priIV }, symmetricKey, encPriKey);
+
+    console.log(priKey)
+}
+
 // Convert a hex string to a byte array
 export function hexToBytes(hex: string): Uint8Array {
 	let bytes = [];

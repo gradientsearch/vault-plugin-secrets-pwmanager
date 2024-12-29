@@ -1,1 +1,5 @@
-<div class="bg-sky-400 w-full md:bg-green-500 md:max-w-64 lg:block hidden  content-center text-center">(sidebar)</div>
+<div
+	class="bg-sky-400 hidden w-full content-center text-center md:max-w-64 md:bg-green-500 lg:block"
+>
+	(sidebar)
+</div>

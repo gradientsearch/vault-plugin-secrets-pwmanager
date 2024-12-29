@@ -1,8 +1,7 @@
 <script>
-	import Form from "./components/form.svelte";
-
-
+	import Form from './components/form.svelte';
 </script>
-<div class="flex h-full w-full bg-slate-400">
-    <Form></Form>
+
+<div class="bg-slate-400 flex h-full w-full">
+	<Form></Form>
 </div>

@@ -12,13 +12,10 @@
 	}
 
 	let register = new Register();
-    
 
 	function onRegister() {
-        //2skd code
-
-
-    }
+		//2skd code
+	}
 </script>
 
 <div class="flex h-full w-full justify-center">

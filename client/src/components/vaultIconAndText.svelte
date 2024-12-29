@@ -1,17 +1,17 @@
 <script>
+	import VaultIcon from './vaultIcon.svelte';
 
-	import VaultIcon from "./vaultIcon.svelte";
-
-    var {className} = $props()
+	var { className } = $props();
 </script>
+
 <div class="flex-row justify-center {className}">
-    <div class="flex justify-center">
-        <VaultIcon></VaultIcon>
-    </div>
-    <p class="text-center text-xs">
-        Vault Password Manager <a
-            class="text-blue-200 underline"
-            href="https://github.com/gradientsearch/vault-plugin-secrets-pwmanager">plugin</a
-        > by Stephen O'Dwyer
-    </p>
+	<div class="flex justify-center">
+		<VaultIcon></VaultIcon>
+	</div>
+	<p class="text-center text-xs">
+		Vault Password Manager <a
+			class="text-blue-200 underline"
+			href="https://github.com/gradientsearch/vault-plugin-secrets-pwmanager">plugin</a
+		> by Stephen O'Dwyer
+	</p>
 </div>

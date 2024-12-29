@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { buildUUK, bytesToHex } from '$lib/uuk';
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
 	import { onMount } from 'svelte';
+	import Password from '../../unlocked/components/password.svelte';
 
 	class Register {
 		mount: string = 'pwmanager';
@@ -9,12 +11,24 @@
 		token: string = '';
 		password: string = '';
 		retypedPassword: string = '';
+		secretKey: Uint8Array = new Uint8Array();
 	}
 
 	let register = new Register();
-
-	function onRegister() {
-		//2skd code
+	let encoder = new TextEncoder();
+	let isRegistering = false;
+	async function onRegister() {
+		isRegistering = true;
+		let randomSeq = bytesToHex(crypto.getRandomValues(new Uint8Array(26)));
+		let secretKey = `H1-${register.mount}-${randomSeq}`; // combination Secret ID - secret
+		// TODO grab entity-id from token
+		let uuk = await buildUUK(
+			encoder.encode(register.password),
+			encoder.encode(register.mount),
+			encoder.encode(secretKey),
+			new Uint8Array([1, 2, 3])
+		);
+		console.log(JSON.stringify(uuk));
 	}
 </script>
 

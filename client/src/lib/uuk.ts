@@ -107,6 +107,7 @@ export async function buildUUK(
 
 	uuk = withPubkey(uuk, pubkey);
 
+	uuk.EncryptedBy = 'mp';
 	return uuk;
 }
 
@@ -231,14 +232,14 @@ function withPubkey(uuk: UUK, pubkey: JsonWebKey): UUK {
 	return uuk;
 }
 // Convert a hex string to a byte array
-function hexToBytes(hex: string): Uint8Array {
+export function hexToBytes(hex: string): Uint8Array {
 	let bytes = [];
 	for (let c = 0; c < hex.length; c += 2) bytes.push(parseInt(hex.substr(c, 2), 16));
 	return new Uint8Array(bytes);
 }
 
 // Convert a byte array to a hex string
-function bytesToHex(bytes: Uint8Array): string {
+export function bytesToHex(bytes: Uint8Array): string {
 	let hex = [];
 	for (let i = 0; i < bytes.length; i++) {
 		let current = bytes[i] < 0 ? bytes[i] + 256 : bytes[i];

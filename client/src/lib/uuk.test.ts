@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { buildUUK, toHex, twoSkd } from "./uuk";
+import { buildUUK, twoSkd } from "./uuk";
 
 test('buildUUK', async () => {
     const textEncoder = new TextEncoder();
@@ -18,4 +18,14 @@ test('buildUUK', async () => {
 
 
     expect(bits).toEqual(bits2);
-})
+});
+
+test('crypto', async () => {
+
+    let dec = new TextDecoder()
+    let enc = new TextEncoder()
+
+    let symmetricKey = crypto.getRandomValues(new Uint8Array(32)).toString()
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+});

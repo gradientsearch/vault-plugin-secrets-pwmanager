@@ -1,4 +1,3 @@
-
 interface EncPriKey {
     Kid: string
     // encoding of data e.g. A256GCM
@@ -58,43 +57,68 @@ export interface UUK {
     PubKey: PubKey
 }
 
-export function toHex(plain: string) {
-    return plain.split("")
-        .map(c => c.charCodeAt(0).toString(16).padStart(2, "0"))
-        .join("");
-}
 
-function toString(hex: string): string {
-    return hex.split(/(\w\w)/g)
-        .filter(p => !!p)
-        .map(c => String.fromCharCode(parseInt(c, 16)))
-        .join("")
-}
-
-function toString2(hex: string): Uint8Array {
-    let sa = toString(hex).split(",")
-    let a = new Uint8Array(sa.length)
-    for (let i = 0; i < sa.length; i++) {
-        a[i] = Number(sa[i])
+function newUUK(): UUK {
+    let uuk: UUK = {
+        EncPriKey: {
+            Kid: "",
+            Enc: "",
+            Iv: "",
+            Data: "",
+            Cty: ""
+        },
+        EncSymKey: {
+            Kid: "",
+            Enc: "",
+            Iv: "",
+            Data: "",
+            Cty: "",
+            Alg: "",
+            P2c: 0,
+            P2s: ""
+        },
+        PubKey: {
+            E: "",
+            Kid: "",
+            Kty: "",
+            N: ""
+        },
+        UUID: "",
+        EncryptedBy: ""
     }
-    return a
+    uuk.UUID = crypto.randomUUID();
+    return uuk
 }
 
+
+export async function buildUUK(password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<UUK> {
+    let uuk = newUUK()
+    uuk = withInitializationSalt(uuk)
+    uuk = withPasswordIterations(uuk, 650000)
+
+
+    let twoSKD = await twoSkd(uuk, password, mount, secretKey, entityID)
+
+
+    let symmetricKey: Uint8Array
+    [uuk, symmetricKey] = await withEncSymKey(uuk, twoSKD)
+
+    return uuk
+}
 
 function withInitializationSalt(uuk: UUK): UUK {
-    uuk.EncSymKey.P2s = toHex(crypto.getRandomValues(new Uint8Array(16)).toString())
+    uuk.EncSymKey.P2s = bytesToHex(crypto.getRandomValues(new Uint8Array(16)))
     return uuk;
 }
 
 function withPasswordIterations(uuk: UUK, iterations: number): UUK {
     uuk.EncSymKey.P2c = iterations
-
     return uuk
 }
 
 export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<Uint8Array> {
 
-    let rawKey = toString2(uuk.EncSymKey.P2s)
+    let rawKey = hexToBytes(uuk.EncSymKey.P2s)
     let initialSalt = await crypto.subtle.importKey("raw", rawKey, "HKDF", false, [
         'deriveBits'
     ]);
@@ -108,9 +132,6 @@ export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, 
         initialSalt,
         32 * 8
     );
-
-
-    const enc = new TextEncoder();
 
     let passwordKey = await crypto.subtle.importKey(
         "raw",
@@ -150,7 +171,7 @@ export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, 
     let passwordDerivedKeyBytes = new Uint8Array(passwordDerivedKey);
     let secretDerivedKeyBytes = new Uint8Array(secretDerivedKey);
 
-    // XOR passwordDk and secret
+    // XOR passwordDk and secretDk
     let twoSKD = new Uint8Array(32)
     for (let i = 0; i < 32; i++) {
         twoSKD[i] = passwordDerivedKeyBytes[i] ^ secretDerivedKeyBytes[i]
@@ -159,46 +180,44 @@ export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, 
     return twoSKD
 }
 
+async function withEncSymKey(uuk: UUK, twoSKD: Uint8Array): Promise<[UUK, Uint8Array]> {
+    let twoSKDKey = await crypto.subtle.importKey("raw", twoSKD, "AES-GCM", false, [
+        'encrypt'
+    ]);
 
-function newUUK(): UUK {
-    let uuk: UUK = {
-        EncPriKey: {
-            Kid: "",
-            Enc: "",
-            Iv: "",
-            Data: "",
-            Cty: ""
-        },
-        EncSymKey: {
-            Kid: "",
-            Enc: "",
-            Iv: "",
-            Data: "",
-            Cty: "",
-            Alg: "",
-            P2c: 0,
-            P2s: ""
-        },
-        PubKey: {
-            E: "",
-            Kid: "",
-            Kty: "",
-            N: ""
-        },
-        UUID: "",
-        EncryptedBy: ""
-    }
-    uuk.UUID = crypto.randomUUID();
-    return uuk
+    let symmetricKey = crypto.getRandomValues(new Uint8Array(32))
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    let encSymKey = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        twoSKDKey,
+        symmetricKey,
+    );
+
+    uuk.EncSymKey.Data = bytesToHex(new Uint8Array(encSymKey))
+    uuk.EncSymKey.Iv = bytesToHex(iv)
+    uuk.EncSymKey.Enc = "A256GCM"
+    uuk.EncSymKey.Kid = uuk.UUID
+    uuk.EncSymKey.Alg = "pbkdf2-hkdf"
+
+    return [uuk, new Uint8Array(encSymKey)]
 }
 
-export async function buildUUK(password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<UUK> {
-    let uuk = newUUK()
-    uuk = withInitializationSalt(uuk)
-    uuk = withPasswordIterations(uuk, 650000)
+// Convert a hex string to a byte array
+function hexToBytes(hex: string): Uint8Array {
+    let bytes = [];
+    for (let c = 0; c < hex.length; c += 2)
+        bytes.push(parseInt(hex.substr(c, 2), 16));
+    return new Uint8Array(bytes);
+}
 
-    let twoSkdHash: Uint8Array
-    let bits = await twoSkd(uuk, password, mount, secretKey, entityID)
-
-    return uuk
+// Convert a byte array to a hex string
+function bytesToHex(bytes: Uint8Array): string {
+    let hex = [];
+    for (let i = 0; i < bytes.length; i++) {
+        let current = bytes[i] < 0 ? bytes[i] + 256 : bytes[i];
+        hex.push((current >>> 4).toString(16));
+        hex.push((current & 0xF).toString(16));
+    }
+    return hex.join("");
 }

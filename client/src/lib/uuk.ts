@@ -286,6 +286,19 @@ export async function decryptEncPriKey(
 	return [privkey, pubkey]
 }
 
+export async function encrypt(payload: Uint8Array, pubkey: CryptoKey): Promise<string>{
+	let encrypted = await crypto.subtle.encrypt({ name: 'RSA-OAEP'}, pubkey, payload);	
+	return bytesToHex(new Uint8Array(encrypted))
+}
+
+
+export async function decrypt(payload: string, pubkey: CryptoKey): Promise<string>{
+	let plaintext = await crypto.subtle.decrypt({ name: 'RSA-OAEP'}, pubkey, hexToBytes(payload));	
+	return new TextDecoder().decode(plaintext)
+}
+
+
+
 // Convert a hex string to a byte array
 export function hexToBytes(hex: string): Uint8Array {
 	let bytes = [];

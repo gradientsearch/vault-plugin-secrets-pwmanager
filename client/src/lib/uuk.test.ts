@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { buildUUK, decryptEncPriKey, twoSkd } from './uuk';
+import { buildUUK, decrypt, decryptEncPriKey, encrypt, twoSkd } from './uuk';
 
 test('buildUUK', async () => {
 	const textEncoder = new TextEncoder();
@@ -17,7 +17,12 @@ test('buildUUK', async () => {
 
     let [prikey, pubkey] = await decryptEncPriKey(uuk, password, mount, secretKey, entityID)
 
-	
+	let encrypted = await encrypt(new TextEncoder().encode("hello cryptography"), pubkey)
+
+	console.log(encrypted)
+	let plaintext = await decrypt(encrypted, prikey)
+
+	console.log(plaintext)
 	expect(bits).toEqual(bits2);
 });
 

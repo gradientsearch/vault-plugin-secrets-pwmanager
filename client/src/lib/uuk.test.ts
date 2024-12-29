@@ -15,7 +15,9 @@ test('buildUUK', async () => {
 	let bits2 = await twoSkd(uuk, password2, mount, secretKey, entityID);
 
 
-    await decryptEncPriKey(uuk, password, mount, secretKey, entityID)
+    let [prikey, pubkey] = await decryptEncPriKey(uuk, password, mount, secretKey, entityID)
+
+	
 	expect(bits).toEqual(bits2);
 });
 

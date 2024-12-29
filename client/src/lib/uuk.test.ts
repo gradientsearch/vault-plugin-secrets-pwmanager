@@ -14,9 +14,6 @@ test('buildUUK', async () => {
    let bits = await twoSkd(uuk, password, mount, secretKey, entityID)
    let bits2 = await twoSkd(uuk, password2, mount, secretKey, entityID)
 
-
-
-
     expect(bits).toEqual(bits2);
 });
 

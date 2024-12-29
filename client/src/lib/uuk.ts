@@ -34,10 +34,10 @@ interface EncSymKey {
 }
 
 interface PubKey {
-    E: string
+    E?: string
+    N?: string
     Kid: string
     Kty: string
-    N: string
 }
 
 
@@ -103,6 +103,11 @@ export async function buildUUK(password: Uint8Array, mount: Uint8Array, secretKe
     let symmetricKey: Uint8Array
     [uuk, symmetricKey] = await withEncSymKey(uuk, twoSKD)
 
+    let pubkey: JsonWebKey
+    [uuk, pubkey] = await withEncPriKey(uuk, symmetricKey)
+
+    uuk = withPubkey(uuk, pubkey)
+    
     return uuk
 }
 
@@ -117,7 +122,6 @@ function withPasswordIterations(uuk: UUK, iterations: number): UUK {
 }
 
 export async function twoSkd(uuk: UUK, password: Uint8Array, mount: Uint8Array, secretKey: Uint8Array, entityID: Uint8Array): Promise<Uint8Array> {
-
     let rawKey = hexToBytes(uuk.EncSymKey.P2s)
     let initialSalt = await crypto.subtle.importKey("raw", rawKey, "HKDF", false, [
         'deriveBits'
@@ -186,6 +190,7 @@ async function withEncSymKey(uuk: UUK, twoSKD: Uint8Array): Promise<[UUK, Uint8A
     ]);
 
     let symmetricKey = crypto.getRandomValues(new Uint8Array(32))
+
     const iv = crypto.getRandomValues(new Uint8Array(12));
 
     let encSymKey = await crypto.subtle.encrypt(
@@ -194,15 +199,60 @@ async function withEncSymKey(uuk: UUK, twoSKD: Uint8Array): Promise<[UUK, Uint8A
         symmetricKey,
     );
 
+
     uuk.EncSymKey.Data = bytesToHex(new Uint8Array(encSymKey))
     uuk.EncSymKey.Iv = bytesToHex(iv)
     uuk.EncSymKey.Enc = "A256GCM"
     uuk.EncSymKey.Kid = uuk.UUID
     uuk.EncSymKey.Alg = "pbkdf2-hkdf"
 
-    return [uuk, new Uint8Array(encSymKey)]
+    return [uuk, symmetricKey]
 }
 
+async function withEncPriKey(uuk: UUK, symmetricKey: Uint8Array): Promise<[UUK, JsonWebKey]> {
+    let cryptokey = await crypto.subtle.generateKey(
+        {
+            name: "RSA-OAEP",
+            modulusLength: 4096,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: "SHA-256",
+        },
+        true,
+        ["encrypt", "decrypt"],
+    );
+    let key = cryptokey as CryptoKeyPair;
+    let prikey = await crypto.subtle.exportKey("jwk", key.privateKey);
+    let pubkey = await crypto.subtle.exportKey("jwk", key.publicKey);
+
+
+    let encKey = await crypto.subtle.importKey("raw", symmetricKey, "AES-GCM", false, [
+        'encrypt'
+    ]);
+
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    let encjwk = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        encKey,
+        new TextEncoder().encode(JSON.stringify(prikey)),
+    );
+
+    uuk.EncPriKey.Data = bytesToHex(new Uint8Array(encjwk))
+    uuk.EncPriKey.Iv = bytesToHex(iv)
+    uuk.EncPriKey.Enc = "A256GCM"
+    uuk.EncPriKey.Kid = uuk.UUID
+
+    return [uuk, pubkey]
+}
+
+
+function withPubkey(uuk: UUK, pubkey: JsonWebKey): UUK {
+    uuk.PubKey.E = pubkey.e
+    uuk.PubKey.N = pubkey.n
+    uuk.PubKey.Kid = uuk.UUID
+    uuk.PubKey.Kty = "RSA"
+
+    return uuk
+}
 // Convert a hex string to a byte array
 function hexToBytes(hex: string): Uint8Array {
     let bytes = [];

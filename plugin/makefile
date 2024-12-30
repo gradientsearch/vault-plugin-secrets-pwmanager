@@ -38,7 +38,7 @@ run-token:
 register:
 	vault plugin register -sha256=$(shell sha256sum ./vault/plugins/local/pwmanager | cut -d ' ' -f1 | tr -d '\n') -version=v0.1.0 secret pwmanager
 
-deregister:
+unregister:
 	vault plugin deregister -version=v0.1.0 secret pwmanager
 
 
@@ -68,7 +68,7 @@ readConfig:
 config:
 	vault write pwmanager/config role_id=$(shell vault read -field=role_id  auth/approle/role/pwmanager/role-id ) \
 	secret_id=$(shell vault write -f -field=secret_id auth/approle/role/pwmanager/secret-id) \
-	url="http://localhost:8200"
+	url="localhost:8200"
 
 secretMount:
 	vault secrets enable -version=2 -path=pwmanagerkv kv

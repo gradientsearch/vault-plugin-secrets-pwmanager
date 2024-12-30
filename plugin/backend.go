@@ -104,22 +104,19 @@ func (b *pwManagerBackend) initialize(ctx context.Context, req *logical.Initiali
 	return nil
 }
 func (p *pwManagerBackend) renewLoop() {
-
-	// TODO parameterize
 	t := time.NewTicker(45 * time.Minute)
 	for {
 		select {
 		case <-p.renew:
-			p.logger.Debug("renewing approle token")
 			if err := p.Login(); err != nil {
 				p.logger.Error(err.Error())
 			} else {
 				t.Reset(45 * time.Minute)
-				p.logger.Debug("renewing approle token successful")
 			}
 		case <-t.C:
-			p.renew <- nil
-
+			if err := p.Login(); err != nil {
+				p.logger.Error(err.Error())
+			}
 		case <-p.done:
 			return
 		}
@@ -160,7 +157,7 @@ func (p *pwManagerBackend) Login() error {
 	p.logger.Debug("client approle login successful")
 
 	p.c.c.SetToken(response.Auth.ClientToken)
-	p.renew <- nil
+	// p.renew <- nil
 
 	return nil
 }

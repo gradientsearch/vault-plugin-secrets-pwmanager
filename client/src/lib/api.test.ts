@@ -7,7 +7,7 @@ test('api', async () => {
 	//test.skip()
 	let api = new Api(
 		VITE_VAULT_TOKEN,
-		'http://localhost:8200/v1',
+		'http://localhost:8200',
 		'pwmanager'
 	);
 	let json = await api.tokenLookup();
@@ -25,5 +25,4 @@ test('api', async () => {
     
     let err = await api.register(uuk)
     
-
 });

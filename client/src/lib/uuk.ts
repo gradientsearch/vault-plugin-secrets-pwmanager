@@ -45,7 +45,7 @@ interface PubKey {
 // encrypts the users PrivateKey
 export interface UUK {
 	// uuid of priv key
-	UUID: string;
+	Uuid: string;
 	// symmetric key used to encrypt the EncPriKey
 	EncSymKey: EncSymKey;
 	// mp a.k.a secret key
@@ -79,12 +79,13 @@ function newUUK(): UUK {
 			E: '',
 			Kid: '',
 			Kty: '',
-			N: ''
+			N: '',
+			Data: ''
 		},
-		UUID: '',
+		Uuid: '',
 		EncryptedBy: ''
 	};
-	uuk.UUID = crypto.randomUUID();
+	uuk.Uuid = crypto.randomUUID();
 	return uuk;
 }
 
@@ -186,7 +187,7 @@ async function withEncSymKey(uuk: UUK, twoSKD: Uint8Array): Promise<[UUK, Uint8A
 	uuk.EncSymKey.Data = bytesToHex(new Uint8Array(encSymKey));
 	uuk.EncSymKey.Iv = bytesToHex(iv);
 	uuk.EncSymKey.Enc = 'A256GCM';
-	uuk.EncSymKey.Kid = uuk.UUID;
+	uuk.EncSymKey.Kid = uuk.Uuid;
 	uuk.EncSymKey.Alg = 'pbkdf2-hkdf';
 
 	return [uuk, symmetricKey];
@@ -219,7 +220,7 @@ async function withEncPriKey(uuk: UUK, symmetricKey: Uint8Array): Promise<[UUK, 
 	uuk.EncPriKey.Data = bytesToHex(new Uint8Array(encjwk));
 	uuk.EncPriKey.Iv = bytesToHex(iv);
 	uuk.EncPriKey.Enc = 'A256GCM';
-	uuk.EncPriKey.Kid = uuk.UUID;
+	uuk.EncPriKey.Kid = uuk.Uuid;
 
 	return [uuk, pubkey];
 }
@@ -227,7 +228,7 @@ async function withEncPriKey(uuk: UUK, symmetricKey: Uint8Array): Promise<[UUK, 
 function withPubkey(uuk: UUK, pubkey: JsonWebKey): UUK {
 	uuk.PubKey.E = pubkey.e;
 	uuk.PubKey.N = pubkey.n;
-	uuk.PubKey.Kid = uuk.UUID;
+	uuk.PubKey.Kid = uuk.Uuid;
 	uuk.PubKey.Kty = 'RSA';
 	uuk.PubKey.Data = bytesToHex(new TextEncoder().encode(JSON.stringify(pubkey)));
 
@@ -283,21 +284,18 @@ export async function decryptEncPriKey(
 		['encrypt']
 	);
 
-	return [privkey, pubkey]
+	return [privkey, pubkey];
 }
 
-export async function encrypt(payload: Uint8Array, pubkey: CryptoKey): Promise<string>{
-	let encrypted = await crypto.subtle.encrypt({ name: 'RSA-OAEP'}, pubkey, payload);	
-	return bytesToHex(new Uint8Array(encrypted))
+export async function encrypt(payload: Uint8Array, pubkey: CryptoKey): Promise<string> {
+	let encrypted = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pubkey, payload);
+	return bytesToHex(new Uint8Array(encrypted));
 }
 
-
-export async function decrypt(payload: string, pubkey: CryptoKey): Promise<string>{
-	let plaintext = await crypto.subtle.decrypt({ name: 'RSA-OAEP'}, pubkey, hexToBytes(payload));	
-	return new TextDecoder().decode(plaintext)
+export async function decrypt(payload: string, pubkey: CryptoKey): Promise<string> {
+	let plaintext = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, pubkey, hexToBytes(payload));
+	return new TextDecoder().decode(plaintext);
 }
-
-
 
 // Convert a hex string to a byte array
 export function hexToBytes(hex: string): Uint8Array {

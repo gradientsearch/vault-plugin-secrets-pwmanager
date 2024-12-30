@@ -4,6 +4,7 @@
 	import CardContainer from '../../../components/cardContainer.svelte';
 	import { onMount } from 'svelte';
 	import Password from '../../unlocked/components/password.svelte';
+	import { Api } from '$lib/api';
 
 	class Register {
 		mount: string = 'pwmanager';
@@ -22,13 +23,21 @@
 		let randomSeq = bytesToHex(crypto.getRandomValues(new Uint8Array(26)));
 		let secretKey = `H1-${register.mount}-${randomSeq}`; // combination Secret ID - secret
 		// TODO grab entity-id from token
+
+        let api = new Api(register.token, register.url, register.mount)
+        let tokenInfo = await api.tokenLookup()
+        let entityID = tokenInfo['data']['entity_id']
 		let uuk = await buildUUK(
 			encoder.encode(register.password),
 			encoder.encode(register.mount),
 			encoder.encode(secretKey),
-			new Uint8Array([1, 2, 3])
+			encoder.encode(entityID),
 		);
-		console.log(JSON.stringify(uuk));
+
+        let err =  await api.register(uuk)
+        if (err != undefined){
+            console.log("error registering")
+        }
 	}
 </script>
 

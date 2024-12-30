@@ -1,5 +1,5 @@
-import { convertCase } from "./jsonKey";
-import type { UUK } from "./uuk";
+import { convertCase } from './jsonKey';
+import type { UUK } from './uuk';
 
 export class Api {
 	vaultToken: string;
@@ -13,23 +13,21 @@ export class Api {
 	}
 
 	async post(path: string, content: any) {
-		return await fetch(`${this.url}/${path}`, {
+		return await fetch(`${this.url}/v1/${path}`, {
 			method: 'POST',
 			body: content,
 			headers: {
 				'Content-Type': 'application/json; charset=UTF-8',
 				'X-Vault-Token': this.vaultToken,
-				'X-Vault-Request': 'true'
 			}
 		});
 	}
 
 	async get(path: string) {
-		return await fetch(`${this.url}/${path}`, {
+		return await fetch(`${this.url}/v1/${path}`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json; charset=UTF-8',
-				'X-Vault-Request': 'true',
 				'X-Vault-Token': this.vaultToken
 			}
 		});
@@ -48,13 +46,13 @@ export class Api {
 		}
 	}
 
-	async register(uuk: UUK): Promise<Error|undefined> {
-        let data = JSON.stringify(convertCase(JSON.parse(JSON.stringify(uuk))))
+	async register(uuk: UUK): Promise<Error | undefined> {
+		let data = JSON.stringify(convertCase(JSON.parse(JSON.stringify(uuk))));
 		let response = await this.post(`${this.mount}/register`, data);
 
-        if (response.status != 204){
-            let err  = await response.text()
-            return new Error(`error registers: ${err}`)
-        }
+		if (response.status != 204) {
+			let err = await response.text();
+			return new Error(`error registers: ${err}`);
+		}
 	}
 }

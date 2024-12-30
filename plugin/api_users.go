@@ -194,7 +194,7 @@ type UUK struct {
 	// priv key used to encrypt `Safe` data
 	EncPriKey EncPriKey `json:"enc_pri_key"`
 	// pub key of the private key
-	PubKey interface{} `json:"pubKey"`
+	PubKey interface{} `json:"pub_key"`
 }
 
 // withInitializationSalt generates a random 16 byte salt and stores the result in UUK.EncSymKey.P2s

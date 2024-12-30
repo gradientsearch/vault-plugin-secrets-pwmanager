@@ -286,6 +286,10 @@ func (t *TestHarness) WithAppRole() error {
 		t.Testing.Fatalf("error configuring pwmanager: %s\n", err)
 	}
 
+	err = t.Client.PwManager().Config("pwmanager", data)
+	if err != nil {
+		t.Testing.Fatalf("error configuring pwmanager: %s\n", err)
+	}
 	return nil
 }
 

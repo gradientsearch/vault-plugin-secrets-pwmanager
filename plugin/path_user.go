@@ -35,7 +35,7 @@ type pwManagerUUKEntry struct {
 	// priv key used to encrypt `Safe` data
 	EncPriKey EncPriKey `json:"enc_pri_key" mapstructure:"enc_pri_key"`
 	// pub key of the private key
-	PubKey map[string]string `json:"pubkey" mapstructure:"pubkey"`
+	PubKey map[string]string `json:"pub_key" mapstructure:"pub_key"`
 }
 
 // toResponseData returns response data for a user
@@ -73,7 +73,7 @@ func pathUser(b *pwManagerBackend) []*framework.Path {
 					Description: "UUID of the key that encrypts the encSymmetricKey",
 					Required:    true,
 				},
-				"pubKey": {
+				"pub_key": {
 					Type:        framework.TypeMap,
 					Description: "public part of the key pair",
 					Required:    true,
@@ -257,13 +257,12 @@ func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.
 		return logical.ErrorResponse("must have encPriKey"), nil
 	}
 
-	if pubkey, ok := d.GetOk("pubKey"); ok {
+	if pubkey, ok := d.GetOk("pub_key"); ok {
 		if err := mapstructure.Decode(pubkey, &registerEntry.PubKey); err != nil {
-			return logical.ErrorResponse("error decoding encPriKey"), nil
+			return logical.ErrorResponse("error decoding pub_key"), nil
 		}
-
 	} else if createOperation {
-		return logical.ErrorResponse("must have pubkey"), nil
+		return logical.ErrorResponse("must have pub_key"), nil
 	}
 
 	userEntry := pwManagerUserEntry{}

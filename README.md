@@ -10,6 +10,6 @@ This repository is currently in early development. The code may be unstable, inc
 We recommend that you use this repository for testing and experimentation purposes only, and proceed with caution. Contributions and feedback are welcome as we continue to improve the project!
 
 
-# Register User Flow
+### Register User Flow
 
 ![register-flow drawio](https://github.com/user-attachments/assets/f590c38c-683e-483c-a813-fca52cce3b37)

@@ -1,11 +1,12 @@
 import { expect, test } from 'vitest';
 import { Api } from './api';
 import { buildUUK } from './uuk';
+import { VITE_VAULT_TOKEN } from '$env/static/private';
 
 test('api', async () => {
 	//test.skip()
 	let api = new Api(
-		'',
+		VITE_VAULT_TOKEN,
 		'http://localhost:8200/v1',
 		'pwmanager'
 	);

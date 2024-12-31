@@ -2,13 +2,14 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { Api } from '$lib/api';
-	import { buildUUK, hexToBytes } from '$lib/uuk';
+	import { buildUUK, decryptEncPriKey, hexToBytes } from '$lib/uuk';
 	import { setContext } from 'svelte';
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
 	import Title from '../../../components/title.svelte';
 
 	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
+	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 
 	class SignIn {
 		mount: string = 'pwmanager';
@@ -36,18 +37,37 @@
 		let tokenInfo = await api.tokenLookup();
 		let entityID = tokenInfo['data']['entity_id'];
 
+		let [uuk,err] = await api.uuk(entityID);
+		if (err != undefined || uuk == undefined) {
+			errorText = 'error retrieving UUK';
+			isSigningIn = false;
+			return;
+		}
+        
+        console.log(uuk)
+
 		let encoder = new TextEncoder();
-		let uuk = await buildUUK(
+		encoder.encode(signIn.password);
+		encoder.encode(signIn.mount);
+		encoder.encode(secretKey);
+		encoder.encode(entityID);
+
+		let [prikey, pubkey] = await decryptEncPriKey(
+			uuk,
 			encoder.encode(signIn.password),
 			encoder.encode(signIn.mount),
 			encoder.encode(secretKey),
 			encoder.encode(entityID)
 		);
 
-		setContext('uuk', () => uuk);
-        console.log(uuk)
-        goto(`${base}/unlocked`)
-        isSigningIn = false;
+		let keypair: KeyPair = {
+			PriKey: prikey,
+			PubKey: pubkey
+		};
+
+		storedKeyPair.set(keypair);
+		goto(`${base}/unlocked`);
+		isSigningIn = false;
 	}
 </script>
 

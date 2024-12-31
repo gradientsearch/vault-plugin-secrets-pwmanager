@@ -15,6 +15,7 @@
 		password: string = '';
 		retypedPassword: string = '';
 		secretKey: string = '';
+		secretKeyDisplay: string = '';
 	}
 
 	let errorText: string | undefined = undefined;
@@ -24,9 +25,15 @@
 	let isRegistering = false;
 	let registered = false;
 	async function onRegister() {
+		if (register.password != register.retypedPassword) {
+			errorText = 'passwords do not match';
+			return;
+		}
 		isRegistering = true;
-		let randomSeq = bytesToHex(crypto.getRandomValues(new Uint8Array(26)));
+		let randomSeq = bytesToHex(crypto.getRandomValues(new Uint8Array(15)));
+		let secretKeyDisplay = randomSeq.replace(/(.{6})/g, '$1-').slice(0, -1);
 		register.secretKey = `H1-${register.mount}-${randomSeq}`; // combination Secret ID - secret
+		register.secretKeyDisplay = `H1-${register.mount}-${secretKeyDisplay}`;
 
 		let api = new Api(register.token, register.url, register.mount);
 		let tokenInfo = await api.tokenLookup();
@@ -158,6 +165,7 @@
 						<input
 							type="text"
 							multiple
+							disabled
 							class="form-input mt-1 block w-full"
 							placeholder="pwmanager"
 							bind:value={register.mount}
@@ -168,6 +176,7 @@
 						<input
 							type="url"
 							multiple
+							disabled
 							class="form-input mt-1 block w-full"
 							placeholder="https://vault.example.com:8200"
 							bind:value={register.url}
@@ -178,19 +187,15 @@
 						<input
 							type="text"
 							multiple
+							disabled
 							class="form-input mt-1 block w-full"
-							bind:value={register.secretKey}
+							bind:value={register.secretKeyDisplay}
 						/>
 					</label>
 
 					<label class="block">
 						<span class="text-gray-700">Password Manager Password</span>
-						<input
-							type="text"
-							multiple
-							class="form-input mt-1 block w-full"
-							bind:value={register.retypedPassword}
-						/>
+						<input type="text" multiple class="form-input mt-1 block w-full" />
 					</label>
 				</div></CardContainer
 			>

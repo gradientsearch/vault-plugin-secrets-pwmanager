@@ -3,12 +3,15 @@
 	import { goto } from '$app/navigation';
 	import Button from '../components/button.svelte';
 	import Card from '../components/card.svelte';
-	import VaultIcon from '../components/vaultIcon.svelte';
 	import VaultIconAndText from '../components/vaultIconAndText.svelte';
 
-	//goto(`${base}/locked`)
+	let secretkey = localStorage.getItem('secretkey');
+	if (secretkey && secretkey.length > 0) {
+		goto(`${base}/locked`);
+	}
 </script>
 
+{#if !secretkey}
 <div class="flex h-full w-full justify-center">
 	<div class="flex-row">
 		<VaultIconAndText className="mt-14"></VaultIconAndText>
@@ -33,3 +36,4 @@
 		</Card>
 	</div>
 </div>
+{/if}

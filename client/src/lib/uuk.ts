@@ -56,7 +56,7 @@ export interface UUK {
 	PubKey: PubKey;
 }
 
-function newUUK(): UUK {
+export function newUUK(): UUK {
 	let uuk: UUK = {
 		EncPriKey: {
 			Kid: '',

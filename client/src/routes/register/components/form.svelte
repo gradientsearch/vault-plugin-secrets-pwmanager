@@ -1,9 +1,9 @@
 <script lang="ts">
+	// TODO refactor this to follow a mvvm pattern
 	import { buildUUK, bytesToHex } from '$lib/uuk';
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
-	import { onMount } from 'svelte';
-	import Password from '../../unlocked/components/password.svelte';
+
 	import { Api } from '$lib/api';
 	import Title from '../../../components/title.svelte';
 	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
@@ -53,6 +53,8 @@
 		}
 
 		isRegistering = false;
+		let encSecretKey = bytesToHex(new TextEncoder().encode(register.secretKey));
+		localStorage.setItem('secretkey', encSecretKey);
 	}
 </script>
 

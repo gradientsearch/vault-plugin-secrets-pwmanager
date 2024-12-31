@@ -18,27 +18,25 @@ if (isDevelopment()) {
 	}
 }
 
-const createStore = (initialState: KeyPair | undefined) => {
+let keyPair: KeyPair = {}
+const createStore = (initialState: KeyPair) => {
 	const { set, subscribe, update } = writable(initialState);
 
 	return {
-		set,
+		set: (value: KeyPair) => {
+			if (isDevelopment()) {
+				localStorage.setItem('KeyPair', JSON.stringify(value));
+			}
+			keyPair = value
+		},
+		get:() => {
+			return keyPair
+		},
 		subscribe,
 		update,
-		set value(newValue: KeyPair) {
-			if (isDevelopment()) {
-				localStorage.setItem('KeyPair', JSON.stringify(newValue));
-			}
-			set(newValue);
-		},
-		get value() {
-			let value: KeyPair|undefined;
-			subscribe((v) => (value = v))();
-			return value;
-		}
 	};
 };
 
-export const storedKeyPair = createStore(undefined);
+export const storedKeyPair = createStore(keyPair);
 export const getKeyPair = get(storedKeyPair);
 

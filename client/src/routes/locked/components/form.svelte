@@ -2,8 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { Api } from '$lib/api';
-	import { buildUUK, decryptEncPriKey, hexToBytes } from '$lib/uuk';
-	import { setContext } from 'svelte';
+	import {  decryptEncPriKey, hexToBytes } from '$lib/uuk';
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
 	import Title from '../../../components/title.svelte';
@@ -11,6 +10,7 @@
 	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 
+    
 	class SignIn {
 		mount: string = 'pwmanager';
 		url: string = 'http://localhost:8200';
@@ -22,7 +22,9 @@
 	let errorText: string | undefined;
 
 	let isSigningIn = false;
+    
 	async function onSignIn() {
+        
 		isSigningIn = true;
 		let secretKeyHex = localStorage.getItem('secretkey');
 
@@ -43,10 +45,8 @@
 			isSigningIn = false;
 			return;
 		}
-        
-        console.log(uuk)
 
-		let encoder = new TextEncoder();
+        let encoder = new TextEncoder();
 		encoder.encode(signIn.password);
 		encoder.encode(signIn.mount);
 		encoder.encode(secretKey);

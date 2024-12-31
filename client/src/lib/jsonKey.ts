@@ -10,7 +10,7 @@ export type JSONArray = JSONValue[];
 function convertKeyToJson(key: string): string {
 	let newKey = '';
 	for (let i = 0; i < key.length; i++) {
-		if (key[i] === key[i].toUpperCase()) {
+		if (key[i] === key[i].toUpperCase() && !(key[i] >= '0' && key[i] <= '9')) {
 			if (i == 0) {
 				newKey += key[i].toLowerCase();
 			} else {

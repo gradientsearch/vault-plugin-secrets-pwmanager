@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { Api } from './api';
 import { buildUUK, bytesToHex, type UUK } from './uuk';
 import { VITE_VAULT_TOKEN } from '$env/static/private';
-import { _convertCase, revertCase } from './jsonKey';
+import {  revertCase } from './jsonKey';
 
 test('api', async () => {
 	//test.skip()

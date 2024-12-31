@@ -12,6 +12,6 @@
 		Vault Password Manager <a
 			class="text-blue-200 underline"
 			href="https://github.com/gradientsearch/vault-plugin-secrets-pwmanager">plugin</a
-		> by Stephen O'Dwyer
+		>
 	</p>
 </div>

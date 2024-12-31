@@ -52,7 +52,7 @@ export class Api {
 
 		if (response.status != 204) {
 			let err = await response.text();
-			return new Error(`error registers: ${err}`);
+			return new Error(`error registering: ${err}`);
 		}
 	}
 }

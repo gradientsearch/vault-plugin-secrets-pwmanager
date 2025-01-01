@@ -341,7 +341,13 @@ export default {
 			token_form_control_readonly_border_color: '#656a761a',
 			token_form_control_disabled_foreground_color: '#8c909c',
 			token_form_control_disabled_surface_color: '#fafafa',
-			token_form_control_disabled_border_color: '#656a7633'
+			token_form_control_disabled_border_color: '#656a7633',
+			token_side_nav_color_foreground_primary: '#dedfe3',
+			token_side_nav_color_foreground_strong: '#fff',
+			token_side_nav_color_foreground_faint: '#8c909c',
+			token_side_nav_color_surface_primary: '#0c0c0e',
+			token_side_nav_color_surface_interactive_hover: '#3b3d45',
+			token_side_nav_color_surface_interactive_active: '#656a76'
 		}),
 		columns: {
 			auto: 'auto',

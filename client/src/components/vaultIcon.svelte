@@ -1,4 +1,8 @@
-<div class="brand-icon-large">
+<script lang="ts">
+	let { className } = $props();
+</script>
+
+<div class={className}>
 	<svg
 		class="flight-icon flight-icon-vault"
 		aria-hidden="true"
@@ -20,5 +24,9 @@
 	.brand-icon-large {
 		width: 62px;
 		height: 62px;
+	}
+
+	.nav-header-icon {
+		height: 48px;
 	}
 </style>

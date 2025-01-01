@@ -6,7 +6,7 @@
 
 <div class="flex-row justify-center {className}">
 	<div class="flex justify-center">
-		<VaultIcon></VaultIcon>
+		<VaultIcon className="brand-icon-large"></VaultIcon>
 	</div>
 	<p class="text-center text-xs">
 		Vault Password Manager <a

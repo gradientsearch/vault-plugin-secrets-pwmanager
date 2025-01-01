@@ -10,11 +10,10 @@
 	onMount(async () => {
 		kp = await storedKeyPair.get();
 	});
-	
 </script>
 
 <div class="flex h-full">
-	<Sidebar>(sidebar)</Sidebar>
+	<Sidebar></Sidebar>
 	<div class="h-full w-full flex-col">
 		<Header></Header>
 		<div class="flex h-[calc(100vh-48px)] w-full">

@@ -267,7 +267,7 @@ export async function decryptEncPriKey(
 			name: 'RSA-OAEP',
 			hash: 'SHA-256'
 		},
-		false,
+		true,
 		['decrypt']
 	);
 
@@ -280,7 +280,7 @@ export async function decryptEncPriKey(
 			name: 'RSA-OAEP',
 			hash: 'SHA-256'
 		},
-		false,
+		true,
 		['encrypt']
 	);
 

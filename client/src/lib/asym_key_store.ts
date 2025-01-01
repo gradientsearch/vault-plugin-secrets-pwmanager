@@ -18,25 +18,64 @@ if (isDevelopment()) {
 	}
 }
 
-let keyPair: KeyPair = {}
+let keyPair: KeyPair = {};
 const createStore = (initialState: KeyPair) => {
 	const { set, subscribe, update } = writable(initialState);
 
 	return {
-		set: (value: KeyPair) => {
+		set: async (value: KeyPair) => {
 			if (isDevelopment()) {
-				localStorage.setItem('KeyPair', JSON.stringify(value));
+				let priKey = await crypto.subtle.exportKey('jwk', value.PriKey);
+				let pubKey = await crypto.subtle.exportKey('jwk', value.PubKey);
+				localStorage.setItem('priKey', JSON.stringify(priKey));
+				localStorage.setItem('pubKey', JSON.stringify(pubKey));
 			}
-			keyPair = value
+			keyPair = value;
 		},
-		get:() => {
-			return keyPair
+		get: async () => {
+			if (isDevelopment()) {
+				let priKeyJson = localStorage.getItem('priKey');
+				let pubKeyJson = localStorage.getItem('pubKey');
+
+				if (priKeyJson === null || pubKeyJson === null) {
+					return;
+				}
+
+				let pirKey = await crypto.subtle.importKey(
+					'jwk',
+					JSON.parse(priKeyJson),
+					{
+						name: 'RSA-OAEP',
+						hash: 'SHA-256'
+					},
+					false,
+					['encrypt']
+				);
+
+				let pubKey = await crypto.subtle.importKey(
+					'jwk',
+					JSON.parse(pubKeyJson),
+					{
+						name: 'RSA-OAEP',
+						hash: 'SHA-256'
+					},
+					false,
+					['encrypt']
+				);
+
+				let kp: KeyPair = {
+					PriKey: pirKey,
+					PubKey: pubKey
+				};
+
+				return kp;
+			}
+			return keyPair;
 		},
 		subscribe,
-		update,
+		update
 	};
 };
 
 export const storedKeyPair = createStore(keyPair);
 export const getKeyPair = get(storedKeyPair);
-

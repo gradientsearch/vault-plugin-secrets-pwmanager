@@ -49,7 +49,7 @@ const createStore = (initialState: KeyPair) => {
 						hash: 'SHA-256'
 					},
 					false,
-					['encrypt']
+					['decrypt']
 				);
 
 				let pubKey = await crypto.subtle.importKey(
@@ -67,9 +67,10 @@ const createStore = (initialState: KeyPair) => {
 					PriKey: pirKey,
 					PubKey: pubKey
 				};
-
+				keyPair = kp;
 				return kp;
 			}
+
 			return keyPair;
 		},
 		subscribe,
@@ -78,4 +79,3 @@ const createStore = (initialState: KeyPair) => {
 };
 
 export const storedKeyPair = createStore(keyPair);
-export const getKeyPair = get(storedKeyPair);

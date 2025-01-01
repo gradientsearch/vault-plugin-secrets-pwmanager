@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { convertCase, type JSONObject } from './jsonKey';
+import { _convertCase, type JSONObject } from './jsonKey';
 import { type UUK } from './uuk';
 
 test('convertCase', () => {
@@ -14,6 +14,6 @@ test('convertCase', () => {
 		EncryptedBy: 'mp'
 	};
 	let uukJson = JSON.parse(JSON.stringify(uuk));
-	let snakeCaseJson = JSON.stringify(convertCase(uukJson));
+	let snakeCaseJson = JSON.stringify(_convertCase(uukJson));
 	expect(snakeCaseJson).toContain('enc_pri_key');
 });

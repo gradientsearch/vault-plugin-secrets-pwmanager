@@ -28,5 +28,9 @@
 
 	.nav-header-icon {
 		height: 48px;
+
+	}
+	.nav-header-icon > svg {
+		@apply fill-token_side_nav_color_foreground_strong;
 	}
 </style>

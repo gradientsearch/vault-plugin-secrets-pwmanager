@@ -15,7 +15,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<button
+	<div
 		aria-label="modal-overlay"
 		onclick={closeModal}
 		class="absolute bottom-0 left-0 right-0 top-0 flex flex-1 bg-foreground_strong/30 hover:cursor-default"
@@ -26,5 +26,5 @@
 		>
 			{@render children?.()}
 		</div>
-	</button>
+	</div>
 {/if}

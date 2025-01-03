@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 	import { onMount } from 'svelte';
-	import Header from './components/header.svelte';
+	import Header from './components/header/header.svelte';
 	import Password from './components/password.svelte';
 	import Sidebar from './components/sidebar.svelte';
 	import Vault from './components/vault.svelte';

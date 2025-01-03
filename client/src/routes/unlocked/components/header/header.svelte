@@ -1,14 +1,12 @@
 <script lang="ts">
-	import Modal from '../../../components/modal.svelte';
-
+	import Modal from '../../../../components/modal.svelte';
+	import CreatePassword from './modals/createPassword.svelte';
 
 	let showModal: boolean = $state(false);
 	function createPassword() {
 		showModal = true;
 	}
-	function modalClick(event: Event) {
-		event.stopPropagation();
-	}
+
 </script>
 
 <header class="sticky top-0 h-[48px] bg-surface_faint p-1">
@@ -21,6 +19,6 @@
 	</div>
 </header>
 
-<Modal bind:fnOnClick={modalClick} bind:showModal={showModal}>
-	<h1 class="text-start font-bold">Create Password</h1>
+<Modal bind:showModal>
+	<CreatePassword></CreatePassword>
 </Modal>

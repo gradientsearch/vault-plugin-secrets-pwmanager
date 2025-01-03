@@ -2,7 +2,7 @@
 	let { className } = $props();
 </script>
 
-<div class={className}>
+<div class="{className}" >
 	<svg
 		class="flight-icon flight-icon-vault"
 		aria-hidden="true"

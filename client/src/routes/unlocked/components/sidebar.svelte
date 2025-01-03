@@ -3,7 +3,7 @@
 </script>
 
 <div class="bg-token_side_nav_color_surface_primary hidden w-full md:max-w-64 lg:block">
-	<div class="flex-row px-3 py-6">
+	<div class="flex-row px-3 py-4">
 		<div class="flex content-start">
 			<VaultIcon className="nav-header-icon"></VaultIcon>
 		</div>

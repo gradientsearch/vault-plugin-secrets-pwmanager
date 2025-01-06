@@ -6,12 +6,14 @@
 	import PasswordInput from './components/passwordInput.svelte';
 	import { getComponent} from './types';
 
-    let {clientHeight = $bindable()} = $props()
+    let {clientHeight = $bindable(), cancel} = $props()
 	let vm: PasswordItem = $state(newPasswordItem());
 
 	function onSave() {}
 
-	function onBack() {}
+	function onCancel() {
+        cancel()
+    }
 
 </script>
 
@@ -43,7 +45,7 @@
 	<span class="flex flex-1"></span>
 	<div class="p-4">
 		<Button fn={onSave}>Save</Button>
-		<Button fn={onBack} primary={false}>Back</Button>
+		<Button fn={onCancel} primary={false}>Cancel</Button>
 	</div>
 </div>
 

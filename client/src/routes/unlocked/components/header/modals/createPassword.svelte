@@ -4,7 +4,7 @@
 
 	let selectedType: any = $state(undefined);
 	let containerHeight: number | undefined = $state();
-    let headerHeight: number | undefined = $state();
+	let headerHeight: number | undefined = $state();
 	let types = [
 		{
 			name: 'password',
@@ -45,11 +45,11 @@
 {:else}
 	{@const Component = selectedType.component}
 	<div bind:clientHeight={containerHeight} class="h-[100%] overflow-y-scroll">
-		<header bind:clientHeight={headerHeight}  class="flex flex-row justify-between p-3">
-			<div>{'<'}</div>
-			<div>New Item</div>
-			<div>x</div>
+		<header bind:clientHeight={headerHeight}>
+			<div class="flex flex-row justify-start border-b-2 border-border_primary p-4 font-bold">
+				<div>New Item</div>
+			</div>
 		</header>
-		<Component clientHeight={containerHeight - headerHeight} />
+		<Component clientHeight={containerHeight - headerHeight} cancel={()=> {selectedType = undefined}} />
 	</div>
 {/if}

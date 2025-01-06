@@ -21,6 +21,7 @@
 		class="absolute bottom-0 left-0 right-0 top-0 flex flex-1 bg-foreground_strong/30 hover:cursor-default"
 	>
 		<div
+
 			onclick={modalClick}
 			class="absolute bottom-0 left-0 right-0 top-0 mx-auto my-auto h-[100vh] w-[100vw] bg-foreground_high_contrast shadow-lg lg:h-[80vh] xl:w-[50vw]"
 		>

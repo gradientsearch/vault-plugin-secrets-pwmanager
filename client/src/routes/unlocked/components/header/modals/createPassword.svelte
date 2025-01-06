@@ -3,7 +3,8 @@
 	import Password from './types/password.svelte';
 
 	let selectedType: any = $state(undefined);
-
+	let containerHeight: number | undefined = $state();
+    let headerHeight: number | undefined = $state();
 	let types = [
 		{
 			name: 'password',
@@ -43,12 +44,12 @@
 	</div>
 {:else}
 	{@const Component = selectedType.component}
-	<div class="h-full overflow-y-scroll">
-		<header class="flex flex-row justify-between p-3">
+	<div bind:clientHeight={containerHeight} class="h-[100%] overflow-y-scroll">
+		<header bind:clientHeight={headerHeight}  class="flex flex-row justify-between p-3">
 			<div>{'<'}</div>
 			<div>New Item</div>
 			<div>x</div>
 		</header>
-		<Component />
+		<Component clientHeight={containerHeight - headerHeight} />
 	</div>
 {/if}

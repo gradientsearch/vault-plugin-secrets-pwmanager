@@ -3,15 +3,19 @@
 	import Button from '../../../../../../components/button.svelte';
 	import { newPasswordItem, type PasswordItem } from '../../../../models/input';
 	import ItemInput from './components/itemInput.svelte';
+	import PasswordInput from './components/passwordInput.svelte';
+	import { getComponent} from './types';
 
+    let {clientHeight = $bindable()} = $props()
 	let vm: PasswordItem = $state(newPasswordItem());
 
 	function onSave() {}
 
 	function onBack() {}
+
 </script>
 
-<div class="flex h-[100%] flex-col">
+<div class="flex flex-col " style="height: {clientHeight}px;">
 	<header class="p-4">
 		<div class="mt-3 flex flex-row">
 			<img class="max-h-12" src="{base}/icons/key.svg" alt="key icon" />
@@ -27,9 +31,12 @@
 
 	<div class="block p-4">
 		<div class="text-md grid min-w-96 grid-cols-1">
+
 			{#each vm.Core.Items as v, idx}
-				<ItemInput type={v.Type} label={v.Label} placeholder={v.Placeholder} bind:value={v.Value} {idx} last={vm.Core.Items.length - 1 === idx}
-				></ItemInput>
+            {@const Component = getComponent(v.Type)}
+            <Component type={v.Type} label={v.Label} placeholder={v.Placeholder} bind:value={v.Value} {idx} last={vm.Core.Items.length - 1 === idx}/>
+				<!-- <ItemInput type={v.Type} label={v.Label} placeholder={v.Placeholder} bind:value={v.Value} {idx} last={vm.Core.Items.length - 1 === idx}
+				></ItemInput> -->
 			{/each}
 		</div>
 	</div>

@@ -41,9 +41,9 @@
 		</div>
 	</div>
 	<span class="flex flex-1"></span>
-	<div>
+	<div class="p-4">
 		<Button fn={onSave}>Save</Button>
-		<Button fn={onBack}>Back</Button>
+		<Button fn={onBack} primary={false}>Back</Button>
 	</div>
 </div>
 

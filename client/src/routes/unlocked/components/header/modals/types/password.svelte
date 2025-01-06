@@ -1,34 +1,14 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import Button from '../../../../../../components/button.svelte';
-	import type { Input, PasswordItem } from '../../../../models/input';
+	import { newPasswordItem, type PasswordItem } from '../../../../models/input';
+	import ItemInput from './components/itemInput.svelte';
 
-	interface Metadata {
-		uuid: string;
-		name: string;
-		type: string;
-	}
-	interface Password {
-		metadata: Metadata;
-	}
-
-	let vm: Password = $state({
-		metadata: {
-			uuid: '',
-			name: 'Password',
-			type: 'password'
-		}
-	});
-
-    let inputValues = {
-
-    }
+	let vm: PasswordItem = $state(newPasswordItem());
 
 	function onSave() {}
 
 	function onBack() {}
-
-    
 </script>
 
 <div class="flex h-[100%] flex-col">
@@ -40,36 +20,17 @@
 				multiple
 				class="form-input mt-1 block w-full"
 				placeholder="Password"
-				bind:value={vm.metadata.name}
+				bind:value={vm.Name}
 			/>
 		</div>
 	</header>
 
 	<div class="block p-4">
 		<div class="text-md grid min-w-96 grid-cols-1">
-			<!--
-  Heads up! 👋
-
-  Plugins:
-    - @tailwindcss/forms
--->
-
-
-			<label
-				for="username"
-				class="border-gray-200 focus-within:border-blue-600 focus-within:ring-blue-600 block overflow-hidden rounded-md border px-3 py-2 shadow-sm focus-within:ring-1"
-			>
-				<div class="text-gray-700 text-xs font-medium">
-					username
-
-					<input
-						type="email"
-						id="UserEmail"
-						placeholder="anthony@rhcp.com"
-						class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm"
-					/>
-				</div>
-			</label>
+			{#each vm.Core.Items as v, idx}
+				<ItemInput type={v.Type} label={v.Label} placeholder={v.Placeholder} bind:value={v.Value} {idx} last={vm.Core.Items.length - 1 === idx}
+				></ItemInput>
+			{/each}
 		</div>
 	</div>
 	<span class="flex flex-1"></span>

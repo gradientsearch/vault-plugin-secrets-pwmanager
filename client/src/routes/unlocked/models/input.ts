@@ -13,17 +13,17 @@ export interface Input {
 }
 
 export interface Core {
-	Items: Map<string, Input>;
+	Items: Input[];
 	Order: string[];
 }
 
 export interface Section {
 	Name: string;
-	Items: Map<string, Input>;
+	Items: Input[];
 }
 
 export interface More {
-	Items: Map<string, Input>;
+	Items: Input[];
 	Order: Section[];
 }
 
@@ -33,22 +33,26 @@ export interface PasswordItem extends Item {
 	Tags: string[];
 }
 
-function newPasswordItem(): PasswordItem {
+export function newPasswordItem(): PasswordItem {
 	return {
 		Tags: [],
 		Name: '',
 		Type: '',
 		Metadata: undefined,
 		Core: {
-			Items: new Map<string, Input>(),
-			Order: []
+			Items: [
+				{ Type: 'text', Label: 'username', Placeholder: 'username', Value: '', Metadata: undefined },
+                { Type: 'password', Label: 'Password', Placeholder: 'Password', Value: '', Metadata: undefined }
+			],
+			Order: ['1']
 		},
 		More: {
-			Items: new Map<string, Input>(),
+			Items: [],
 			Order: []
 		}
 	};
 }
+
 export class PasswordInput implements Input {
 	Type: string = 'password';
 	Label: string = 'password';
@@ -57,12 +61,12 @@ export class PasswordInput implements Input {
 	Metadata: any;
 }
 
-export function newPasswordInput(): PasswordInput{
-    return {
-        Type: "",
-        Label: "",
-        Placeholder: "",
-        Value: "",
-        Metadata: undefined
-    }
+export function newPasswordInput(): PasswordInput {
+	return {
+		Type: '',
+		Label: '',
+		Placeholder: '',
+		Value: '',
+		Metadata: undefined
+	};
 }

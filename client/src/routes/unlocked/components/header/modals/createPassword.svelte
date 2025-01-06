@@ -43,7 +43,12 @@
 	</div>
 {:else}
 	{@const Component = selectedType.component}
-	<div class="overflow-y-scroll">
+	<div class="h-full overflow-y-scroll">
+		<header class="flex flex-row justify-between p-3">
+			<div>{'<'}</div>
+			<div>New Item</div>
+			<div>x</div>
+		</header>
 		<Component />
 	</div>
 {/if}

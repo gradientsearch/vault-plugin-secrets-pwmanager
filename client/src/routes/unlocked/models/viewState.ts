@@ -3,6 +3,6 @@
 // of the sidebar
 interface PasswordList {
     Type: string
-    ID: string
+    Path: string
     Name: string
 }

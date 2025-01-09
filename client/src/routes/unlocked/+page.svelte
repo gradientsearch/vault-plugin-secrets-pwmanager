@@ -12,7 +12,6 @@
 
 	$effect(()=>{
 		selectedVault;
-		console.log('selected vault changed')
 	})
 
 

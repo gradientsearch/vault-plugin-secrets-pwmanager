@@ -69,4 +69,30 @@ export class Api {
 
 		return [uuk, undefined]
 	}
+
+	async getPasswordListMetadata(pl :PasswordList){
+		console.log('pl', pl, this.mount)
+
+		let response = await this.get(`${this.mount}/${pl.Path}/vault-metadata`);
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error registering: ${err}`)];
+		}
+
+		let json = await response.json();
+        console.log('what will the metadata structure look like?', json)
+
+		return {}
+
+	}
+}
+
+export function getAPI() {
+	let info = localStorage.getItem('loginInfo')
+	if (info !== null){
+		//TODO check for null
+		let infoObj = JSON.parse(info)
+		return new Api(infoObj["token"], infoObj['url'], infoObj['mount'])
+	}
 }

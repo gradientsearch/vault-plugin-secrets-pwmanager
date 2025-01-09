@@ -7,10 +7,10 @@
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo')
 		if (info !== null) {
-			console.log(info)
+			let infoObj =  JSON.parse(info)
 			let p: PasswordList = {
 				Type: 'vault',
-				ID: `vaults/${info['entityID']}/private`,
+				Path: `vaults/${infoObj['entityID']}/private`,
 				Name: 'private'
 			}
 			privateVault = p

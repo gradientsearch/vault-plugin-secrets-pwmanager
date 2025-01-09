@@ -7,11 +7,11 @@
 	import PasswordInput from './components/passwordInput.svelte';
 	import { getComponent} from './types';
 
-    let {clientHeight = $bindable(), cancel} = $props()
-	let vm: PasswordItem = $state(newPasswordItem());
+    let {passwordListService = $bindable(), clientHeight = $bindable(), cancel} = $props()
+	let pi: PasswordItem = $state(newPasswordItem());
 
 	function onSave() {
-        
+        passwordListService.add(pi)
     }
 
 	function onCancel() {
@@ -29,7 +29,7 @@
 				multiple
 				class="form-input mt-1 block w-full"
 				placeholder="Password"
-				bind:value={vm.Name}
+				bind:value={pi.Name}
 			/>
 		</div>
 	</header>
@@ -37,9 +37,9 @@
 	<div class="block p-4">
 		<div class="text-md grid min-w-96 grid-cols-1">
 
-			{#each vm.Core.Items as v, idx}
+			{#each pi.Core.Items as v, idx}
             {@const Component = getComponent(v.Type)}
-            <Component type={v.Type} label={v.Label} placeholder={v.Placeholder} bind:value={v.Value} {idx} last={vm.Core.Items.length - 1 === idx}/>
+            <Component type={v.Type} label={v.Label} placeholder={v.Placeholder} bind:value={v.Value} {idx} last={pi.Core.Items.length - 1 === idx}/>
 				<!-- <ItemInput type={v.Type} label={v.Label} placeholder={v.Placeholder} bind:value={v.Value} {idx} last={vm.Core.Items.length - 1 === idx}
 				></ItemInput> -->
 			{/each}

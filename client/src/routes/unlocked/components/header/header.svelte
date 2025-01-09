@@ -2,11 +2,11 @@
 	import Modal from '../../../../components/modal.svelte';
 	import CreatePassword from './modals/createPassword.svelte';
 
+	let { passwordListService = $bindable() } = $props();
 	let showModal: boolean = $state(false);
 	function createPassword() {
 		showModal = true;
 	}
-
 </script>
 
 <header class="sticky top-0 h-[48px] bg-surface_faint p-1">
@@ -20,5 +20,5 @@
 </header>
 
 <Modal bind:showModal>
-	<CreatePassword></CreatePassword>
+	<CreatePassword bind:passwordListService></CreatePassword>
 </Modal>

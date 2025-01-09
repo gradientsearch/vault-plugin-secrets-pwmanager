@@ -73,6 +73,11 @@ export class Api {
 	async getPasswordListMetadata(pl :PasswordList){
 		let response = await this.get(`${pl.Path}/vault-metadata`);
 
+		if (response.status === 404) {
+			// no passwords exist for this vault yet
+			return [[], undefined];
+		}
+
 		if (response.status != 200) {
 			let err = await response.text();
 			return [undefined, new Error(`error registering: ${err}`)];

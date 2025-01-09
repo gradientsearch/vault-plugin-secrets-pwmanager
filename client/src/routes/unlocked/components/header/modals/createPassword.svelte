@@ -2,7 +2,7 @@
 	import { base } from '$app/paths';
 	import Password from './types/password.svelte';
 
-	let { passwordListService = $bindable() } = $props();
+	let { passwordListService = $bindable(), showModal=$bindable() } = $props();
 
 	let selectedType: any = $state(undefined);
 	let containerHeight: number | undefined = $state();
@@ -54,6 +54,7 @@
 		</header>
 		<Component
             bind:passwordListService
+            bind:showModal
 			clientHeight={containerHeight - headerHeight}
 			cancel={() => {
 				selectedType = undefined;

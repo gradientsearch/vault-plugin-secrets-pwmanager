@@ -1,7 +1,13 @@
 export interface Item {
 	Name: string;
 	Type: string;
-	Metadata: any;
+	Metadata: Metadata;
+}
+
+export interface Metadata {
+	Name: string;
+	Type: string;
+	Value: string;
 }
 
 export interface Input {
@@ -9,7 +15,6 @@ export interface Input {
 	Label: string;
 	Placeholder: string;
 	Value: string;
-	Metadata: any;
 }
 
 export interface Core {
@@ -28,6 +33,7 @@ export interface More {
 }
 
 export interface PasswordItem extends Item {
+	Metadata: Metadata;
 	Core: Core;
 	More: More;
 	Tags: string[];
@@ -38,11 +44,27 @@ export function newPasswordItem(): PasswordItem {
 		Tags: [],
 		Name: '',
 		Type: '',
-		Metadata: undefined,
+		Metadata: {
+			Name: 'Password',
+			Type: 'password',
+			Value: ''
+		},
 		Core: {
 			Items: [
-				{ Type: 'text', Label: 'username', Placeholder: 'username', Value: '', Metadata: undefined },
-                { Type: 'password', Label: 'Password', Placeholder: 'Password', Value: '', Metadata: undefined }
+				{
+					Type: 'text',
+					Label: 'username',
+					Placeholder: 'username',
+					Value: '',
+					Metadata: undefined
+				},
+				{
+					Type: 'password',
+					Label: 'Password',
+					Placeholder: 'Password',
+					Value: '',
+					Metadata: undefined
+				}
 			],
 			Order: ['1']
 		},

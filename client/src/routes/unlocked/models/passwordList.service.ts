@@ -29,7 +29,7 @@ export class VaultPasswordListService implements PasswordListService {
 	async add(pi: PasswordItem): Promise<Error | undefined> {
         //store data in vault
         // update metadata
-        this.onAddFn(pi)
+        this.onAddFn([pi])
 		return new Promise((resolve) => {
             console.log('slice add password')
             resolve(undefined);

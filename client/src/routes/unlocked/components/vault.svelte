@@ -14,7 +14,9 @@
 	} = $props();
 	onMount(() => {});
 
-	let onVaultAddFn = () => {};
+	let onVaultAddFn = (pi: PasswordItem[]) => {
+        passwordItems = pi
+    };
 
 	function setPasswordListService() {
 		if (selectedVault?.Type === 'vault') {
@@ -35,4 +37,12 @@
 	<header class="sticky top-0 border-b-2 border-border_primary p-2">
 		<h1 class="text-base">{selectedVault?.Name} {selectedVault?.Type}</h1>
 	</header>
+
+    {#each passwordItems as i}
+    <div>
+        <button>
+            {i.Metadata.Name}
+        </button>
+    </div>
+    {/each}
 </div>

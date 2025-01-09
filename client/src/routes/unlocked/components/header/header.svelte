@@ -20,5 +20,5 @@
 </header>
 
 <Modal bind:showModal>
-	<CreatePassword bind:passwordListService></CreatePassword>
+	<CreatePassword bind:passwordListService bind:showModal></CreatePassword>
 </Modal>

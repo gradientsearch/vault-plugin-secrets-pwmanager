@@ -6,6 +6,15 @@
 	import Sidebar from './components/sidebar.svelte';
 	import Vault from './components/vault.svelte';
 	let kp: KeyPair | undefined;
+	let vault
+
+	let selectedVault: PasswordList| null = $state(null)
+
+	$effect(()=>{
+		selectedVault;
+		console.log('selected vault changed')
+	})
+
 
 	onMount(async () => {
 		kp = await storedKeyPair.get();
@@ -13,11 +22,11 @@
 </script>
 
 <div class="flex h-full">
-	<Sidebar></Sidebar>
+	<Sidebar bind:selectedVault></Sidebar>
 	<div class="h-full w-full flex-col">
 		<Header></Header>
 		<div class="flex h-[calc(100vh-48px)] w-full">
-			<Vault></Vault>
+			<Vault bind:selectedVault></Vault>
 			<Password></Password>
 		</div>
 	</div>

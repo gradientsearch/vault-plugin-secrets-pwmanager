@@ -35,6 +35,7 @@
 
 		let secretKey = new TextDecoder().decode(hexToBytes(secretKeyHex));
 
+		
 		let api = new Api(signIn.token, signIn.url, signIn.mount);
 		let tokenInfo = await api.tokenLookup();
 		let entityID = tokenInfo['data']['entity_id'];
@@ -66,6 +67,8 @@
 		};
 
 		storedKeyPair.set(keypair);
+		localStorage.setItem('loginInfo', JSON.stringify({token: signIn.token, url: signIn.url, mount: signIn.mount, entityID: entityID}))
+		
 		goto(`${base}/unlocked`);
 		isSigningIn = false;
 	}

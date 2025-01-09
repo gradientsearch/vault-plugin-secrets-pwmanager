@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import { Api } from '$lib/api';
 	import Button from '../../../../../../components/button.svelte';
 	import { newPasswordItem, type PasswordItem } from '../../../../models/input';
 	import ItemInput from './components/itemInput.svelte';
@@ -9,7 +10,9 @@
     let {clientHeight = $bindable(), cancel} = $props()
 	let vm: PasswordItem = $state(newPasswordItem());
 
-	function onSave() {}
+	function onSave() {
+        
+    }
 
 	function onCancel() {
         cancel()

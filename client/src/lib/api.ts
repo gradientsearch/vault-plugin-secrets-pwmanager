@@ -71,9 +71,7 @@ export class Api {
 	}
 
 	async getPasswordListMetadata(pl :PasswordList){
-		console.log('pl', pl, this.mount)
-
-		let response = await this.get(`${this.mount}/${pl.Path}/vault-metadata`);
+		let response = await this.get(`${pl.Path}/vault-metadata`);
 
 		if (response.status != 200) {
 			let err = await response.text();

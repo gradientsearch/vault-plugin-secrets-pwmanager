@@ -1,28 +1,29 @@
 <script lang="ts">
-	import { Api, getAPI } from '$lib/api';
 	import { onMount } from 'svelte';
+	import type { PasswordItem } from '../models/input';
+	import type { PasswordListService } from '../models/passwordList.service';
 
-	let { selectedVault = $bindable() } = $props();
-	let api: Api | undefined;
+	let passwordItems: PasswordItem[] = $state([]);
+	let { selectedVault = $bindable(), zarf = $bindable() } = $props();
+    let passwordListService: PasswordListService
+	onMount(() => {});
 
-	onMount(() => {
-		api = getAPI();
-	});
-
-
-    function getListOfPasswords(){
-        if (api === undefined){
-            return
+    function setPasswordListService(){
+        if (selectedVault?.Type === 'vault') {
+            
         }
-
-        api.getPasswordListMetadata(selectedVault)
     }
 
-	$effect(() => {
-        selectedVault
-        getListOfPasswords()
+	function getListOfPasswords() {
+		// TODO define the type to return
+		return zarf?.Api?.getPasswordListMetadata(selectedVault);
+	}
 
-    });
+	$effect(() => {
+		selectedVault;
+
+		getListOfPasswords();
+	});
 </script>
 
 <div class="w-full max-w-96 overflow-y-scroll border-2 border-border_primary bg-page_faint">

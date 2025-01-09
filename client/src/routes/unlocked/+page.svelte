@@ -5,28 +5,37 @@
 	import Password from './components/password.svelte';
 	import Sidebar from './components/sidebar.svelte';
 	import Vault from './components/vault.svelte';
+	import { getAPI, type Api } from '$lib/api';
+	import type { Zarf } from './models/zarf';
 	let kp: KeyPair | undefined;
-	let vault
+	let vault;
+	let zarf: Zarf | null = $state(null);
+	let api: Api | undefined;
+	let selectedVault: PasswordList | null = $state(null);
 
-	let selectedVault: PasswordList| null = $state(null)
-
-	$effect(()=>{
+	$effect(() => {
 		selectedVault;
-	})
-
+	});
 
 	onMount(async () => {
 		kp = await storedKeyPair.get();
+		api = getAPI();
+		zarf = {
+			Keypair: kp,
+			Api: api
+		};
 	});
 </script>
 
 <div class="flex h-full">
-	<Sidebar bind:selectedVault></Sidebar>
-	<div class="h-full w-full flex-col">
-		<Header></Header>
-		<div class="flex h-[calc(100vh-48px)] w-full">
-			<Vault bind:selectedVault></Vault>
-			<Password></Password>
+	{#if zarf !== null}
+		<Sidebar bind:selectedVault></Sidebar>
+		<div class="h-full w-full flex-col">
+			<Header></Header>
+			<div class="flex h-[calc(100vh-48px)] w-full">
+				<Vault bind:zarf bind:selectedVault></Vault>
+				<Password></Password>
+			</div>
 		</div>
-	</div>
+	{/if}
 </div>

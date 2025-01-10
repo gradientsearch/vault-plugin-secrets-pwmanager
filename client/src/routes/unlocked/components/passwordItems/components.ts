@@ -2,6 +2,7 @@ import type { Component } from 'svelte';
 
 import PasswordInput from './inputs/passwordInput.svelte';
 import ItemInput from './inputs/itemInput.svelte';
+import Password from './password.svelte';
 
 
 export function getInputComponent(type: string) {
@@ -16,6 +17,6 @@ export function getInputComponent(type: string) {
 export function getPasswordComponent(type: string) {
     switch (type) {
         case 'password':
-            return 
+            return Password
     }
 }

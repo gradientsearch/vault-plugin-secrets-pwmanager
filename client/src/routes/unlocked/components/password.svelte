@@ -1,16 +1,19 @@
 <script lang="ts">
-	import { on } from 'svelte/events';
 	import { getPasswordComponent } from './passwordItems/components';
 
-	let { passwordItem = $bindable() } = $props();
+	let { selectedPasswordItem = $bindable() } = $props();
 
 	$effect(() => {
-		passwordItem;
+		selectedPasswordItem;
+        console.log(selectedPasswordItem)
 	});
 </script>
 
-<div class=" w-full content-center border-t-2 border-border_primary bg-page_faint">
-	<!-- {@const Component = getPasswordComponent(passwordItem.Type)}
-	<Component
-    ></Component> -->
+<div class=" w-full  border-t-2 border-border_primary bg-page_faint">
+	{#if selectedPasswordItem}
+		{@const Component = getPasswordComponent(selectedPasswordItem?.Type)}
+		<div class="w-full">
+			<Component bind:passwordItem={selectedPasswordItem}></Component>
+		</div>
+	{/if}
 </div>

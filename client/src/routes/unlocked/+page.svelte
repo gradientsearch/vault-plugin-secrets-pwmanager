@@ -9,7 +9,7 @@
 	import type { Zarf } from './models/zarf';
 	import type { PasswordListService } from './services/passwordList.service';
 	import type { PasswordItem } from './models/input';
-	
+
 	let kp: KeyPair | undefined;
 	let zarf: Zarf | null = $state(null);
 	let api: Api | undefined;
@@ -19,8 +19,8 @@
 	let selectedPasswordItem: PasswordItem | undefined = $state();
 	let passwordItems: PasswordItem[] = $state([]);
 
-	function updateSelectedPasswordItem(passwordItem: PasswordItem){
-		selectedPasswordItem = passwordItem
+	function updateSelectedPasswordItem(passwordItem: PasswordItem) {
+		selectedPasswordItem = passwordItem;
 	}
 
 	$effect(() => {
@@ -43,7 +43,13 @@
 		<div class="h-full w-full flex-col">
 			<Header bind:passwordListService></Header>
 			<div class="flex h-[calc(100vh-48px)] w-full">
-				<Vault bind:zarf bind:passwordListService bind:selectedVault bind:selectedPasswordItem bind:passwordItems></Vault>
+				<Vault
+					bind:zarf
+					bind:passwordListService
+					bind:selectedVault
+					bind:selectedPasswordItem
+					bind:passwordItems
+				></Vault>
 				<Password bind:selectedPasswordItem></Password>
 			</div>
 		</div>

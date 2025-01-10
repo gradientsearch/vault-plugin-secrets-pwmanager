@@ -35,9 +35,15 @@
 			let pi = newPasswordItem();
 			pi.Metadata.Name = 'My Secret Password';
 			pi.Metadata.Value = 'stephen';
+            pi.Core.Items[0].Value = 'stephen'
+            pi.Core.Items[1].Value = 'super-secret-password'
             pi.Type = 'password'
+            pi.Name = 'My Secret Password';
+            
 			passwordItems.push(pi);
 			passwordItems = passwordItems;
+
+
 		}
 	}
 

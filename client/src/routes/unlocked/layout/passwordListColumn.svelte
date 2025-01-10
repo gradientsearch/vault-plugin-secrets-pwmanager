@@ -3,7 +3,6 @@
 	import { newPasswordItem, type PasswordItem } from '../models/input';
 	import { VaultPasswordListService } from '../services/passwordList.service';
 	import { base } from '$app/paths';
-	import Password from './passwordColumn.svelte';
 
 let headerHeight = $state(0)
 

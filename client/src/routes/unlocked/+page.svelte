@@ -2,9 +2,9 @@
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 	import { onMount } from 'svelte';
 	import Header from './components/header/header.svelte';
-	import Password from './components/passwordColumn.svelte';
-	import Sidebar from './components/sidebarColumn.svelte';
-	import Vault from './components/passwordListColumn.svelte';
+	import PasswordColumn from './layout/passwordColumn.svelte';
+	import SidebarColumn from './layout/sidebarColumn.svelte';
+	import PasswordListColumn from './layout/passwordListColumn.svelte';
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
 	import type { PasswordListService } from './services/passwordList.service';
@@ -38,20 +38,19 @@
 </script>
 
 <div class="flex h-full">
-	<!-- TODO update the names of these components to name-column -->
 	{#if zarf !== null}
-		<Sidebar bind:selectedVault></Sidebar>
+		<SidebarColumn bind:selectedVault></SidebarColumn>
 		<div class="h-full w-full flex-col">
 			<Header bind:passwordListService></Header>
 			<div class="flex h-[calc(100vh-48px)] w-full">
-				<Vault
+				<PasswordListColumn
 					bind:zarf
 					bind:passwordListService
 					bind:selectedVault
 					bind:selectedPasswordItem
 					bind:passwordItems
-				></Vault>
-				<Password bind:selectedPasswordItem></Password>
+				></PasswordListColumn>
+				<PasswordColumn bind:selectedPasswordItem></PasswordColumn>
 			</div>
 		</div>
 	{/if}

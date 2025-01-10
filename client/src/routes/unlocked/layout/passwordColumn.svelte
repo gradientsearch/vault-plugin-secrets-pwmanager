@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import type { PasswordItem } from '../models/input';
-	import { getPasswordComponent } from './passwordItems/components';
+	import { getPasswordComponent } from '../components/passwordItems/components';
 
 	let { selectedPasswordItem = $bindable() } = $props();
 

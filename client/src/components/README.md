@@ -1,0 +1,3 @@
+# Components
+
+Use this directory for general components e.g. modal, card etc...

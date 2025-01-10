@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Button from '../../../../../components/button.svelte';
-	import { newPasswordItem, type Metadata, type PasswordItem } from '../../../models/input';
-	import Password from '../../passwordItems/password.svelte';
+	import Button from '../../../components/button.svelte';
+	import { newPasswordItem, type Metadata, type PasswordItem } from '../models/input';
+	import Password from '../components/passwordItems/password.svelte';
 
 	let {
 		passwordListService = $bindable(),

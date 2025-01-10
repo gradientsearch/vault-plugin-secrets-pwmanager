@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Modal from '../../../../components/modal.svelte';
-	import CreatePassword from './modals/createPassword.svelte';
+	import Modal from '../../../components/modal.svelte';
+	import CreatePassword from '../modals/createPassword.svelte';
 
 	let { passwordListService = $bindable() } = $props();
 	let showModal: boolean = $state(false);

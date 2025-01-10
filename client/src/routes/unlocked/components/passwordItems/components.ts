@@ -1,5 +1,7 @@
-import type { Component } from 'svelte';
-
+/**
+ * Components functions return the svelte component needed when dynamically
+ * displaying a component.
+ */
 import PasswordInput from './inputs/passwordInput.svelte';
 import ItemInput from './inputs/itemInput.svelte';
 import Password from './password.svelte';

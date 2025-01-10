@@ -1,3 +1,16 @@
+<!-- 
+@component
+## Password
+This is the component used to show the password PasswordItem.
+
+### Props
+- `passwordItem`: The generalized data structure pwmanager uses to define passwords i.e passwordItem could be a password, login, secure note.
+
+### Example
+<Password bind:passwordItem></Password>
+
+-->
+
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { getInputComponent } from '../passwordItems/components';

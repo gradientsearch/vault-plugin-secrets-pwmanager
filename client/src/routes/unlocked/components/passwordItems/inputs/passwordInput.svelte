@@ -1,3 +1,22 @@
+<!-- 
+@component
+
+## PasswordInput
+This is the component used to show the password input element
+
+### Props
+- `label`: the label shown above the input text field i.e username, password
+- `placeholder`: what the user sees before entering in a value to the input field
+- `value`: bindable value of the user provided text
+- `idx`: the section index of the input field 0 index and last index have rounded corners
+- `last`: the section index of the 
+
+### Example
+<Password bind:passwordItem></Password>
+
+-->
+
+
 <script lang="ts">
 	import ItemInput from './itemInput.svelte';
 	let reveal = $state(false);
@@ -88,7 +107,7 @@
 						<button
 							onclick={() => {
 								copyToClipBoard(value);
-								showMenu = false
+								showMenu = false;
 							}}
 							class="text-gray-500 hover:text-gray-700 block w-full rounded-md rounded-b-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
 							role="menuitem"
@@ -100,7 +119,7 @@
 							<button
 								onclick={() => {
 									inputType = 'text';
-									showMenu = false
+									showMenu = false;
 								}}
 								class="text-gray-500 hover:bg-gray-50 hover:text-gray-700 block w-full rounded-md rounded-t-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
 								role="menuitem"
@@ -111,7 +130,7 @@
 							<button
 								onclick={() => {
 									inputType = 'password';
-									showMenu = false
+									showMenu = false;
 								}}
 								class="text-gray-500 hover:bg-gray-50 hover:text-gray-700 block w-full rounded-md rounded-t-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
 								role="menuitem"

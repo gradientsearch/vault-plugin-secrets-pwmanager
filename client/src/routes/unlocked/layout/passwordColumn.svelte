@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { PasswordItem } from '../models/input';
+	import type { Entry } from '../models/input';
 	import { getPasswordComponent } from '../components/passwordItems/components';
 
 	let { selectedPasswordItem = $bindable() } = $props();
 
-	let copyOfSelectedPasswordItem: PasswordItem | undefined = $state();
+	let copyOfSelectedPasswordItem: Entry | undefined = $state();
 
 	$effect(() => {
 		selectedPasswordItem;

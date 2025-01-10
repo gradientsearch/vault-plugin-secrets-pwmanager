@@ -1,13 +1,13 @@
 // responsible for interacting with Vault
 
-import type { PasswordItem } from '../models/input';
+import type { Entry } from '../models/input';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
 
 // in the passwordlist column
 export interface PasswordItemsService {
-	add(pi: PasswordItem): Promise<Error | undefined>;
-	get(): Promise<PasswordItem[]>;
+	add(pi: Entry): Promise<Error | undefined>;
+	get(): Promise<Entry[]>;
 
 }
 
@@ -34,12 +34,12 @@ export class VaultPasswordItemsService implements PasswordItemsService {
 		//await this.zarf?.Api?.get()
 	}
 	
-	async get(): Promise<PasswordItem[]> {
+	async get(): Promise<Entry[]> {
 		let passwordItems, err = await this.zarf?.Api?.getVaultMetadata(this.bundle);
 		return [];
 	}
 
-	async add(pi: PasswordItem): Promise<Error | undefined> {
+	async add(pi: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// update metadata
 		this.onAddFn([pi]);

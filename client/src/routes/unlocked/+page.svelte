@@ -8,7 +8,7 @@
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
 	import type { PasswordItemsService } from './services/passwordItems.service';
-	import type { PasswordItem } from './models/input';
+	import type { Entry } from './models/input';
 
 	let kp: KeyPair | undefined;
 	let zarf: Zarf | null = $state(null);
@@ -16,8 +16,8 @@
 	let bundle: Bundle | null = $state(null);
 	let passwordListService: PasswordItemsService | null = $state(null);
 
-	let selectedPasswordItem: PasswordItem | undefined = $state();
-	let passwordItems: PasswordItem[] = $state([]);
+	let selectedPasswordItem: Entry | undefined = $state();
+	let passwordItems: Entry[] = $state([]);
 
 	$effect(() => {
 		bundle;

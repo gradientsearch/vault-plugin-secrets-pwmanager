@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Button from '../../../components/button.svelte';
-	import { newPasswordItem, type Metadata, type PasswordItem } from '../models/input';
+	import { newPasswordItem, type Metadata, type Entry } from '../models/input';
 	import Password from '../components/passwordItems/password.svelte';
 
 	let {
@@ -9,7 +9,7 @@
 		showModal = $bindable(),
 		cancel
 	} = $props();
-	let passwordItem: PasswordItem = $state(newPasswordItem());
+	let passwordItem: Entry = $state(newPasswordItem());
 
 	async function onSave() {
 		let meta: Metadata = {

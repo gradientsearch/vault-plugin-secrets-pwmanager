@@ -33,14 +33,14 @@ export interface More {
 	Order: Section[];
 }
 
-export interface PasswordItem extends Item {
+export interface Entry extends Item {
 	Metadata: Metadata;
 	Core: Core;
 	More: More;
 	Tags: string[];
 }
 
-export function newPasswordItem(): PasswordItem {
+export function newPasswordItem(): Entry {
 	return {
 		Tags: [],
 		Name: '',

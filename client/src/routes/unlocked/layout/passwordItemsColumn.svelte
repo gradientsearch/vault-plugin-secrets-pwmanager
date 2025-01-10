@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { newPasswordItem, type PasswordItem } from '../models/input';
+	import { newPasswordItem, type Entry } from '../models/input';
 	import { VaultPasswordItemsService } from '../services/passwordItems.service';
 	import { base } from '$app/paths';
 
@@ -23,7 +23,7 @@
 
 	onMount(() => {});
 
-	let onVaultAddFn = (pi: PasswordItem[]) => {
+	let onVaultAddFn = (pi: Entry[]) => {
 		passwordItems = pi;
 	};
 
@@ -45,7 +45,7 @@
 		}
 	}
 
-	function onSelectedPasswordItem(passwordItem: PasswordItem) {
+	function onSelectedPasswordItem(passwordItem: Entry) {
 		selectedPasswordItem = passwordItem;
 	}
 </script>

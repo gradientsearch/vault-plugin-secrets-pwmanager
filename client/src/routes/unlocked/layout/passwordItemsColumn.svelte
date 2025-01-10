@@ -1,25 +1,23 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { newPasswordItem, type PasswordItem } from '../models/input';
-	import {  VaultPasswordItemsService } from '../services/passwordItems.service';
+	import { VaultPasswordItemsService } from '../services/passwordItems.service';
 	import { base } from '$app/paths';
 
-let headerHeight = $state(0)
+	let headerHeight = $state(0);
 
 	let {
-		selectedVault = $bindable(),
+		passwordBundle = $bindable(),
 		zarf = $bindable(),
 		passwordListService = $bindable(),
 		selectedPasswordItem = $bindable(),
-        passwordItems = $bindable(),
+		passwordItems = $bindable()
 	} = $props();
 
 	$effect(() => {
-		selectedVault;
+		passwordBundle;
 		untrack(() => {
-			
 			setPasswordItemsService();
-
 		});
 	});
 
@@ -30,18 +28,18 @@ let headerHeight = $state(0)
 	};
 
 	async function setPasswordItemsService() {
-		if (selectedVault?.Type === 'vault') {
-			passwordListService = new VaultPasswordItemsService(zarf, selectedVault, onVaultAddFn);
+		if (passwordBundle?.Type === 'vault') {
+			passwordListService = new VaultPasswordItemsService(zarf, passwordBundle, onVaultAddFn);
 			// TODO Grab PasswordList Decryption key, create it if it does not exist (policy will only allow the owner of the vault to do this). /keys/{{ identity.entity.id }}
 			passwordItems = await passwordListService.get();
 			let pi = newPasswordItem();
 			pi.Metadata.Name = 'My Secret Password';
 			pi.Metadata.Value = 'stephen';
-            pi.Core.Items[0].Value = 'stephen'
-            pi.Core.Items[1].Value = 'super-secret-password'
-            pi.Type = 'password'
-            pi.Name = 'My Secret Password';
-            
+			pi.Core.Items[0].Value = 'stephen';
+			pi.Core.Items[1].Value = 'super-secret-password';
+			pi.Type = 'password';
+			pi.Name = 'My Secret Password';
+
 			passwordItems.push(pi);
 			passwordItems = passwordItems;
 		}
@@ -53,16 +51,21 @@ let headerHeight = $state(0)
 </script>
 
 <div
-	class="relative  w-full max-w-96 overflow-y-scroll border-2 border-r-8 border-border_primary bg-page_faint"
+	class="relative w-full max-w-96 overflow-y-scroll border-2 border-r-8 border-border_primary bg-page_faint"
 >
-	<header bind:clientHeight={headerHeight}  class="absolute top-0 flex w-full border-b-2 border-border_primary p-2">
-		<h1 class="text-base">{selectedVault?.Name} {selectedVault?.Type}</h1>
+	<header
+		bind:clientHeight={headerHeight}
+		class="absolute top-0 flex w-full border-b-2 border-border_primary p-2"
+	>
+		<h1 class="text-base">{passwordBundle?.Name} {passwordBundle?.Type}</h1>
 	</header>
 
-    <span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
+	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
 	{#each passwordItems as i}
-    
-		<div style="top: {headerHeight}px" class="flex w-full p-4 text-base hover:bg-surface_interactive_hover">
+		<div
+			style="top: {headerHeight}px"
+			class="flex w-full p-4 text-base hover:bg-surface_interactive_hover"
+		>
 			<button
 				onclick={() => {
 					onSelectedPasswordItem(i);
@@ -78,4 +81,3 @@ let headerHeight = $state(0)
 		</div>
 	{/each}
 </div>
-

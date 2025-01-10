@@ -70,7 +70,7 @@ export class Api {
 		return [uuk, undefined]
 	}
 
-	async getVaultMetadata(pl :PasswordItems){
+	async getVaultMetadata(pl :PasswordBundle){
 		let response = await this.get(`${pl.Path}/metadata`);
 
 		if (response.status === 404) {
@@ -90,7 +90,12 @@ export class Api {
 
 	}
 
-	async getVaultKey(pl:PasswordItems){
+	/**
+	 * 
+	 * @param pi 
+	 * @returns 
+	 */
+	async getVaultKey(pl:PasswordBundle){
 		let response = await this.get(`${pl.Path}/metadata`);
 
 		if (response.status === 404) {

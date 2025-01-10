@@ -15,15 +15,13 @@ export class VaultPasswordItemsService implements PasswordItemsService {
 	
 	onAddFn: Function;
 	zarf: Zarf | undefined;
-	selectedVault: PasswordItems;
+	passwordBundle: PasswordBundle;
 
-	constructor(zarf: Zarf | undefined, selectedVault: PasswordItems, onAddFn: Function) {
+	constructor(zarf: Zarf | undefined, passwordBundle: PasswordBundle, onAddFn: Function) {
 		this.zarf = zarf;
-		this.selectedVault = selectedVault;
+		this.passwordBundle = passwordBundle;
 		this.onAddFn = onAddFn;
 	}
-
-
 	
 	async init() {
 		// get decryption key for this vault
@@ -31,13 +29,13 @@ export class VaultPasswordItemsService implements PasswordItemsService {
 
 		let entityID = userService.getEntityID()
 		await this.zarf?.Api?.getVaultKey(entityID)
-		this.selectedVault.Path
+		this.passwordBundle.Path
 		
 		//await this.zarf?.Api?.get()
 	}
 	
 	async get(): Promise<PasswordItem[]> {
-		let passwordItems, err = await this.zarf?.Api?.getVaultMetadata(this.selectedVault);
+		let passwordItems, err = await this.zarf?.Api?.getVaultMetadata(this.passwordBundle);
 		return [];
 	}
 

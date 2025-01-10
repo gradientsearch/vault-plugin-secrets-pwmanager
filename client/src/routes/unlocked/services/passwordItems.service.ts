@@ -2,6 +2,7 @@
 
 import type { PasswordItem } from '../models/input';
 import type { Zarf } from '../models/zarf';
+import { userService } from './user.service';
 
 // in the passwordlist column
 export interface PasswordItemsService {
@@ -11,6 +12,7 @@ export interface PasswordItemsService {
 }
 
 export class VaultPasswordItemsService implements PasswordItemsService {
+	
 	onAddFn: Function;
 	zarf: Zarf | undefined;
 	selectedVault: PasswordItems;
@@ -22,15 +24,20 @@ export class VaultPasswordItemsService implements PasswordItemsService {
 	}
 
 
+	
 	async init() {
 		// get decryption key for this vault
 		//whats the entity id 
+
+		let entityID = userService.getEntityID()
+		await this.zarf?.Api?.getVaultKey(entityID)
+		this.selectedVault.Path
 		
 		//await this.zarf?.Api?.get()
 	}
 	
 	async get(): Promise<PasswordItem[]> {
-		let passwordItems, err = await this.zarf?.Api?.getPasswordListMetadata(this.selectedVault);
+		let passwordItems, err = await this.zarf?.Api?.getVaultMetadata(this.selectedVault);
 		return [];
 	}
 

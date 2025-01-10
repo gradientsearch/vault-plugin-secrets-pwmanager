@@ -11,7 +11,8 @@
 			let p: PasswordItems = {
 				Type: 'vault',
 				Path: `vaults/${infoObj['entityID']}/private`,
-				Name: 'private'
+				Name: 'private',
+				Owner: infoObj['entityID']
 			}
 			privateVault = p
 			selectedVault = p

@@ -2,9 +2,9 @@
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 	import { onMount } from 'svelte';
 	import Header from './components/header/header.svelte';
-	import Password from './components/password.svelte';
-	import Sidebar from './components/sidebar.svelte';
-	import Vault from './components/vault.svelte';
+	import Password from './components/passwordColumn.svelte';
+	import Sidebar from './components/sidebarColumn.svelte';
+	import Vault from './components/passwordListColumn.svelte';
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
 	import type { PasswordListService } from './services/passwordList.service';

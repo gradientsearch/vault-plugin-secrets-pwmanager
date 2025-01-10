@@ -38,6 +38,7 @@
 </script>
 
 <div class="flex h-full">
+	<!-- TODO update the names of these components to name-column -->
 	{#if zarf !== null}
 		<Sidebar bind:selectedVault></Sidebar>
 		<div class="h-full w-full flex-col">

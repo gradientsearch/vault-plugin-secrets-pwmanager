@@ -84,7 +84,6 @@ export class Api {
 		}
 
 		let json = await response.json();
-        console.log('what will the metadata structure look like?', json)
 
 		return {}
 

@@ -12,8 +12,6 @@
 		if (selectedPasswordItem) {
             untrack(()=>{
                 copyOfSelectedPasswordItem = JSON.parse(JSON.stringify(selectedPasswordItem));
-                			
-            console.log(copyOfSelectedPasswordItem)  
             })
 
 		}

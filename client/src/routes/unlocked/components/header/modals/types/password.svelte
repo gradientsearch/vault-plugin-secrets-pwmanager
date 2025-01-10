@@ -3,8 +3,6 @@
 	import { Api } from '$lib/api';
 	import Button from '../../../../../../components/button.svelte';
 	import { newPasswordItem, type Metadata, type PasswordItem } from '../../../../models/input';
-	import ItemInput from './components/itemInput.svelte';
-	import PasswordInput from './components/passwordInput.svelte';
 	import { getComponent } from './types';
 
 	let {

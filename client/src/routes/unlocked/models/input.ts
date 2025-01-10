@@ -56,14 +56,12 @@ export function newPasswordItem(): PasswordItem {
 					Label: 'username',
 					Placeholder: 'username',
 					Value: '',
-					Metadata: undefined
 				},
 				{
 					Type: 'password',
 					Label: 'Password',
 					Placeholder: 'Password',
 					Value: '',
-					Metadata: undefined
 				}
 			],
 			Order: ['1']

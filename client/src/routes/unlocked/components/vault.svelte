@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import type { PasswordItem } from '../models/input';
+	import { newPasswordItem, type PasswordItem } from '../models/input';
 	import {
 		VaultPasswordListService,
 		type PasswordListService
 	} from '../models/passwordList.service';
+	import { base } from '$app/paths';
 
 	let passwordItems: PasswordItem[] = $state([]);
 	let {
@@ -15,13 +16,18 @@
 	onMount(() => {});
 
 	let onVaultAddFn = (pi: PasswordItem[]) => {
-        passwordItems = pi
-    };
+		passwordItems = pi;
+	};
 
 	function setPasswordListService() {
 		if (selectedVault?.Type === 'vault') {
 			passwordListService = new VaultPasswordListService(zarf, selectedVault, onVaultAddFn);
 			passwordItems = passwordListService.get();
+			let pi = newPasswordItem();
+			pi.Metadata.Name = 'My Secret Password';
+			pi.Metadata.Value = 'stephen';
+			passwordItems.push(pi);
+			passwordItems = passwordItems;
 		}
 	}
 
@@ -38,11 +44,17 @@
 		<h1 class="text-base">{selectedVault?.Name} {selectedVault?.Type}</h1>
 	</header>
 
-    {#each passwordItems as i}
-    <div>
-        <button>
-            {i.Metadata.Name}
-        </button>
-    </div>
-    {/each}
+	{#each passwordItems as i}
+		<div class="flex w-full text-base p-4 hover:bg-surface_interactive_hover    ">
+            <button class="flex flex-row">
+            <img class="h-8 p2" src="{base}/icons/key.svg" alt="key icon">
+			<div class="flex flex-col text-start">
+                <span class='text-base font-bold text-foreground_strong'> {i.Metadata.Name}</span>            
+                <span class='text-sm text-foreground_faint'> {i.Metadata.Value}</span>            
+                
+            </div>
+            
+			</button>
+		</div>
+	{/each}
 </div>

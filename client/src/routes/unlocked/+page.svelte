@@ -4,24 +4,20 @@
 	import Header from './layout/header.svelte';
 	import PasswordColumn from './layout/passwordColumn.svelte';
 	import SidebarColumn from './layout/sidebarColumn.svelte';
-	import PasswordListColumn from './layout/passwordListColumn.svelte';
+	import PasswordItemsColumn from './layout/passwordItemsColumn.svelte';
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
-	import type { PasswordListService } from './services/passwordList.service';
+	import type { PasswordItemsService } from './services/passwordItems.service';
 	import type { PasswordItem } from './models/input';
 
 	let kp: KeyPair | undefined;
 	let zarf: Zarf | null = $state(null);
 	let api: Api | undefined;
-	let selectedVault: PasswordList | null = $state(null);
-	let passwordListService: PasswordListService | null = $state(null);
+	let selectedVault: PasswordItems | null = $state(null);
+	let passwordListService: PasswordItemsService | null = $state(null);
 
 	let selectedPasswordItem: PasswordItem | undefined = $state();
 	let passwordItems: PasswordItem[] = $state([]);
-
-	function updateSelectedPasswordItem(passwordItem: PasswordItem) {
-		selectedPasswordItem = passwordItem;
-	}
 
 	$effect(() => {
 		selectedVault;
@@ -43,13 +39,13 @@
 		<div class="h-full w-full flex-col">
 			<Header bind:passwordListService></Header>
 			<div class="flex h-[calc(100vh-48px)] w-full">
-				<PasswordListColumn
+				<PasswordItemsColumn
 					bind:zarf
 					bind:passwordListService
 					bind:selectedVault
 					bind:selectedPasswordItem
 					bind:passwordItems
-				></PasswordListColumn>
+				></PasswordItemsColumn>
 				<PasswordColumn bind:selectedPasswordItem></PasswordColumn>
 			</div>
 		</div>

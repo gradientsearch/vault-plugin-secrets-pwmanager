@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { newPasswordItem, type PasswordItem } from '../models/input';
-	import { VaultPasswordListService } from '../services/passwordList.service';
+	import {  VaultPasswordItemsService } from '../services/passwordItems.service';
 	import { base } from '$app/paths';
 
 let headerHeight = $state(0)
@@ -17,7 +17,8 @@ let headerHeight = $state(0)
 	$effect(() => {
 		selectedVault;
 		untrack(() => {
-			setPasswordListService();
+			
+			setPasswordItemsService();
 
 		});
 	});
@@ -28,11 +29,11 @@ let headerHeight = $state(0)
 		passwordItems = pi;
 	};
 
-	function setPasswordListService() {
+	async function setPasswordItemsService() {
 		if (selectedVault?.Type === 'vault') {
-			passwordListService = new VaultPasswordListService(zarf, selectedVault, onVaultAddFn);
+			passwordListService = new VaultPasswordItemsService(zarf, selectedVault, onVaultAddFn);
 			// TODO Grab PasswordList Decryption key, create it if it does not exist (policy will only allow the owner of the vault to do this). /keys/{{ identity.entity.id }}
-			passwordItems = passwordListService.get();
+			passwordItems = await passwordListService.get();
 			let pi = newPasswordItem();
 			pi.Metadata.Name = 'My Secret Password';
 			pi.Metadata.Value = 'stephen';

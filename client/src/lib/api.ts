@@ -70,18 +70,18 @@ export class Api {
 		return [uuk, undefined]
 	}
 
-	async getPasswordListMetadata(pl :PasswordList){
-		let response = await this.get(`${pl.Path}/vault-metadata`);
+	async getPasswordListMetadata(pl :PasswordItems){
+		let response = await this.get(`${pl.Path}/metadata`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
 			// TODO create the pwmanagerMetadata secret and return the created one
-			return [[], undefined];
+			return [[], 404];
 		}
 
 		if (response.status != 200) {
 			let err = await response.text();
-			return [undefined, new Error(`error registering: ${err}`)];
+			return [undefined, new Error(`error getting password items metadata: ${err}`)];
 		}
 
 		let json = await response.json();

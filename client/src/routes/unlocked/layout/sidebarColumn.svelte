@@ -3,12 +3,12 @@
 	import VaultIcon from '../../../components/vaultIcon.svelte';
 
 	let {selectedVault = $bindable()} = $props()
-	let privateVault: PasswordList | null = $state(null)
+	let privateVault: PasswordItems | null = $state(null)
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo')
 		if (info !== null) {
 			let infoObj =  JSON.parse(info)
-			let p: PasswordList = {
+			let p: PasswordItems = {
 				Type: 'vault',
 				Path: `vaults/${infoObj['entityID']}/private`,
 				Name: 'private'

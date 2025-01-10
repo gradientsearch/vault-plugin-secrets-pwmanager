@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 	import { onMount } from 'svelte';
-	import Header from './layout/header.svelte';
-	import PasswordColumn from './layout/passwordColumn.svelte';
-	import SidebarColumn from './layout/sidebarColumn.svelte';
-	import BundleColumn from './layout/bundleColumn.svelte'
+	import HeaderView from './layout/headerView.svelte';
+	import EntryView from './layout/entryView.svelte';
+	import SidebarView from './layout/sidebarView.svelte';
+	import BundleView from './layout/bundleView.svelte'
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
 	import type { EntriesService } from './services/entry.service';
@@ -35,18 +35,18 @@
 
 <div class="flex h-full">
 	{#if zarf !== null}
-		<SidebarColumn bind:bundle></SidebarColumn>
+		<SidebarView bind:bundle></SidebarView>
 		<div class="h-full w-full flex-col">
-			<Header bind:passwordListService></Header>
+			<HeaderView bind:passwordListService></HeaderView>
 			<div class="flex h-[calc(100vh-48px)] w-full">
-				<BundleColumn
+				<BundleView
 					bind:zarf
 					bind:passwordListService
 					bind:bundle
 					bind:selectedEntry
 					bind:entries
-				></BundleColumn>
-				<PasswordColumn bind:selectedEntry></PasswordColumn>
+				></BundleView>
+				<EntryView bind:selectedEntry></EntryView>
 			</div>
 		</div>
 	{/if}

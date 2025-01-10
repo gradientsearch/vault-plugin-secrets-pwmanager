@@ -1,18 +1,16 @@
 <script lang="ts">
-	import { on } from "svelte/events";
+	import { on } from 'svelte/events';
+	import { getPasswordComponent } from './types/types';
 
-    let { passwordItem = $bindable() } = $props()
+	let { passwordItem = $bindable() } = $props();
 
-    function getComponent(type: string) {
-        switch(type) {
-            case 'password':
-                return 
-        }
-    }
-    $effect(() => {
-        passwordItem
-    })
+	$effect(() => {
+		passwordItem;
+	});
 </script>
-<div class=" bg-page_faint w-full border-t-2 border-border_primary content-center">
-    
+
+<div class=" w-full content-center border-t-2 border-border_primary bg-page_faint">
+	<!-- {@const Component = getPasswordComponent(passwordItem.Type)}
+	<Component
+    ></Component> -->
 </div>

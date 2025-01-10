@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { Api } from '$lib/api';
-	import Button from '../../../../../../components/button.svelte';
-	import { newPasswordItem, type Metadata, type PasswordItem } from '../../../../models/input';
-	import { getComponent } from './types';
+	import Button from '../../../../../components/button.svelte';
+	import { newPasswordItem, type Metadata, type PasswordItem } from '../../../models/input';
+	import { getInputComponent } from '../../types/types';
 
 	let {
 		passwordListService = $bindable(),
@@ -53,7 +53,7 @@
 	<div class="block p-4">
 		<div class="text-md grid min-w-96 grid-cols-1">
 			{#each pi.Core.Items as v, idx}
-				{@const Component = getComponent(v.Type)}
+				{@const Component = getInputComponent(v.Type)}
 				<Component
 					type={v.Type}
 					label={v.Label}

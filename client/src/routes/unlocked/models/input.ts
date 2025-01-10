@@ -8,7 +8,7 @@ export interface Metadata {
 	Name: string;
 	Type: string;
 	Value: string;
-    Path: string
+	Path: string;
 }
 
 export interface Input {
@@ -48,7 +48,8 @@ export function newPasswordItem(): PasswordItem {
 		Metadata: {
 			Name: 'Password',
 			Type: 'password',
-			Value: ''
+			Value: '',
+			Path: ''
 		},
 		Core: {
 			Items: [
@@ -56,13 +57,13 @@ export function newPasswordItem(): PasswordItem {
 					Type: 'text',
 					Label: 'username',
 					Placeholder: 'username',
-					Value: '',
+					Value: ''
 				},
 				{
 					Type: 'password',
 					Label: 'Password',
 					Placeholder: 'Password',
-					Value: '',
+					Value: ''
 				}
 			],
 			Order: ['1']

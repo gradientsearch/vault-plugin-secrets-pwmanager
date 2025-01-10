@@ -7,7 +7,7 @@
 	import Vault from './components/vault.svelte';
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
-	import type { PasswordListService } from './models/passwordList.service';
+	import type { PasswordListService } from './services/passwordList.service';
 	let kp: KeyPair | undefined;
 	let vault;
 	let zarf: Zarf | null = $state(null);

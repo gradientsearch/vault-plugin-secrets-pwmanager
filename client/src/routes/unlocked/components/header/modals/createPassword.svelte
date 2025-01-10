@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import Password from './types/password.svelte';
+	import Password from './password.svelte';
 
 	let { passwordListService = $bindable(), showModal=$bindable() } = $props();
 

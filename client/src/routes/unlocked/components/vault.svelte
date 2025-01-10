@@ -4,7 +4,7 @@
 	import {
 		VaultPasswordListService,
 		type PasswordListService
-	} from '../models/passwordList.service';
+	} from '../services/passwordList.service';
 	import { base } from '$app/paths';
 
 	let passwordItems: PasswordItem[] = $state([]);

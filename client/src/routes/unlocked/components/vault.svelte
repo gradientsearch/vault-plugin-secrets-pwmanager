@@ -5,7 +5,7 @@
 	import { base } from '$app/paths';
 	import Password from './password.svelte';
 
-
+let headerHeight = $state(0)
 
 	let {
 		selectedVault = $bindable(),
@@ -51,14 +51,16 @@
 </script>
 
 <div
-	class="w-full max-w-96 overflow-y-scroll border-2 border-r-8 border-border_primary bg-page_faint"
+	class="relative  w-full max-w-96 overflow-y-scroll border-2 border-r-8 border-border_primary bg-page_faint"
 >
-	<header class="sticky top-0 border-b-2 border-border_primary p-2">
+	<header bind:clientHeight={headerHeight}  class="absolute top-0 flex w-full border-b-2 border-border_primary p-2">
 		<h1 class="text-base">{selectedVault?.Name} {selectedVault?.Type}</h1>
 	</header>
 
+    <span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
 	{#each passwordItems as i}
-		<div class="flex w-full p-4 text-base hover:bg-surface_interactive_hover">
+    
+		<div style="top: {headerHeight}px" class="flex w-full p-4 text-base hover:bg-surface_interactive_hover">
 			<button
 				onclick={() => {
 					onSelectedPasswordItem(i);

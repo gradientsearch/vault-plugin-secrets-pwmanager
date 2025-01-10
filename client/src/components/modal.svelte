@@ -18,7 +18,7 @@
 	<div
 		aria-label="modal-overlay"
 		onclick={closeModal}
-		class="absolute bottom-0 left-0 right-0 top-0 flex flex-1 bg-foreground_strong/30 hover:cursor-default"
+		class="absolute z-50 bottom-0 left-0 right-0 top-0 flex flex-1 bg-foreground_strong/30 hover:cursor-default"
 	>
 		<div
 

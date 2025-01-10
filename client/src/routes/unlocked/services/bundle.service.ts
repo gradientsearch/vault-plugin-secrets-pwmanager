@@ -4,14 +4,14 @@ import type { Entry } from '../models/input';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
 
-// in the passwordlist column
-export interface EntriesService {
-	add(pi: Entry): Promise<Error | undefined>;
-	get(): Promise<Entry[]>;
+export interface BundleService {
+	addEntry(pi: Entry): Promise<Error | undefined>;
+	getEntries(): Promise<Entry[]>;
 
 }
 
-export class VaultEntriesService implements EntriesService {
+// Vault is a HashiCorp Vault KV2 secret mount
+export class VaultBundleService implements BundleService {
 	
 	onAddFn: Function;
 	zarf: Zarf | undefined;
@@ -34,12 +34,12 @@ export class VaultEntriesService implements EntriesService {
 		//await this.zarf?.Api?.get()
 	}
 	
-	async get(): Promise<Entry[]> {
+	async getEntries(): Promise<Entry[]> {
 		let entries, err = await this.zarf?.Api?.getVaultMetadata(this.bundle);
 		return [];
 	}
 
-	async add(pi: Entry): Promise<Error | undefined> {
+	async addEntry(pi: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// update metadata
 		this.onAddFn([pi]);
@@ -50,4 +50,4 @@ export class VaultEntriesService implements EntriesService {
 	}
 }
 
-export class CategoryItemsList {}
+export class CategoryBundleService {}

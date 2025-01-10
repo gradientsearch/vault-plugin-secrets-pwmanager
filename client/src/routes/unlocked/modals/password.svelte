@@ -4,7 +4,7 @@
 	import Password from '../components/entries/password.svelte';
 
 	let {
-		passwordListService = $bindable(),
+		bundleService = $bindable(),
 		clientHeight = $bindable(),
 		showModal = $bindable(),
 		cancel
@@ -21,7 +21,7 @@
 			Path: ''
 		};
 		entry.Metadata = meta;
-		let err = await passwordListService.add(entry);
+		let err = await bundleService.addEntry(entry);
 		if (err !== undefined) {
 			// alert user there was a problem saving the password
 		} else {

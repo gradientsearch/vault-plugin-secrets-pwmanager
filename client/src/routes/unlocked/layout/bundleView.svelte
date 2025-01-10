@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { newEntry as newPasswordEntry, type Entry } from '../models/input';
-	import { VaultEntriesService } from '../services/entry.service';
+	import { VaultBundleService } from '../services/bundle.service';
 	import { base } from '$app/paths';
 
 	let headerHeight = $state(0);
@@ -9,7 +9,7 @@
 	let {
 		bundle = $bindable(),
 		zarf = $bindable(),
-		passwordListService = $bindable(),
+		bundleService = $bindable(),
 		selectedEntry: selectedEntry = $bindable(),
 		entries: entries = $bindable()
 	} = $props();
@@ -17,7 +17,7 @@
 	$effect(() => {
 		bundle;
 		untrack(() => {
-			setEntrysService();
+			setBundleService();
 		});
 	});
 
@@ -27,11 +27,11 @@
 		entries = es;
 	};
 
-	async function setEntrysService() {
+	async function setBundleService() {
 		if (bundle?.Type === 'vault') {
-			passwordListService = new VaultEntriesService(zarf, bundle, onVaultAddFn);
+			bundleService = new VaultBundleService(zarf, bundle, onVaultAddFn);
 			// TODO Grab PasswordList Decryption key, create it if it does not exist (policy will only allow the owner of the vault to do this). /keys/{{ identity.entity.id }}
-			entries = await passwordListService.get();
+			entries = await bundleService.getEntries();
 			let e = newPasswordEntry();
 			e.Metadata.Name = 'My Secret Password';
 			e.Metadata.Value = 'stephen';

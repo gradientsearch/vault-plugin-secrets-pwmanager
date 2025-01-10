@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { on } from 'svelte/events';
-	import { getPasswordComponent } from './passwordItems/types';
+	import { getPasswordComponent } from './passwordItems/components';
 
 	let { passwordItem = $bindable() } = $props();
 

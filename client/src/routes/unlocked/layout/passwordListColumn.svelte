@@ -18,6 +18,7 @@ let headerHeight = $state(0)
 		selectedVault;
 		untrack(() => {
 			setPasswordListService();
+
 		});
 	});
 
@@ -30,6 +31,7 @@ let headerHeight = $state(0)
 	function setPasswordListService() {
 		if (selectedVault?.Type === 'vault') {
 			passwordListService = new VaultPasswordListService(zarf, selectedVault, onVaultAddFn);
+			// TODO Grab PasswordList Decryption key, create it if it does not exist (policy will only allow the owner of the vault to do this). /keys/{{ identity.entity.id }}
 			passwordItems = passwordListService.get();
 			let pi = newPasswordItem();
 			pi.Metadata.Name = 'My Secret Password';

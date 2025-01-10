@@ -75,6 +75,7 @@ export class Api {
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
+			// TODO create the pwmanagerMetadata secret and return the created one
 			return [[], undefined];
 		}
 

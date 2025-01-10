@@ -1,17 +1,17 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import type { Entry } from '../models/input';
-	import { getPasswordComponent } from '../components/passwordItems/components';
+	import { getPasswordComponent } from '../components/entries/components';
 
-	let { selectedPasswordItem = $bindable() } = $props();
+	let { selectedEntry = $bindable() } = $props();
 
-	let copyOfSelectedPasswordItem: Entry | undefined = $state();
+	let copyOfSelectedEntry: Entry | undefined = $state();
 
 	$effect(() => {
-		selectedPasswordItem;
-		if (selectedPasswordItem) {
+		selectedEntry;
+		if (selectedEntry) {
             untrack(()=>{
-                copyOfSelectedPasswordItem = JSON.parse(JSON.stringify(selectedPasswordItem));
+                copyOfSelectedEntry = JSON.parse(JSON.stringify(selectedEntry));
             })
 
 		}
@@ -19,10 +19,10 @@
 </script>
 
 <div class=" w-full border-t-2 border-border_primary bg-page_faint">
-	{#if copyOfSelectedPasswordItem}
-		{@const Component = getPasswordComponent(copyOfSelectedPasswordItem?.Type)}
+	{#if copyOfSelectedEntry}
+		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
 		<div class="w-full">
-			<Component bind:passwordItem={copyOfSelectedPasswordItem}></Component>
+			<Component bind:entry={copyOfSelectedEntry}></Component>
 		</div>
 	{/if}
 </div>

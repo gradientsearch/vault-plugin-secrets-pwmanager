@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { newPasswordItem, type Entry } from '../models/input';
-	import { VaultPasswordItemsService } from '../services/passwordItems.service';
+	import { newEntry as newPasswordEntry, type Entry } from '../models/input';
+	import { VaultEntriesService } from '../services/entry.service';
 	import { base } from '$app/paths';
 
 	let headerHeight = $state(0);
@@ -10,43 +10,43 @@
 		bundle = $bindable(),
 		zarf = $bindable(),
 		passwordListService = $bindable(),
-		selectedPasswordItem = $bindable(),
-		passwordItems = $bindable()
+		selectedEntry: selectedEntry = $bindable(),
+		entries: entries = $bindable()
 	} = $props();
 
 	$effect(() => {
 		bundle;
 		untrack(() => {
-			setPasswordItemsService();
+			setEntrysService();
 		});
 	});
 
 	onMount(() => {});
 
-	let onVaultAddFn = (pi: Entry[]) => {
-		passwordItems = pi;
+	let onVaultAddFn = (es: Entry[]) => {
+		entries = es;
 	};
 
-	async function setPasswordItemsService() {
+	async function setEntrysService() {
 		if (bundle?.Type === 'vault') {
-			passwordListService = new VaultPasswordItemsService(zarf, bundle, onVaultAddFn);
+			passwordListService = new VaultEntriesService(zarf, bundle, onVaultAddFn);
 			// TODO Grab PasswordList Decryption key, create it if it does not exist (policy will only allow the owner of the vault to do this). /keys/{{ identity.entity.id }}
-			passwordItems = await passwordListService.get();
-			let pi = newPasswordItem();
-			pi.Metadata.Name = 'My Secret Password';
-			pi.Metadata.Value = 'stephen';
-			pi.Core.Items[0].Value = 'stephen';
-			pi.Core.Items[1].Value = 'super-secret-password';
-			pi.Type = 'password';
-			pi.Name = 'My Secret Password';
+			entries = await passwordListService.get();
+			let e = newPasswordEntry();
+			e.Metadata.Name = 'My Secret Password';
+			e.Metadata.Value = 'stephen';
+			e.Core.Items[0].Value = 'stephen';
+			e.Core.Items[1].Value = 'super-secret-password';
+			e.Type = 'password';
+			e.Name = 'My Secret Password';
 
-			passwordItems.push(pi);
-			passwordItems = passwordItems;
+			entries.push(e);
+			entries = entries;
 		}
 	}
 
-	function onSelectedPasswordItem(passwordItem: Entry) {
-		selectedPasswordItem = passwordItem;
+	function onSelectedEntry(e: Entry) {
+		selectedEntry = e;
 	}
 </script>
 
@@ -61,21 +61,21 @@
 	</header>
 
 	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
-	{#each passwordItems as i}
+	{#each entries as e}
 		<div
 			style="top: {headerHeight}px"
 			class="flex w-full p-4 text-base hover:bg-surface_interactive_hover"
 		>
 			<button
 				onclick={() => {
-					onSelectedPasswordItem(i);
+					onSelectedEntry(e);
 				}}
 				class="flex w-full flex-row"
 			>
 				<img class="p2 h-8" src="{base}/icons/key.svg" alt="key icon" />
 				<div class="flex flex-col text-start">
-					<span class="text-base font-bold text-foreground_strong"> {i.Metadata.Name}</span>
-					<span class="text-sm text-foreground_faint"> {i.Metadata.Value}</span>
+					<span class="text-base font-bold text-foreground_strong"> {e.Metadata.Name}</span>
+					<span class="text-sm text-foreground_faint"> {e.Metadata.Value}</span>
 				</div>
 			</button>
 		</div>

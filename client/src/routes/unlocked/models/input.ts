@@ -1,8 +1,3 @@
-export interface Item {
-	Name: string;
-	Type: string;
-	Metadata: Metadata;
-}
 
 export interface Metadata {
 	Name: string;
@@ -33,14 +28,16 @@ export interface More {
 	Order: Section[];
 }
 
-export interface Entry extends Item {
+export interface Entry{
+	Name: string;
+	Type: string;
 	Metadata: Metadata;
 	Core: Core;
 	More: More;
 	Tags: string[];
 }
 
-export function newPasswordItem(): Entry {
+export function newEntry(): Entry {
 	return {
 		Tags: [],
 		Name: '',

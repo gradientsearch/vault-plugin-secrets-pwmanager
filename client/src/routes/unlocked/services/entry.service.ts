@@ -5,13 +5,13 @@ import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
 
 // in the passwordlist column
-export interface PasswordItemsService {
+export interface EntriesService {
 	add(pi: Entry): Promise<Error | undefined>;
 	get(): Promise<Entry[]>;
 
 }
 
-export class VaultPasswordItemsService implements PasswordItemsService {
+export class VaultEntriesService implements EntriesService {
 	
 	onAddFn: Function;
 	zarf: Zarf | undefined;
@@ -35,7 +35,7 @@ export class VaultPasswordItemsService implements PasswordItemsService {
 	}
 	
 	async get(): Promise<Entry[]> {
-		let passwordItems, err = await this.zarf?.Api?.getVaultMetadata(this.bundle);
+		let entries, err = await this.zarf?.Api?.getVaultMetadata(this.bundle);
 		return [];
 	}
 

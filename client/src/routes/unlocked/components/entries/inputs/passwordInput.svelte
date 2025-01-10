@@ -12,7 +12,7 @@ This is the component used to show the password input element
 - `last`: the section index of the 
 
 ### Example
-<Password bind:passwordItem></Password>
+<Password bind:entry></Password>
 
 -->
 

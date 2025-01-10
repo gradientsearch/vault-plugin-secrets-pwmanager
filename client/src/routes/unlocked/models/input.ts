@@ -8,6 +8,7 @@ export interface Metadata {
 	Name: string;
 	Type: string;
 	Value: string;
+    Path: string
 }
 
 export interface Input {

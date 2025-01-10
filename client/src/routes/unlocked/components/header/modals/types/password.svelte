@@ -19,7 +19,8 @@
 			Type: 'password',
 			// Important to note that the 0 indexed value for Password item is username
 			// if this were to to the 1 index that would be the password!
-			Value: pi.Core.Items[0].Value
+			Value: pi.Core.Items[0].Value,
+			Path: ''
 		};
 		pi.Metadata = meta;
 		let err = await passwordListService.add(pi);

@@ -39,7 +39,7 @@
 	});
 </script>
 
-<div class="w-full max-w-96 overflow-y-scroll border-2 border-border_primary bg-page_faint">
+<div class="w-full max-w-96 overflow-y-scroll border-2 border-border_primary bg-page_faint border-r-8">
 	<header class="sticky top-0 border-b-2 border-border_primary p-2">
 		<h1 class="text-base">{selectedVault?.Name} {selectedVault?.Type}</h1>
 	</header>

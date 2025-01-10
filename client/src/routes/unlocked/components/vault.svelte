@@ -42,8 +42,6 @@
             
 			passwordItems.push(pi);
 			passwordItems = passwordItems;
-
-
 		}
 	}
 

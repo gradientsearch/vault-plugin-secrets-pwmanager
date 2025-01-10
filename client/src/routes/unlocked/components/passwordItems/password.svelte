@@ -2,8 +2,7 @@
 	import { base } from '$app/paths';
 	import { getInputComponent } from '../passwordItems/components';
 
-	let { passwordItem = $bindable() } = $props();
-
+	let { passwordItem = $bindable(), state = 'new' } = $props();
 </script>
 
 <header class="p-4">

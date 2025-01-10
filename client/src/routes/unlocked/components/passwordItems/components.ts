@@ -1,7 +1,7 @@
 import type { Component } from 'svelte';
 
-import PasswordInput from './components/passwordInput.svelte';
-import ItemInput from './components/itemInput.svelte';
+import PasswordInput from './inputs/passwordInput.svelte';
+import ItemInput from './inputs/itemInput.svelte';
 
 
 export function getInputComponent(type: string) {

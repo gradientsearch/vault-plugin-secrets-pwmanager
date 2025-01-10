@@ -3,7 +3,7 @@
 	import { Api } from '$lib/api';
 	import Button from '../../../../../components/button.svelte';
 	import { newPasswordItem, type Metadata, type PasswordItem } from '../../../models/input';
-	import { getInputComponent } from '../../types/types';
+	import { getInputComponent } from '../../passwordItems/components';
 
 	let {
 		passwordListService = $bindable(),
@@ -74,14 +74,3 @@
 	</div>
 </div>
 
-<style>
-	label {
-		/* color: #1f2124;
-		font-size: 14px;
-		font-weight: 700;
-		align-items: center;
-		gap: 4px;
-		width: min-content;
-		min-width: 100%; */
-	}
-</style>

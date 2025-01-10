@@ -2,20 +2,20 @@
 	import { onMount } from 'svelte';
 	import VaultIcon from '../../../components/vaultIcon.svelte';
 
-	let { passwordBundle = $bindable() } = $props();
-	let privateVault: PasswordBundle | null = $state(null);
+	let { bundle = $bindable() } = $props();
+	let privateVault: Bundle | null = $state(null);
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
 		if (info !== null) {
 			let infoObj = JSON.parse(info);
-			let p: PasswordBundle = {
+			let p: Bundle = {
 				Type: 'vault',
 				Path: `vaults/${infoObj['entityID']}/private`,
 				Name: 'private',
 				Owner: infoObj['entityID']
 			};
 			privateVault = p;
-			passwordBundle = p;
+			bundle = p;
 		}
 	});
 </script>

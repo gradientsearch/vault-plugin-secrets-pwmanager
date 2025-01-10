@@ -7,7 +7,7 @@
 	let headerHeight = $state(0);
 
 	let {
-		passwordBundle = $bindable(),
+		bundle = $bindable(),
 		zarf = $bindable(),
 		passwordListService = $bindable(),
 		selectedPasswordItem = $bindable(),
@@ -15,7 +15,7 @@
 	} = $props();
 
 	$effect(() => {
-		passwordBundle;
+		bundle;
 		untrack(() => {
 			setPasswordItemsService();
 		});
@@ -28,8 +28,8 @@
 	};
 
 	async function setPasswordItemsService() {
-		if (passwordBundle?.Type === 'vault') {
-			passwordListService = new VaultPasswordItemsService(zarf, passwordBundle, onVaultAddFn);
+		if (bundle?.Type === 'vault') {
+			passwordListService = new VaultPasswordItemsService(zarf, bundle, onVaultAddFn);
 			// TODO Grab PasswordList Decryption key, create it if it does not exist (policy will only allow the owner of the vault to do this). /keys/{{ identity.entity.id }}
 			passwordItems = await passwordListService.get();
 			let pi = newPasswordItem();
@@ -57,7 +57,7 @@
 		bind:clientHeight={headerHeight}
 		class="absolute top-0 flex w-full border-b-2 border-border_primary p-2"
 	>
-		<h1 class="text-base">{passwordBundle?.Name} {passwordBundle?.Type}</h1>
+		<h1 class="text-base">{bundle?.Name} {bundle?.Type}</h1>
 	</header>
 
 	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>

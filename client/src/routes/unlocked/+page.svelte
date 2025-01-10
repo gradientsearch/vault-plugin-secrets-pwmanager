@@ -13,14 +13,14 @@
 	let kp: KeyPair | undefined;
 	let zarf: Zarf | null = $state(null);
 	let api: Api | undefined;
-	let passwordBundle: PasswordBundle | null = $state(null);
+	let bundle: Bundle | null = $state(null);
 	let passwordListService: PasswordItemsService | null = $state(null);
 
 	let selectedPasswordItem: PasswordItem | undefined = $state();
 	let passwordItems: PasswordItem[] = $state([]);
 
 	$effect(() => {
-		passwordBundle;
+		bundle;
 	});
 
 	onMount(async () => {
@@ -35,14 +35,14 @@
 
 <div class="flex h-full">
 	{#if zarf !== null}
-		<SidebarColumn bind:passwordBundle></SidebarColumn>
+		<SidebarColumn bind:bundle></SidebarColumn>
 		<div class="h-full w-full flex-col">
 			<Header bind:passwordListService></Header>
 			<div class="flex h-[calc(100vh-48px)] w-full">
 				<PasswordItemsColumn
 					bind:zarf
 					bind:passwordListService
-					bind:passwordBundle
+					bind:bundle
 					bind:selectedPasswordItem
 					bind:passwordItems
 				></PasswordItemsColumn>

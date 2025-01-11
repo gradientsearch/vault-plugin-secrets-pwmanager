@@ -12,11 +12,11 @@ export async function exportJwkKey(key: CryptoKey): Promise<JsonWebKey> {
 export async function symmetricEncrypt(
 	payload: Uint8Array,
 	symmetricKey: CryptoKey
-): Promise<string> {
-	const iv = window.crypto.getRandomValues(new Uint8Array(12));
+): Promise<[Uint8Array, string]> {
+	const iv = crypto.getRandomValues(new Uint8Array(12));
 	const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, symmetricKey, payload);
 
-	return bytesToHex(new Uint8Array(encrypted));
+	return [iv, bytesToHex(new Uint8Array(encrypted))];
 }
 
 export async function symmetricDecrypt(

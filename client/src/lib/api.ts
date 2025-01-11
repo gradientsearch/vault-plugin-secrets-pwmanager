@@ -90,18 +90,12 @@ export class Api {
 
 	}
 
-	/**
-	 * 
-	 * @param pi 
-	 * @returns 
-	 */
-	async getVaultKey(pl:Bundle){
-		let response = await this.get(`${pl.Path}/metadata`);
+	
+	async getVaultKey(b: Bundle, entityID: string){
+		let response = await this.get(`${b.Path}/keys/${entityID}`);
 
 		if (response.status === 404) {
-			// no passwords exist for this vault yet
-			// TODO create the pwmanagerMetadata secret and return the created one
-			return [[], 404];
+			return [undefined, Error('404 not found' )];
 		}
 
 		if (response.status != 200) {
@@ -111,7 +105,7 @@ export class Api {
 
 		let json = await response.json();
 
-		return {}
+		return ['', undefined]
 
 	}
 }

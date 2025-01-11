@@ -15,7 +15,6 @@
 	let api: Api | undefined;
 	let bundle: Bundle | null = $state(null);
 	let bundleService: BundleService | null = $state(null);
-
 	let selectedEntry: Entry | undefined = $state();
 	let entries: Entry[] = $state([]);
 

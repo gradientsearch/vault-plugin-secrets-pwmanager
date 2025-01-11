@@ -234,6 +234,7 @@ function withPubkey(uuk: UUK, pubkey: JsonWebKey): UUK {
 
 	return uuk;
 }
+
 export async function decryptEncPriKey(
 	uuk: UUK,
 	password: Uint8Array,

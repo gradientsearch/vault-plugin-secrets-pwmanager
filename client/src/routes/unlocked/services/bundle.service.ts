@@ -7,7 +7,7 @@ import { userService } from './user.service';
 export interface BundleService {
 	addEntry(pi: Entry): Promise<Error | undefined>;
 	getEntries(): Promise<Entry[]>;
-
+	init(): Promise<any	>;
 }
 
 // Vault is a HashiCorp Vault KV2 secret mount
@@ -28,10 +28,10 @@ export class VaultBundleService implements BundleService {
 		//whats the entity id 
 
 		let entityID = userService.getEntityID()
-		await this.zarf?.Api?.getVaultKey(entityID)
-		this.bundle.Path
-		
-		//await this.zarf?.Api?.get()
+		let key, err =  await this.zarf?.Api?.getVaultKey(this.bundle, entityID)
+		if (err?.toString().includes('404 not found')) {
+			console.log('creating vault symmetric encryption key')
+		}
 	}
 	
 	async getEntries(): Promise<Entry[]> {

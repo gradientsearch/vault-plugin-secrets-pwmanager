@@ -30,6 +30,7 @@
 	async function setBundleService() {
 		if (bundle?.Type === 'vault') {
 			bundleService = new VaultBundleService(zarf, bundle, onVaultAddFn);
+			await bundleService.init()
 			// TODO Grab PasswordList Decryption key, create it if it does not exist (policy will only allow the owner of the vault to do this). /keys/{{ identity.entity.id }}
 			entries = await bundleService.getEntries();
 			let e = newPasswordEntry();

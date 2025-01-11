@@ -65,12 +65,12 @@ export class Api {
 		}
 
 		let json = await response.json();
-        let uuk = revertCase<UUK>(json['data']['uuk'], false) as UUK
+		let uuk = revertCase<UUK>(json['data']['uuk'], false) as UUK;
 
-		return [uuk, undefined]
+		return [uuk, undefined];
 	}
 
-	async getVaultMetadata(pl :Bundle){
+	async getVaultMetadata(pl: Bundle) {
 		let response = await this.get(`${pl.Path}/metadata`);
 
 		if (response.status === 404) {
@@ -86,16 +86,14 @@ export class Api {
 
 		let json = await response.json();
 
-		return {}
-
+		return {};
 	}
 
-	
-	async getVaultKey(b: Bundle, entityID: string){
+	async getVaultKey(b: Bundle, entityID: string) {
 		let response = await this.get(`${b.Path}/keys/${entityID}`);
 
 		if (response.status === 404) {
-			return [undefined, Error('404 not found' )];
+			return [undefined, Error('404 not found')];
 		}
 
 		if (response.status != 200) {
@@ -105,18 +103,19 @@ export class Api {
 
 		let json = await response.json();
 
-		return ['', undefined]
+		return ['', undefined];
+	}
+
+	async PutUserKey(b: Bundle, entityID: string, key: string) {
 
 	}
 }
 
-
-
 export function getAPI() {
-	let info = localStorage.getItem('loginInfo')
-	if (info !== null){
+	let info = localStorage.getItem('loginInfo');
+	if (info !== null) {
 		//TODO check for null
-		let infoObj = JSON.parse(info)
-		return new Api(infoObj["token"], infoObj['url'], infoObj['mount'])
+		let infoObj = JSON.parse(info);
+		return new Api(infoObj['token'], infoObj['url'], infoObj['mount']);
 	}
 }

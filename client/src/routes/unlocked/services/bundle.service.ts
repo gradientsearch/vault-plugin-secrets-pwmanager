@@ -1,4 +1,4 @@
-
+import { exportJwkKey, generateSymmetricKey } from '$lib/helper';
 import type { Entry } from '../models/entry';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
@@ -10,14 +10,14 @@ import { userService } from './user.service';
 export interface BundleService {
 	addEntry(pi: Entry): Promise<Error | undefined>;
 	getEntries(): Promise<Entry[]>;
-	init(): Promise<any	>;
+	init(): Promise<any>;
 }
 
 /**
  * A VaultBundleService is responsible for interfacing with a HashiCorp Vault KV2 secret mount. w.r.t.
  * pwmanager a a KV2 secret mount is a vault. A vault has the following path convention
  * `vaults/{{ identity.entity.id }}/<vault name>
- * 
+ *
  * The KV2 secret mount contains the following paths:
  * - keys/{{ identity.entity.id }}: each vault has a symmetric key used to encrypt all secrets. That
  * symmetric keys is encrypted with users public key
@@ -25,30 +25,34 @@ export interface BundleService {
  * - entries/<entry name>: user entires
  */
 export class VaultBundleService implements BundleService {
-
 	onAddFn: Function;
-	zarf: Zarf | undefined;
+	zarf: Zarf;
 	bundle: Bundle;
 
-	constructor(zarf: Zarf | undefined, bundle: Bundle, onAddFn: Function) {
+	constructor(zarf: Zarf, bundle: Bundle, onAddFn: Function) {
 		this.zarf = zarf;
 		this.bundle = bundle;
 		this.onAddFn = onAddFn;
 	}
-	
+
 	async init() {
 		// get decryption key for this vault
-		//whats the entity id 
+		//whats the entity id
 
-		let entityID = userService.getEntityID()
-		let key, err =  await this.zarf?.Api?.getVaultKey(this.bundle, entityID)
+		let entityID = userService.getEntityID();
+		let key,
+			err = await this.zarf.Api.getVaultKey(this.bundle, entityID);
 		if (err?.toString().includes('404 not found')) {
-			console.log('creating vault symmetric encryption key')
+			key = await generateSymmetricKey();
+			let exportedKey = await exportJwkKey(key);
+			this.zarf.Api.PutUserKey(this.bundle, entityID,  exportedKey);
+			console.log('creating vault symmetric encryption key');
 		}
 	}
-	
+
 	async getEntries(): Promise<Entry[]> {
-		let entries, err = await this.zarf?.Api?.getVaultMetadata(this.bundle);
+		let entries,
+			err = await this.zarf.Api.getVaultMetadata(this.bundle);
 		return [];
 	}
 

@@ -1,17 +1,16 @@
 import { bytesToHex, hexToBytes } from './uuk';
 
-export async function createKey() {
+export async function generateSymmetricKey() {
 	return await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
 		'encrypt',
 		'decrypt'
 	]);
 }
 
-export async function exportKey(key: CryptoKey): Promise<any> {
-	// Export the key as a JWK
+export async function exportJwkKey(key: CryptoKey): Promise<string> {
 	const exportedKey = await crypto.subtle.exportKey('jwk', key);
-	console.log(exportedKey);
-	return exportedKey;
+    let json = JSON.stringify(exportedKey)
+	return bytesToHex(new TextEncoder().encode(json))
 }
 
 export async function symmetricEncrypt(

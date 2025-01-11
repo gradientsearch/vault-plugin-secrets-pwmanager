@@ -9,9 +9,11 @@
 	import type { Zarf } from './models/zarf';
 	import type { BundleService } from './services/bundle.service';
 	import type { Entry } from './models/entry';
+	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	let kp: KeyPair | undefined;
-	let zarf: Zarf | null = $state(null);
+	let zarf: Zarf | undefined  = $state(undefined);
 	let api: Api | undefined;
 	let bundle: Bundle | null = $state(null);
 	let bundleService: BundleService | null = $state(null);
@@ -24,7 +26,14 @@
 
 	onMount(async () => {
 		kp = await storedKeyPair.get();
+
 		api = getAPI();
+
+		if (kp === undefined ||  api === undefined){
+			goto(`${base}/locked`)
+			return
+		}
+		
 		zarf = {
 			Keypair: kp,
 			Api: api
@@ -33,7 +42,7 @@
 </script>
 
 <div class="flex h-full">
-	{#if zarf !== null}
+	{#if zarf !== undefined}
 		<SidebarView bind:bundle></SidebarView>
 		<div class="h-full w-full flex-col">
 			<HeaderView bind:bundleService={bundleService}></HeaderView>

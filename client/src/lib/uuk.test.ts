@@ -8,12 +8,8 @@ test('buildUUK', async () => {
 	let mount = textEncoder.encode('pwmanager');
 	let password2 = textEncoder.encode('typingcats');
 
-	
-
 	let secretKey = crypto.getRandomValues(new Uint8Array(16));
 	let entityID = textEncoder.encode(crypto.randomUUID());
-
-
 	
 	let uuk = await buildUUK(password, mount, secretKey, entityID);
 	let bits = await twoSkd(uuk, password, mount, secretKey, entityID);

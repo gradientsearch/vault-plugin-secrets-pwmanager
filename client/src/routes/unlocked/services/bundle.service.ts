@@ -10,7 +10,7 @@ import { userService } from './user.service';
 export interface BundleService {
 	addEntry(pi: Entry): Promise<Error | undefined>;
 	getEntries(): Promise<Entry[]>;
-	init(): Promise<any>;
+	init(): Promise<Error | undefined>;
 }
 
 /**
@@ -28,6 +28,7 @@ export class VaultBundleService implements BundleService {
 	onAddFn: Function;
 	zarf: Zarf;
 	bundle: Bundle;
+	decryptionKey: CryptoKey | undefined;
 
 	constructor(zarf: Zarf, bundle: Bundle, onAddFn: Function) {
 		this.zarf = zarf;
@@ -35,20 +36,36 @@ export class VaultBundleService implements BundleService {
 		this.onAddFn = onAddFn;
 	}
 
-	async init() {
+	async init(): Promise<Error | undefined> {
 		// get decryption key for this vault
 		//whats the entity id
 
 		let entityID = userService.getEntityID();
-		let key,
-			err = await this.zarf.Api.getVaultKey(this.bundle, entityID);
+		let [key, err] = await this.zarf.Api.getVaultSymmetricKey(this.bundle, entityID);
 		if (err?.toString().includes('404 not found')) {
-			key = await generateSymmetricKey();
-			let jwk = await exportJwkKey(key);
-			let encrypted = await pubkeyEncrypt(new TextEncoder().encode(JSON.stringify(jwk)), this.zarf.Keypair.PubKey)
-			this.zarf.Api.PutUserKey(this.bundle, entityID,  encrypted);
-			console.log('creating vault symmetric encryption key');
+			await this.createVaultEncryptionKey(entityID)
 		}
+
+		console.log(key)
+
+		
+		return
+
+	}
+
+	async createVaultEncryptionKey(entityID: string) {
+		// TODO make this a version CAS version 0 only operation. Never want to overwrite a vault encryption key
+		let key = await generateSymmetricKey();
+		let jwk = await exportJwkKey(key);
+		let encrypted = await pubkeyEncrypt(
+			new TextEncoder().encode(JSON.stringify(jwk)),
+			this.zarf.Keypair.PubKey
+		);
+		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
+		if (err !== undefined) {
+			return Error('error retrieving vault decryption key :(');
+		}
+		this.decryptionKey = key;
 	}
 
 	async getEntries(): Promise<Entry[]> {

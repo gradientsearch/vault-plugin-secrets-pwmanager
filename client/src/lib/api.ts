@@ -89,8 +89,8 @@ export class Api {
 		return {};
 	}
 
-	async getVaultKey(b: Bundle, entityID: string) {
-		let response = await this.get(`${b.Path}/keys/${entityID}`);
+	async getVaultSymmetricKey(b: Bundle, entityID: string): Promise<[VaultSymmetricKey | undefined,  Error | undefined]> {
+		let response = await this.get(`${b.Path}/data/keys/${entityID}`);
 
 		if (response.status === 404) {
 			return [undefined, Error('404 not found')];
@@ -98,15 +98,16 @@ export class Api {
 
 		if (response.status != 200) {
 			let err = await response.text();
-			return [undefined, new Error(`error getting password items metadata: ${err}`)];
+			return [undefined, new Error(`error getting vault symmetric key: ${err}`)];
 		}
 
-		let json = await response.json();
+		let vsk = await response.json() as VaultSymmetricKey
+		
 
-		return ['', undefined];
+		return [vsk, undefined];
 	}
 
-	async PutUserKey(b: Bundle, entityID: string, key: string) {
+	async PutUserKey(b: Bundle, entityID: string, key: string): Promise<Error|undefined>{
 		let data = {
 			data: {
 				key: key

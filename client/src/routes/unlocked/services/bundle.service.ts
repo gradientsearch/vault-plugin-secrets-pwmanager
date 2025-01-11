@@ -1,4 +1,4 @@
-import { pubkeyEncrypt, exportJwkKey, generateSymmetricKey } from '$lib/helper';
+import { pubkeyEncrypt, exportJwkKey, generateSymmetricKey, prikeyDecrypt, hexToBytes } from '$lib/helper';
 import type { Entry } from '../models/entry';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
@@ -46,9 +46,15 @@ export class VaultBundleService implements BundleService {
 			await this.createVaultEncryptionKey(entityID)
 		}
 
-		console.log(key)
+		if (key === undefined) {
+			return Error('error retrieving vault symmetric key:(');
+		}
 
-		
+		let encryptedSymmetricKey = key.data.data.key
+
+		console.log('jwk encrypted is : ', new TextDecoder().decode(hexToBytes(encryptedSymmetricKey)))
+		let jwk = await prikeyDecrypt(encryptedSymmetricKey, this.zarf.Keypair.PriKey)
+		console.log('jwk is: ', jwk)
 		return
 
 	}
@@ -63,7 +69,7 @@ export class VaultBundleService implements BundleService {
 		);
 		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
 		if (err !== undefined) {
-			return Error('error retrieving vault decryption key :(');
+			return Error('error retrieving vault symmetric key :(');
 		}
 		this.decryptionKey = key;
 	}

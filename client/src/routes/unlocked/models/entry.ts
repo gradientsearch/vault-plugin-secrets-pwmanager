@@ -13,12 +13,11 @@ export interface Metadata {
 }
 
 /**
- * Each Entry has a Core set of inputs. For example, a Login has as username, password, and link. A 
+ * Each Entry has a Core set of inputs. For example, a Login has as username, password, and link. A
  * Password just has a username and and password
  */
 export interface Core {
 	Items: Input[];
-	Order: string[];
 }
 
 /**
@@ -27,19 +26,10 @@ export interface Core {
  */
 export interface More {
 	Items: Input[];
-	Order: Section[];
 }
 
 /**
- * A Section logically groups inputs.
- */
-export interface Section {
-	Name: string;
-	Items: Input[];
-}
-
-/**
- * An Entry is the generalized idea of a `password`.
+ * An Entry is the generic concept of `password`. Entries can be logins, passwords, secure note, ssh keys etc...
  */
 export interface Entry {
 	Name: string;
@@ -50,11 +40,11 @@ export interface Entry {
 	Tags: string[];
 }
 
-export function newEntry(): Entry {
+export function newPasswordEntry(): Entry {
 	return {
 		Tags: [],
-		Name: '',
-		Type: '',
+		Name: 'Password',
+		Type: 'password',
 		Metadata: {
 			Name: 'Password',
 			Type: 'password',
@@ -75,12 +65,10 @@ export function newEntry(): Entry {
 					Placeholder: 'Password',
 					Value: ''
 				}
-			],
-			Order: ['1']
+			]
 		},
 		More: {
-			Items: [],
-			Order: []
+			Items: []
 		}
 	};
 }

@@ -1,18 +1,31 @@
-// responsible for interacting with Vault
 
 import type { Entry } from '../models/entry';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
 
+/**
+ * Interface the BundleView uses to interface with different types of bundles e.g a Vault bundle or
+ * a Category bundle.
+ */
 export interface BundleService {
 	addEntry(pi: Entry): Promise<Error | undefined>;
 	getEntries(): Promise<Entry[]>;
 	init(): Promise<any	>;
 }
 
-// Vault is a HashiCorp Vault KV2 secret mount
+/**
+ * A VaultBundleService is responsible for interfacing with a HashiCorp Vault KV2 secret mount. w.r.t.
+ * pwmanager a a KV2 secret mount is a vault. A vault has the following path convention
+ * `vaults/{{ identity.entity.id }}/<vault name>
+ * 
+ * The KV2 secret mount contains the following paths:
+ * - keys/{{ identity.entity.id }}: each vault has a symmetric key used to encrypt all secrets. That
+ * symmetric keys is encrypted with users public key
+ * - metadata: vault metadata for each entry
+ * - entries/<entry name>: user entires
+ */
 export class VaultBundleService implements BundleService {
-	
+
 	onAddFn: Function;
 	zarf: Zarf | undefined;
 	bundle: Bundle;

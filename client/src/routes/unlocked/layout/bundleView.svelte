@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { newEntry as newPasswordEntry, type Entry } from '../models/input';
+	import { newEntry as newPasswordEntry, type Entry } from '../models/entry';
 	import { VaultBundleService } from '../services/bundle.service';
 	import { base } from '$app/paths';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Button from '../../../components/button.svelte';
-	import { newEntry, type Metadata, type Entry } from '../models/input';
+	import { newEntry, type Metadata, type Entry } from '../models/entry';
 	import Password from '../components/entries/password.svelte';
 
 	let {

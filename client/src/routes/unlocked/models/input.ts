@@ -1,11 +1,7 @@
 
-export interface Metadata {
-	Name: string;
-	Type: string;
-	Value: string;
-	Path: string;
-}
-
+/**
+ * An Input stores the HTML input attributes.
+ */
 export interface Input {
 	Type: string;
 	Label: string;
@@ -13,79 +9,13 @@ export interface Input {
 	Value: string;
 }
 
-export interface Core {
-	Items: Input[];
-	Order: string[];
-}
-
-export interface Section {
-	Name: string;
-	Items: Input[];
-}
-
-export interface More {
-	Items: Input[];
-	Order: Section[];
-}
-
-export interface Entry{
-	Name: string;
-	Type: string;
-	Metadata: Metadata;
-	Core: Core;
-	More: More;
-	Tags: string[];
-}
-
-export function newEntry(): Entry {
-	return {
-		Tags: [],
-		Name: '',
-		Type: '',
-		Metadata: {
-			Name: 'Password',
-			Type: 'password',
-			Value: '',
-			Path: ''
-		},
-		Core: {
-			Items: [
-				{
-					Type: 'text',
-					Label: 'username',
-					Placeholder: 'username',
-					Value: ''
-				},
-				{
-					Type: 'password',
-					Label: 'Password',
-					Placeholder: 'Password',
-					Value: ''
-				}
-			],
-			Order: ['1']
-		},
-		More: {
-			Items: [],
-			Order: []
-		}
-	};
-}
-
+/**
+ * A PasswordInput sets the default for a password input.
+ */
 export class PasswordInput implements Input {
 	Type: string = 'password';
 	Label: string = 'password';
 	Placeholder: string = 'password';
 	Value: string = '';
 	Metadata: any;
-}
-
-export function newPasswordInput(): PasswordInput {
-	return {
-		Type: '',
-		Label: '',
-		Placeholder: '',
-		Value: '',
-		Metadata: undefined
-	};
 }

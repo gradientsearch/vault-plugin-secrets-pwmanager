@@ -1,6 +1,6 @@
 // responsible for interacting with Vault
 
-import type { Entry } from '../models/input';
+import type { Entry } from '../models/entry';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
 

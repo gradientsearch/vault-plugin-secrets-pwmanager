@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { Entry } from '../models/input';
+	import type { Entry } from '../models/entry';
 	import { getPasswordComponent } from '../components/entries/components';
 
 	let { selectedEntry = $bindable() } = $props();

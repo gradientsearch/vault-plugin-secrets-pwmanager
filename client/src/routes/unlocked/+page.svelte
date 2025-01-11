@@ -8,7 +8,7 @@
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
 	import type { BundleService } from './services/bundle.service';
-	import type { Entry } from './models/input';
+	import type { Entry } from './models/entry';
 
 	let kp: KeyPair | undefined;
 	let zarf: Zarf | null = $state(null);

@@ -51,6 +51,7 @@ export class VaultBundleService implements BundleService {
 		let [key, err] = await this.zarf.Api.getVaultSymmetricKey(this.bundle, entityID);
 		if (err?.toString().includes('404 not found')) {
 			await this.createVaultEncryptionKey(entityID);
+			await this.createVaultMetadata();
 		}
 
 		if (key === undefined) {
@@ -80,22 +81,16 @@ export class VaultBundleService implements BundleService {
 		this.symmetricKey = key;
 	}
 
-	async getEntries(): Promise<Entry[]> {
-		let entries,
-			err = await this.zarf.Api.getVaultMetadata(this.bundle);
-		return [];
+	async createVaultMetadata() {
+		
 	}
 
-	async addEntry(e: Entry): Promise<Error | undefined> {
-		//store data in vault
-		// encrypt
-		let entryName = crypto.randomUUID();
-
-		let payload = JSON.stringify(e);
+	async encryptPayload(payload: any): Promise<[string | undefined, Error | undefined]> {
+		let json = JSON.stringify(payload);
 
 		// TODO refactor this class so this isn't necessary
 		if (this.symmetricKey === undefined) {
-			return Error('vault encryption key is undefined');
+			return [undefined, Error('vault encryption key is undefined')];
 		}
 
 		let [iv, encrypted] = await symmetricEncrypt(
@@ -109,13 +104,30 @@ export class VaultBundleService implements BundleService {
 				iv: iv
 			}
 		};
+		return [JSON.stringify(data), undefined];
+	}
+
+	async getEntries(): Promise<Entry[]> {
+		let entries,
+			err = await this.zarf.Api.getVaultMetadata(this.bundle);
+		return [];
+	}
+
+	async addEntry(e: Entry): Promise<Error | undefined> {
+		//store data in vault
+		// encrypt
+		let entryName = crypto.randomUUID();
+
+		let [data, err] = await this.encryptPayload(e);
+		if (err != undefined) {
+			return err;
+		}
 
 		this.zarf.Api.PutEntry(this.bundle, data, metadata);
 
-		
 		// update metadata
 		// if error delete entry
-		
+
 		this.onAddFn([e]);
 		return new Promise((resolve) => {
 			console.log('slice add password');

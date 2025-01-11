@@ -120,6 +120,19 @@ export class Api {
 			return new Error(`error registering: ${err}`);
 		}
 	}
+
+	async PutEntry(b: Bundle, data: any, metadata: any): Promise<Error|undefined>{
+		
+		
+
+		
+		let response = await this.post(`${b.Path}/data/entries/`, JSON.stringify(data));
+
+		if (response.status != 204) {
+			let err = await response.text();
+			return new Error(`error registering: ${err}`);
+		}
+	}
 }
 
 export function getAPI() {

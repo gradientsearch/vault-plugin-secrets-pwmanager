@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
-import { buildUUK, decrypt, decryptEncPriKey, encrypt, twoSkd } from './uuk';
+import { buildUUK,  decryptEncPriKey,  twoSkd } from './uuk';
+import { decrypt, encrypt } from './helper';
 
 test('buildUUK', async () => {
 	const textEncoder = new TextEncoder();

@@ -45,6 +45,7 @@ export class VaultBundleService implements BundleService {
 		if (err?.toString().includes('404 not found')) {
 			key = await generateSymmetricKey();
 			let exportedKey = await exportJwkKey(key);
+			let encryptedVaultKey = 
 			this.zarf.Api.PutUserKey(this.bundle, entityID,  exportedKey);
 			console.log('creating vault symmetric encryption key');
 		}

@@ -1,12 +1,13 @@
 <script lang="ts">
 	// TODO refactor this to follow a mvvm pattern
-	import { buildUUK, bytesToHex } from '$lib/uuk';
+	import { buildUUK } from '$lib/uuk';
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
 
 	import { Api } from '$lib/api';
 	import Title from '../../../components/title.svelte';
 	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
+	import { bytesToHex } from '$lib/helper';
 
 	class Register {
 		mount: string = 'pwmanager';

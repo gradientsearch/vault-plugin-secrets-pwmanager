@@ -1,6 +1,4 @@
 <script>
-	import Title from '../../components/title.svelte';
-	import VaultIconAndText from '../../components/vaultIconAndText.svelte';
 	import Form from './components/form.svelte';
 </script>
 

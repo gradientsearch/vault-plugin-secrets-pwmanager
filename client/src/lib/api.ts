@@ -107,7 +107,17 @@ export class Api {
 	}
 
 	async PutUserKey(b: Bundle, entityID: string, key: string) {
+		let data = {
+			data: {
+				key: key
+			}
+		}
+		let response = await this.post(`${b.Path}/data/keys/${entityID}`, JSON.stringify(data));
 
+		if (response.status != 204) {
+			let err = await response.text();
+			return new Error(`error registering: ${err}`);
+		}
 	}
 }
 

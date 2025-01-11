@@ -5,10 +5,8 @@ export async function generateSymmetricKey() {
 	]);
 }
 
-export async function exportJwkKey(key: CryptoKey): Promise<string> {
-	const exportedKey = await crypto.subtle.exportKey('jwk', key);
-    let json = JSON.stringify(exportedKey)
-	return bytesToHex(new TextEncoder().encode(json))
+export async function exportJwkKey(key: CryptoKey): Promise<JsonWebKey> {
+	return await crypto.subtle.exportKey('jwk', key);
 }
 
 export async function symmetricEncrypt(
@@ -34,14 +32,13 @@ export async function symmetricDecrypt(
 	return new TextDecoder().decode(plaintext);
 }
 
-
-export async function encrypt(payload: Uint8Array, pubkey: CryptoKey): Promise<string> {
+export async function pubkeyEncrypt(payload: Uint8Array, pubkey: CryptoKey): Promise<string> {
 	let encrypted = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pubkey, payload);
 	return bytesToHex(new Uint8Array(encrypted));
 }
 
-export async function decrypt(payload: string, pubkey: CryptoKey): Promise<string> {
-	let plaintext = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, pubkey, hexToBytes(payload));
+export async function decrypt(payload: string, prikey: CryptoKey): Promise<string> {
+	let plaintext = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, prikey, hexToBytes(payload));
 	return new TextDecoder().decode(plaintext);
 }
 

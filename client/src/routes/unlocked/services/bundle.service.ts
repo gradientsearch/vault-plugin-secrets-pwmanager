@@ -5,9 +5,12 @@ import {
 	prikeyDecrypt,
 	hexToBytes,
 	symmetricEncrypt,
-	importJWKkey
+	importJWKkey,
+	symmetricDecrypt,
+	bytesToHex
 } from '$lib/helper';
-import type { Metadata } from '../models/bundle/vault/metadata';
+import type { EncryptedEntry } from '../models/bundle/vault/entry';
+import type { VaultMetadata } from '../models/bundle/vault/metadata';
 import type { Entry } from '../models/entry';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
@@ -18,7 +21,7 @@ import { userService } from './user.service';
  */
 export interface BundleService {
 	addEntry(pi: Entry): Promise<Error | undefined>;
-	getEntries(): Promise<[Entry[] | undefined, Error | undefined]>;
+	getMetadata(): Promise<[VaultMetadata | undefined, Error | undefined]>;
 	init(): Promise<Error | undefined>;
 }
 
@@ -71,8 +74,8 @@ export class VaultBundleService implements BundleService {
 			let jwkObj = JSON.parse(jwk);
 			let ck = await importJWKkey(jwkObj);
 			this.symmetricKey = ck;
-		} else if (this.symmetricKey === undefined){
-			return Error('error retrieving vault symmetric key')
+		} else if (this.symmetricKey === undefined) {
+			return Error('error retrieving vault symmetric key');
 		}
 	}
 
@@ -96,7 +99,7 @@ export class VaultBundleService implements BundleService {
 	}
 
 	async createVaultMetadata(): Promise<Error | undefined> {
-		let metadata: Metadata[] = [];
+		let metadata: VaultMetadata[] = [];
 		let [data, err] = await this.encryptPayload(metadata);
 		if (err !== undefined) {
 			return Error('error encrypted vault metadata');
@@ -119,7 +122,7 @@ export class VaultBundleService implements BundleService {
 			this.symmetricKey
 		);
 
-		let data = {
+		let data: EncryptedEntry = {
 			data: {
 				entry: encrypted,
 				iv: iv
@@ -128,28 +131,70 @@ export class VaultBundleService implements BundleService {
 		return [JSON.stringify(data), undefined];
 	}
 
-	async getEntries(): Promise<[Entry[] | undefined, Error | undefined]> {
-		let [entries, err] = await this.zarf.Api.getVaultEntries(this.bundle);
+	async decryptPayload(ed: EncryptedEntry): Promise<[string | undefined, Error | undefined]> {
+		// TODO refactor this class so this isn't necessary
+		if (this.symmetricKey === undefined) {
+			return [undefined, Error('vault encryption key is undefined')];
+		}
+
+		let decrypted = await symmetricDecrypt(ed.data.entry, ed.data.iv, this.symmetricKey);
+
+		return [decrypted, undefined];
+	}
+
+	async getMetadata(): Promise<[VaultMetadata | undefined, Error | undefined]> {
+		let [md, err] = await this.zarf.Api.getMetadata(this.bundle);
 		if (err !== undefined) {
 			return [undefined, err];
 		}
-		return [entries, undefined];
+
+		if (md === undefined) {
+			return [undefined, Error('no data returned from server')];
+		}
+
+		let [plaintext, err2 ] =await  this.decryptPayload(md.data)
+		if (err2 !== undefined ){
+			return [undefined , err2]
+		}
+
+		if (plaintext === undefined){
+			return [undefined, Error('decrypted metadata entry undefined')]
+		}
+		let vm = JSON.parse(plaintext) as VaultMetadata;
+
+		return [vm, undefined];
 	}
 
 	async addEntry(e: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// encrypt
 		let entryName = crypto.randomUUID();
+		e.Metadata.ID = entryName;
 
-		let [data, err] = await this.encryptPayload(e);
-		if (err != undefined) {
-			return err;
+		let [data, err2] = await this.encryptPayload(e);
+		if (err2 != undefined) {
+			return err2;
 		}
 
-		this.zarf.Api.PutEntry(this.bundle, data, 'metadata');
+		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.ID);
+		if (err3 !== undefined) {
+			return Error('error putting entry');
+		}
 
-		// update metadata
-		// if error delete entry
+		let [metadata, err] = await this.getMetadata();
+		if (err !== undefined) {
+			return Error('error retrieving latest vault metadata');
+		}
+
+		metadata?.entries.push(e.Metadata);
+
+		// TODO add CAS version from
+		let err4 = await this.zarf.Api.PutMetadata(this.bundle, metadata);
+		if (err4 !== undefined) {
+			return Error('error putting metadata');
+		}
+		
+		// TODO if error delete entry
 
 		this.onAddFn([e]);
 		return new Promise((resolve) => {

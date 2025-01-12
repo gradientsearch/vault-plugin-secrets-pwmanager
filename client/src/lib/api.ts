@@ -1,4 +1,5 @@
 import type { VaultSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
+import type { HvMetadata, VaultMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
 import { convertCase, revertCase } from './jsonKey';
 import type { newUUK, UUK } from './uuk';
 
@@ -71,13 +72,13 @@ export class Api {
 		return [uuk, undefined];
 	}
 
-	async getVaultEntries(pl: Bundle): Promise<[any, Error | undefined]> {
+	async getMetadata(pl: Bundle): Promise<[HvMetadata | undefined, Error | undefined]> {
 		let response = await this.get(`${pl.Path}/metadata/entries`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
-			// TODO create the pwmanagerMetadata secret and return the created one
-			return [[], Error('metadata does not exist')];
+			// TODO create the pwmanager metadata secret and return the created one
+			return [undefined, Error('metadata does not exist')];
 		}
 
 		if (response.status != 200) {
@@ -86,11 +87,14 @@ export class Api {
 		}
 
 		let json = await response.json();
-
-		return [undefined ,undefined]
+		let entriesMetadata = JSON.parse(json);
+		return [entriesMetadata, undefined];
 	}
 
-	async getVaultSymmetricKey(b: Bundle, entityID: string): Promise<[VaultSymmetricKey | undefined,  Error | undefined]> {
+	async getVaultSymmetricKey(
+		b: Bundle,
+		entityID: string
+	): Promise<[VaultSymmetricKey | undefined, Error | undefined]> {
 		let response = await this.get(`${b.Path}/data/keys/${entityID}`);
 
 		if (response.status === 404) {
@@ -102,31 +106,28 @@ export class Api {
 			return [undefined, new Error(`error getting vault symmetric key: ${err}`)];
 		}
 
-		let vsk = await response.json() as VaultSymmetricKey
-		
+		let vsk = (await response.json()) as VaultSymmetricKey;
 
 		return [vsk, undefined];
 	}
 
-	async PutUserKey(b: Bundle, entityID: string, key: string): Promise<Error|undefined>{
-
+	async PutUserKey(b: Bundle, entityID: string, key: string): Promise<Error | undefined> {
 		// TODO move this up to bundle service
 		let data = {
 			data: {
 				key: key
 			}
-		}
+		};
 		let response = await this.post(`${b.Path}/data/keys/${entityID}`, JSON.stringify(data));
 
 		if (response.status != 200) {
 			let err = await response.text();
 			return new Error(`error registering: ${err}`);
 		}
-		return
+		return;
 	}
 
-	async PutMetadata(b: Bundle, metadata: any): Promise<Error|undefined>{
-		
+	async PutMetadata(b: Bundle, metadata: any): Promise<Error | undefined> {
 		let response = await this.post(`${b.Path}/data/metadata/entries`, metadata);
 
 		if (response.status != 200) {
@@ -135,9 +136,8 @@ export class Api {
 		}
 	}
 
-	async PutEntry(b: Bundle, data: any, metadata: any): Promise<Error|undefined>{
-		
-		let response = await this.post(`${b.Path}/data/entries/`, JSON.stringify(data));
+	async PutEntry(b: Bundle, data: any, id: string): Promise<Error | undefined> {
+		let response = await this.post(`${b.Path}/data/entries/${id}`, JSON.stringify(data));
 
 		if (response.status != 204) {
 			let err = await response.text();

@@ -16,20 +16,23 @@ export async function importJWKkey(jwk: JsonWebKey): Promise<CryptoKey>{
 export async function symmetricEncrypt(
 	payload: Uint8Array,
 	symmetricKey: CryptoKey
-): Promise<[Uint8Array, string]> {
+): Promise<[string, string]> {
 	const iv = crypto.getRandomValues(new Uint8Array(12));
 	const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, symmetricKey, payload);
 
-	return [iv, bytesToHex(new Uint8Array(encrypted))];
+	return [bytesToHex(iv), bytesToHex(new Uint8Array(encrypted))];
 }
 
+
+// TODO should this return an error?
 export async function symmetricDecrypt(
+
 	payload: string,
-	iv: Uint8Array,
+	iv: string,
 	symmetricKey: CryptoKey
 ): Promise<string> {
 	const plaintext = await crypto.subtle.decrypt(
-		{ name: 'AES-GCM', iv: iv },
+		{ name: 'AES-GCM', iv: hexToBytes(iv) },
 		symmetricKey,
 		hexToBytes(payload)
 	);

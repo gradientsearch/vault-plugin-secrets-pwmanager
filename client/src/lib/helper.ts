@@ -31,6 +31,7 @@ export async function symmetricDecrypt(
 	iv: string,
 	symmetricKey: CryptoKey
 ): Promise<string> {
+	console.log('iv is:', iv)
 	const plaintext = await crypto.subtle.decrypt(
 		{ name: 'AES-GCM', iv: hexToBytes(iv) },
 		symmetricKey,

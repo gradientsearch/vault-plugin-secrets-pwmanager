@@ -11,7 +11,7 @@ import {
 } from '$lib/helper';
 import type { EncryptedEntry } from '../models/bundle/vault/entry';
 import type { VaultMetadata } from '../models/bundle/vault/metadata';
-import type { Entry } from '../models/entry';
+import type { Entry, Metadata } from '../models/entry';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
 
@@ -124,22 +124,25 @@ export class VaultBundleService implements BundleService {
 			this.symmetricKey
 		);
 
-		let data: EncryptedEntry = {
-			data: {
+		let ed: EncryptedEntry = {
 				entry: encrypted,
 				iv: iv
-			}
 		};
+
+		let data = {
+			data: ed
+		}
+
 		return [JSON.stringify(data), undefined];
 	}
 
-	async decryptPayload(ed: EncryptedEntry): Promise<[string | undefined, Error | undefined]> {
+	async decryptPayload(ee: EncryptedEntry): Promise<[string | undefined, Error | undefined]> {
 		// TODO refactor this class so this isn't necessary
 		if (this.symmetricKey === undefined) {
 			return [undefined, Error('vault encryption key is undefined')];
 		}
 
-		let decrypted = await symmetricDecrypt(ed.data.entry, ed.data.iv, this.symmetricKey);
+		let decrypted = await symmetricDecrypt(ee.entry, ee.iv, this.symmetricKey);
 
 		return [decrypted, undefined];
 	}
@@ -154,7 +157,8 @@ export class VaultBundleService implements BundleService {
 			return [undefined, Error('no data returned from server')];
 		}
 
-		let [plaintext, err2] = await this.decryptPayload(md.data);
+		console.log('metadata is: ', md)
+		let [plaintext, err2] = await this.decryptPayload(md.data.data);
 		if (err2 !== undefined) {
 			return [undefined, err2];
 		}
@@ -178,6 +182,7 @@ export class VaultBundleService implements BundleService {
 			return err2;
 		}
 
+
 		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.ID);
 		if (err3 !== undefined) {
 			return Error(`error putting entry:  ${err3.message}`);
@@ -188,11 +193,11 @@ export class VaultBundleService implements BundleService {
 			return Error('error retrieving latest vault metadata');
 		}
 
-		console.log(metadata)
+		console.log(metadata);
 
 		metadata?.entries.push(e.Metadata);
-		
-		let ep = await this.encryptPayload(metadata)
+
+		let ep = await this.encryptPayload(metadata);
 
 		// TODO add CAS version from
 		let err4 = await this.zarf.Api.PutMetadata(this.bundle, ep);
@@ -206,6 +211,29 @@ export class VaultBundleService implements BundleService {
 		return new Promise((resolve) => {
 			resolve(undefined);
 		});
+	}
+
+	async getEntry(m: Metadata): Promise<[Entry | undefined, Error | undefined]> {
+		let [hee, err] = await this.zarf.Api.GetEntry(this.bundle, m.ID)
+
+		if (err !== undefined){
+			return [undefined, Error(`error getting entry: ${err}`)]
+		}
+
+		if (hee === undefined){
+			return [undefined, Error(`error - encrypted entry is undefined: ${err}`)]
+		}
+
+		console.log('hee', hee)
+		let [payload, err2] = await this.decryptPayload(hee.data.data)
+
+
+		if (err2 !== undefined || payload === undefined) {
+			return [undefined, Error(`error decrypting EncryptedEntry: ${err}`)]
+		}
+
+		let e = JSON.parse(payload)
+		return [e, undefined];
 	}
 }
 

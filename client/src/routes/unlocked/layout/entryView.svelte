@@ -1,19 +1,34 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { Entry } from '../models/entry';
+	import type { Metadata, Entry } from '../models/entry';
 	import { getPasswordComponent } from '../components/entries/components';
+	import type { BundleService } from '../services/bundle.service';
 
-	let { selectedEntry = $bindable() } = $props();
+	let {
+		selectedEntryMetadata = $bindable<Metadata>(),
+		bundleService = $bindable<BundleService>()
+	} = $props();
 
 	let copyOfSelectedEntry: Entry | undefined = $state();
+	let errMessage: string| undefined = $state(undefined)
 
 	$effect(() => {
-		selectedEntry;
-		if (selectedEntry) {
-            untrack(()=>{
-                copyOfSelectedEntry = JSON.parse(JSON.stringify(selectedEntry));
-            })
-
+		selectedEntryMetadata;
+		console.log('selectedEntryMetadata Entryview: ', selectedEntryMetadata)
+		if (selectedEntryMetadata) {
+			untrack(() => {
+				(async () => {
+					console.log('untrack')
+					console.log('async')
+					let [e, err] = await bundleService.getEntry(selectedEntryMetadata);
+					if (err !== undefined){
+						console.log(err)
+						errMessage = `error getting entry: ${err}`
+					}
+					
+					copyOfSelectedEntry = e
+				})();
+			});
 		}
 	});
 </script>

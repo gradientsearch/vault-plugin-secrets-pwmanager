@@ -1,8 +1,10 @@
+import type { HvEncryptedEntry } from '../routes/unlocked/models/bundle/vault/entry';
 import type { VaultSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
 import type { HvMetadata, VaultMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
 import { convertCase, revertCase } from './jsonKey';
 import type { newUUK, UUK } from './uuk';
 
+// TODO make method naming convention the same
 export class Api {
 	vaultToken: string;
 	url: string;
@@ -72,8 +74,8 @@ export class Api {
 		return [uuk, undefined];
 	}
 
-	async getMetadata(pl: Bundle): Promise<[HvMetadata | undefined, Error | undefined]> {
-		let response = await this.get(`${pl.Path}/data/metadata/entries`);
+	async getMetadata(b: Bundle): Promise<[HvMetadata | undefined, Error | undefined]> {
+		let response = await this.get(`${b.Path}/data/metadata/entries`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
@@ -142,6 +144,24 @@ export class Api {
 			let err = await response.text();
 			return new Error(`error registering: ${err}`);
 		}
+	}
+
+	async GetEntry(b: Bundle, id: string ): Promise<[HvEncryptedEntry | undefined, Error | undefined]> {
+		let response = await this.get(`${b.Path}/data/entries/${id}`);
+
+		if (response.status === 404) {
+			// no passwords exist for this vault yet
+			// TODO create the pwmanager metadata secret and return the created one
+			return [undefined, Error('entry does not exist')];
+		}
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error getting entry: ${err}`)];
+		}
+
+		let hee = await response.json();
+		return [hee, undefined];
 	}
 }
 

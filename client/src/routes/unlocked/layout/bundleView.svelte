@@ -12,7 +12,7 @@
 		bundle = $bindable(),
 		zarf = $bindable(),
 		bundleService = $bindable<BundleService>(),
-		selectedEntry: selectedEntry = $bindable(),
+		selectedEntryMetadata = $bindable<Entry>(),
 		entries: entries = $bindable()
 	} = $props();
 
@@ -49,7 +49,7 @@
 	}
 
 	function onSelectedEntry(e: Entry) {
-		selectedEntry = e;
+		selectedEntryMetadata = e;
 	}
 </script>
 

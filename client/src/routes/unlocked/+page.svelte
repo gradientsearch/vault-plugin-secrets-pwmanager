@@ -4,20 +4,20 @@
 	import HeaderView from './layout/headerView.svelte';
 	import EntryView from './layout/entryView.svelte';
 	import SidebarView from './layout/sidebarView.svelte';
-	import BundleView from './layout/bundleView.svelte'
+	import BundleView from './layout/bundleView.svelte';
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
 	import type { BundleService } from './services/bundle.service';
-	import type { Entry } from './models/entry';
+	import type { Entry, Metadata } from './models/entry';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 
 	let kp: KeyPair | undefined;
-	let zarf: Zarf | undefined  = $state(undefined);
+	let zarf: Zarf | undefined = $state(undefined);
 	let api: Api | undefined;
 	let bundle: Bundle | null = $state(null);
 	let bundleService: BundleService | null = $state(null);
-	let selectedEntry: Entry | undefined = $state();
+	let selectedEntryMetadata: Metadata | undefined = $state();
 	let entries: Entry[] = $state([]);
 
 	$effect(() => {
@@ -29,11 +29,11 @@
 
 		api = getAPI();
 
-		if (kp === undefined ||  api === undefined){
-			goto(`${base}/locked`)
-			return
+		if (kp === undefined || api === undefined) {
+			goto(`${base}/locked`);
+			return;
 		}
-		
+
 		zarf = {
 			Keypair: kp,
 			Api: api
@@ -45,16 +45,16 @@
 	{#if zarf !== undefined}
 		<SidebarView bind:bundle></SidebarView>
 		<div class="h-full w-full flex-col">
-			<HeaderView bind:bundleService={bundleService}></HeaderView>
+			<HeaderView bind:bundleService></HeaderView>
 			<div class="flex h-[calc(100vh-48px)] w-full">
 				<BundleView
 					bind:zarf
 					bind:bundleService
 					bind:bundle
-					bind:selectedEntry
+					bind:selectedEntryMetadata
 					bind:entries
 				></BundleView>
-				<EntryView bind:selectedEntry></EntryView>
+				<EntryView bind:selectedEntryMetadata bind:bundleService></EntryView>
 			</div>
 		</div>
 	{/if}

@@ -1,3 +1,4 @@
+import type { VaultSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
 import { convertCase, revertCase } from './jsonKey';
 import type { newUUK, UUK } from './uuk';
 
@@ -70,13 +71,13 @@ export class Api {
 		return [uuk, undefined];
 	}
 
-	async getVaultMetadata(pl: Bundle) {
-		let response = await this.get(`${pl.Path}/metadata`);
+	async getVaultEntries(pl: Bundle): Promise<[any, Error | undefined]> {
+		let response = await this.get(`${pl.Path}/metadata/entries`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
 			// TODO create the pwmanagerMetadata secret and return the created one
-			return [[], 404];
+			return [[], Error('metadata does not exist')];
 		}
 
 		if (response.status != 200) {
@@ -86,7 +87,7 @@ export class Api {
 
 		let json = await response.json();
 
-		return {};
+		return [undefined ,undefined]
 	}
 
 	async getVaultSymmetricKey(b: Bundle, entityID: string): Promise<[VaultSymmetricKey | undefined,  Error | undefined]> {
@@ -108,6 +109,8 @@ export class Api {
 	}
 
 	async PutUserKey(b: Bundle, entityID: string, key: string): Promise<Error|undefined>{
+
+		// TODO move this up to bundle service
 		let data = {
 			data: {
 				key: key
@@ -115,16 +118,24 @@ export class Api {
 		}
 		let response = await this.post(`${b.Path}/data/keys/${entityID}`, JSON.stringify(data));
 
-		if (response.status != 204) {
+		if (response.status != 200) {
+			let err = await response.text();
+			return new Error(`error registering: ${err}`);
+		}
+		return
+	}
+
+	async PutMetadata(b: Bundle, metadata: any): Promise<Error|undefined>{
+		
+		let response = await this.post(`${b.Path}/data/metadata/entries`, metadata);
+
+		if (response.status != 200) {
 			let err = await response.text();
 			return new Error(`error registering: ${err}`);
 		}
 	}
 
 	async PutEntry(b: Bundle, data: any, metadata: any): Promise<Error|undefined>{
-		
-		
-
 		
 		let response = await this.post(`${b.Path}/data/entries/`, JSON.stringify(data));
 

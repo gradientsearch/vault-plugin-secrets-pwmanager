@@ -9,7 +9,7 @@ export interface Metadata {
 	Name: string;
 	Type: string;
 	Value: string;
-	Path: string;
+	ID: string; 
 }
 
 /**
@@ -49,7 +49,7 @@ export function newPasswordEntry(): Entry {
 			Name: 'Password',
 			Type: 'password',
 			Value: '',
-			Path: ''
+			ID: ''
 		},
 		Core: {
 			Items: [

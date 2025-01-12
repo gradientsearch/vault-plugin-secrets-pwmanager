@@ -34,8 +34,9 @@
 			let err = await bundleService.init()
 			if (err !== undefined){
 				errorMessage = err
+				alert(err)
 			}
-			entries = await bundleService.getEntries();
+			//entries = await bundleService.getEntries();
 			let e = newPasswordEntry();
 			e.Metadata.Name = 'My Secret Password';
 			e.Metadata.Value = 'stephen';

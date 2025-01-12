@@ -46,7 +46,7 @@
 	</div>
 {:else}
 	{@const Component = selectedType.component}
-	<div bind:clientHeight={containerHeight} class="h-[100%] overflow-y-scroll">
+	<div bind:clientHeight={containerHeight} class="h-[100%] ">
 		<header bind:clientHeight={headerHeight}>
 			<div class="flex flex-row justify-start border-b-2 border-border_primary p-4 font-bold">
 				<div>New Item</div>

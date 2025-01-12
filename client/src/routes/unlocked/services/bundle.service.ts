@@ -202,9 +202,8 @@ export class VaultBundleService implements BundleService {
 
 		// TODO if error delete entry
 
-		this.onAddFn([metadata]);
+		this.onAddFn(metadata);
 		return new Promise((resolve) => {
-			console.log('slice add password');
 			resolve(undefined);
 		});
 	}

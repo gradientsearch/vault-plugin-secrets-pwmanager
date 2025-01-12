@@ -25,8 +25,8 @@
 
 	onMount(() => {});
 
-	let onVaultAddFn = (es: Entry[]) => {
-		entries = es;
+	let onVaultAddFn = (vm: VaultMetadata) => {
+		entries = vm.entries;
 	};
 
 	async function setBundleService() {

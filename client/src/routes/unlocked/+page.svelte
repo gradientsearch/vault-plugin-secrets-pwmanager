@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 	import { onMount } from 'svelte';
-	import HeaderView from './layout/headerView.svelte';
-	import EntryView from './layout/entryView.svelte';
-	import SidebarView from './layout/sidebarView.svelte';
-	import BundleView from './layout/bundleView.svelte';
+	import HeaderView from './views/headerView.svelte';
+	import EntryView from './views/entryView.svelte';
+	import SidebarView from './views/sidebarView.svelte';
+	import BundleView from './views/bundleView.svelte';
 	import { getAPI, type Api } from '$lib/api';
 	import type { Zarf } from './models/zarf';
 	import type { BundleService } from './services/bundle.service';

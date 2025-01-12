@@ -9,6 +9,10 @@ export async function exportJwkKey(key: CryptoKey): Promise<JsonWebKey> {
 	return await crypto.subtle.exportKey('jwk', key);
 }
 
+export async function importJWKkey(jwk: JsonWebKey): Promise<CryptoKey>{
+	return await crypto.subtle.importKey('jwk', jwk, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
 export async function symmetricEncrypt(
 	payload: Uint8Array,
 	symmetricKey: CryptoKey

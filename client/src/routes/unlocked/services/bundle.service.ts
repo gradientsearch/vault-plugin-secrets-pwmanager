@@ -4,7 +4,8 @@ import {
 	generateSymmetricKey,
 	prikeyDecrypt,
 	hexToBytes,
-	symmetricEncrypt
+	symmetricEncrypt,
+	importJWKkey
 } from '$lib/helper';
 import type { Metadata } from '../models/bundle/vault/metadata';
 import type { Entry } from '../models/entry';
@@ -51,8 +52,7 @@ export class VaultBundleService implements BundleService {
 		let entityID = userService.getEntityID();
 		let [key, err] = await this.zarf.Api.getVaultSymmetricKey(this.bundle, entityID);
 		if (err?.toString().includes('404 not found')) {
-			let [key2, err] = await this.createVaultEncryptionKey(entityID);
-			key = key2
+			let [key, err] = await this.createVaultEncryptionKey(entityID);
 
 			if (err !== undefined) {
 				return err;
@@ -64,19 +64,21 @@ export class VaultBundleService implements BundleService {
 			}
 		}
 
-		if (key === undefined) {
-			return Error('error retrieving vault symmetric key:(');
+		// TODO this is a little messy. Let's try and clean this up.
+		if (key !== undefined) {
+			let encryptedSymmetricKey = key.data.data.key;
+			let jwk = await prikeyDecrypt(encryptedSymmetricKey, this.zarf.Keypair.PriKey);
+			let jwkObj = JSON.parse(jwk);
+			let ck = await importJWKkey(jwkObj);
+			this.symmetricKey = ck;
+		} else if (this.symmetricKey === undefined){
+			return Error('error retrieving vault symmetric key')
 		}
-
-		let encryptedSymmetricKey = key.data.data.key;
-
-		console.log('jwk encrypted is : ', new TextDecoder().decode(hexToBytes(encryptedSymmetricKey)));
-		let jwk = await prikeyDecrypt(encryptedSymmetricKey, this.zarf.Keypair.PriKey);
-		console.log('jwk is: ', jwk);
-		return;
 	}
 
-	async createVaultEncryptionKey(entityID: string): Promise<[CryptoKey|undefined, Error|undefined]> {
+	async createVaultEncryptionKey(
+		entityID: string
+	): Promise<[CryptoKey | undefined, Error | undefined]> {
 		// TODO make this a version CAS version 0 only operation. Never want to overwrite a vault symmetric key
 		let key = await generateSymmetricKey();
 		let jwk = await exportJwkKey(key);
@@ -86,11 +88,11 @@ export class VaultBundleService implements BundleService {
 		);
 		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
 		if (err !== undefined) {
-			console.log('err: ', err)
+			console.log('err: ', err);
 			return [undefined, Error('error retrieving vault symmetric key : ', err)];
 		}
 		this.symmetricKey = key;
-		return [key, undefined]
+		return [key, undefined];
 	}
 
 	async createVaultMetadata(): Promise<Error | undefined> {

@@ -8,6 +8,8 @@
 	import Title from '../../../components/title.svelte';
 	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
 	import { bytesToHex } from '$lib/helper';
+	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	class Register {
 		mount: string = 'pwmanager';
@@ -216,6 +218,8 @@
 				anyone you do not trust.
 			</p>
 			<p class="text-sm">Store it safely! You are the only one who can unlock your vault.</p>
+
+			<Button fn={()=> {goto(`${base}/locked`)}}>Done</Button>
 		</div>
 	</div>
 {/if}

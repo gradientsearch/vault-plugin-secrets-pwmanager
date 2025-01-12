@@ -42,7 +42,7 @@ unregister:
 	vault plugin deregister -version=v0.1.0 secret pwmanager
 
 
-configure: enable appRole config secretMount userpass entity
+configure: enable appRole config secretMount userpass entity cors
 
 enable:
 	vault secrets enable -path=pwmanager pwmanager
@@ -63,6 +63,9 @@ readAppRole:
 
 readConfig:
 	vault read pwmanager/config
+
+cors:
+	vault write /sys/config/cors enabled=true allowed_origins='*' allowed_headers='Content-Type,X-Requested-With,X-Vault-AWS-IAM-Server-ID,X-Vault-No-Request-Forwarding,X-Vault-Token,Authorization,X-Vault-Wrap-Format,X-Vault-Wrap-TTL'
 
 #.SILENT:
 config:

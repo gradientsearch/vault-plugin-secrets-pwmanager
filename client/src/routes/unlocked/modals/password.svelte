@@ -2,11 +2,12 @@
 	import Button from '../../../components/button.svelte';
 	import { newPasswordEntry, type Metadata, type Entry } from '../models/entry';
 	import Password from '../components/entries/password.svelte';
+	import type { BundleService } from '../services/bundle.service';
 
 	let {
-		bundleService = $bindable(),
-		clientHeight = $bindable(),
-		showModal = $bindable(),
+		bundleService = $bindable<BundleService>(),
+		clientHeight = $bindable<Number>(),
+		showModal = $bindable<Boolean>(),
 		cancel
 	} = $props();
 	let entry: Entry = $state(newPasswordEntry());
@@ -23,6 +24,7 @@
 		entry.Metadata = meta;
 		let err = await bundleService.addEntry(entry);
 		if (err !== undefined) {
+			console.log('err: ', err)
 			// alert user there was a problem saving the password
 		} else {
 			showModal = false;

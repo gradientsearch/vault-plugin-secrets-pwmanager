@@ -73,7 +73,7 @@ export class Api {
 	}
 
 	async getMetadata(pl: Bundle): Promise<[HvMetadata | undefined, Error | undefined]> {
-		let response = await this.get(`${pl.Path}/metadata/entries`);
+		let response = await this.get(`${pl.Path}/data/metadata/entries`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
@@ -86,8 +86,7 @@ export class Api {
 			return [undefined, new Error(`error getting password items metadata: ${err}`)];
 		}
 
-		let json = await response.json();
-		let entriesMetadata = JSON.parse(json);
+		let entriesMetadata = await response.json();
 		return [entriesMetadata, undefined];
 	}
 
@@ -139,7 +138,7 @@ export class Api {
 	async PutEntry(b: Bundle, data: any, id: string): Promise<Error | undefined> {
 		let response = await this.post(`${b.Path}/data/entries/${id}`, data);
 
-		if (response.status != 204) {
+		if (response.status != 200) {
 			let err = await response.text();
 			return new Error(`error registering: ${err}`);
 		}

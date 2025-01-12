@@ -99,7 +99,9 @@ export class VaultBundleService implements BundleService {
 	}
 
 	async createVaultMetadata(): Promise<Error | undefined> {
-		let metadata: VaultMetadata[] = [];
+		let metadata: VaultMetadata = {
+			entries: []
+		};
 		let [data, err] = await this.encryptPayload(metadata);
 		if (err !== undefined) {
 			return Error('error encrypted vault metadata');
@@ -152,13 +154,13 @@ export class VaultBundleService implements BundleService {
 			return [undefined, Error('no data returned from server')];
 		}
 
-		let [plaintext, err2 ] =await  this.decryptPayload(md.data)
-		if (err2 !== undefined ){
-			return [undefined , err2]
+		let [plaintext, err2] = await this.decryptPayload(md.data);
+		if (err2 !== undefined) {
+			return [undefined, err2];
 		}
 
-		if (plaintext === undefined){
-			return [undefined, Error('decrypted metadata entry undefined')]
+		if (plaintext === undefined) {
+			return [undefined, Error('decrypted metadata entry undefined')];
 		}
 		let vm = JSON.parse(plaintext) as VaultMetadata;
 
@@ -178,7 +180,7 @@ export class VaultBundleService implements BundleService {
 
 		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.ID);
 		if (err3 !== undefined) {
-			return Error('error putting entry');
+			return Error(`error putting entry:  ${err3.message}`);
 		}
 
 		let [metadata, err] = await this.getMetadata();
@@ -186,17 +188,21 @@ export class VaultBundleService implements BundleService {
 			return Error('error retrieving latest vault metadata');
 		}
 
+		console.log(metadata)
+
 		metadata?.entries.push(e.Metadata);
+		
+		let ep = await this.encryptPayload(metadata)
 
 		// TODO add CAS version from
-		let err4 = await this.zarf.Api.PutMetadata(this.bundle, metadata);
+		let err4 = await this.zarf.Api.PutMetadata(this.bundle, ep);
 		if (err4 !== undefined) {
-			return Error('error putting metadata');
+			return Error('error putting metadata: ', err4);
 		}
-		
+
 		// TODO if error delete entry
 
-		this.onAddFn([e]);
+		this.onAddFn([metadata]);
 		return new Promise((resolve) => {
 			console.log('slice add password');
 			resolve(undefined);

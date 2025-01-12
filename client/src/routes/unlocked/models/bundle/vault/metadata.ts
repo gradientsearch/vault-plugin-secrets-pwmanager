@@ -11,18 +11,18 @@ export interface HvMetadata {
   lease_duration: number;
   renewable: boolean;
   data: Data2;
-  warnings: null;
+  warnings: any;
   mount_type: string;
 }
 
 interface Data2 {
   data: Data;
-  metadata: VaultMetadata;
+  metadata: Metadata;
 }
 
 interface Metadata {
   created_time: string;
-  custom_metadata: null;
+  custom_metadata: any;
   deletion_time: string;
   destroyed: boolean;
   version: number;

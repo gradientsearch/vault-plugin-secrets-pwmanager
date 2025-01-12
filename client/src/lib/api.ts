@@ -137,7 +137,7 @@ export class Api {
 	}
 
 	async PutEntry(b: Bundle, data: any, id: string): Promise<Error | undefined> {
-		let response = await this.post(`${b.Path}/data/entries/${id}`, JSON.stringify(data));
+		let response = await this.post(`${b.Path}/data/entries/${id}`, data);
 
 		if (response.status != 204) {
 			let err = await response.text();

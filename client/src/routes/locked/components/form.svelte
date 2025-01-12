@@ -2,13 +2,14 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { Api } from '$lib/api';
-	import {  decryptEncPriKey, hexToBytes } from '$lib/uuk';
+	import {  decryptEncPriKey } from '$lib/uuk';
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
 	import Title from '../../../components/title.svelte';
 
 	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
+	import { hexToBytes } from '$lib/helper';
 
     
 	class SignIn {
@@ -34,7 +35,7 @@
 		}
 
 		let secretKey = new TextDecoder().decode(hexToBytes(secretKeyHex));
-
+		
 		let api = new Api(signIn.token, signIn.url, signIn.mount);
 		let tokenInfo = await api.tokenLookup();
 		let entityID = tokenInfo['data']['entity_id'];
@@ -66,6 +67,8 @@
 		};
 
 		storedKeyPair.set(keypair);
+		localStorage.setItem('loginInfo', JSON.stringify({token: signIn.token, url: signIn.url, mount: signIn.mount, entityID: entityID}))
+		
 		goto(`${base}/unlocked`);
 		isSigningIn = false;
 	}

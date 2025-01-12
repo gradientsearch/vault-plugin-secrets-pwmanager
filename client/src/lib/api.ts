@@ -1,6 +1,10 @@
+import type { HvEncryptedEntry } from '../routes/unlocked/models/bundle/vault/entry';
+import type { VaultSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
+import type { HvMetadata, VaultMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
 import { convertCase, revertCase } from './jsonKey';
 import type { newUUK, UUK } from './uuk';
 
+// TODO make method naming convention the same
 export class Api {
 	vaultToken: string;
 	url: string;
@@ -65,8 +69,107 @@ export class Api {
 		}
 
 		let json = await response.json();
-        let uuk = revertCase<UUK>(json['data']['uuk'], false) as UUK
+		let uuk = revertCase<UUK>(json['data']['uuk'], false) as UUK;
 
-		return [uuk, undefined]
+		return [uuk, undefined];
+	}
+
+	async getMetadata(b: Bundle): Promise<[HvMetadata | undefined, Error | undefined]> {
+		let response = await this.get(`${b.Path}/data/metadata/entries`);
+
+		if (response.status === 404) {
+			// no passwords exist for this vault yet
+			// TODO create the pwmanager metadata secret and return the created one
+			return [undefined, Error('metadata does not exist')];
+		}
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error getting password items metadata: ${err}`)];
+		}
+
+		let entriesMetadata = await response.json();
+		return [entriesMetadata, undefined];
+	}
+
+	async getVaultSymmetricKey(
+		b: Bundle,
+		entityID: string
+	): Promise<[VaultSymmetricKey | undefined, Error | undefined]> {
+		let response = await this.get(`${b.Path}/data/keys/${entityID}`);
+
+		if (response.status === 404) {
+			return [undefined, Error('404 not found')];
+		}
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error getting vault symmetric key: ${err}`)];
+		}
+
+		let vsk = (await response.json()) as VaultSymmetricKey;
+
+		return [vsk, undefined];
+	}
+
+	async PutUserKey(b: Bundle, entityID: string, key: string): Promise<Error | undefined> {
+		// TODO move this up to bundle service
+		let data = {
+			data: {
+				key: key
+			}
+		};
+		let response = await this.post(`${b.Path}/data/keys/${entityID}`, JSON.stringify(data));
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return new Error(`error registering: ${err}`);
+		}
+		return;
+	}
+
+	async PutMetadata(b: Bundle, metadata: any): Promise<Error | undefined> {
+		let response = await this.post(`${b.Path}/data/metadata/entries`, metadata);
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return new Error(`error registering: ${err}`);
+		}
+	}
+
+	async PutEntry(b: Bundle, data: any, id: string): Promise<Error | undefined> {
+		let response = await this.post(`${b.Path}/data/entries/${id}`, data);
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return new Error(`error registering: ${err}`);
+		}
+	}
+
+	async GetEntry(b: Bundle, id: string ): Promise<[HvEncryptedEntry | undefined, Error | undefined]> {
+		let response = await this.get(`${b.Path}/data/entries/${id}`);
+
+		if (response.status === 404) {
+			// no passwords exist for this vault yet
+			// TODO create the pwmanager metadata secret and return the created one
+			return [undefined, Error('entry does not exist')];
+		}
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error getting entry: ${err}`)];
+		}
+
+		let hee = await response.json();
+		return [hee, undefined];
+	}
+}
+
+export function getAPI() {
+	let info = localStorage.getItem('loginInfo');
+	if (info !== null) {
+		//TODO check for null
+		let infoObj = JSON.parse(info);
+		return new Api(infoObj['token'], infoObj['url'], infoObj['mount']);
 	}
 }

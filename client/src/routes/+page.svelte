@@ -15,7 +15,7 @@
 <div class="flex h-full w-full justify-center">
 	<div class="flex-row">
 		<VaultIconAndText className="mt-14"></VaultIconAndText>
-		<Card
+		<!-- <Card
 			className="mt-6"
 			title="Enroll New Device"
 			body="Choose this option if you wish to enroll a new device with this password manager."
@@ -23,7 +23,7 @@
 			{#snippet button()}
 				<Button href="{base}/enroll">Enroll</Button>
 			{/snippet}
-		</Card>
+		</Card> -->
 
 		<Card
 			className="mt-10"

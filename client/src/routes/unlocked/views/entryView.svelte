@@ -33,7 +33,7 @@
 	});
 </script>
 
-<div class=" w-full border-t-2 border-border_primary bg-page_faint">
+<div class=" w-full border-t-2 border-border_primary ">
 	{#if copyOfSelectedEntry}
 		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
 		<div class="w-full">

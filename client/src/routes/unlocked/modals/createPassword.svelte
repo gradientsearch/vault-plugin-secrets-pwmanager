@@ -13,14 +13,14 @@
 			src: 'key.svg',
 			component: Password
 		},
-		{
-			name: 'note',
-			src: 'note.png'
-		},
-		{
-			name: 'ssh',
-			src: 'ssh.png'
-		}
+		// {
+		// 	name: 'note',
+		// 	src: 'note.png'
+		// },
+		// {
+		// 	name: 'ssh',
+		// 	src: 'ssh.png'
+		// }
 	];
 
 	function onSelectedType(t: any) {

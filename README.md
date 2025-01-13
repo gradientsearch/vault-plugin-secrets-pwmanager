@@ -1,7 +1,8 @@
-# 🔐 vault-password-manager-plugin
+# 🔐 vault-plugin-secrets-pwmanager
 
-This project creates a plugin that can be registered with HashiCorp Vault. The plugin is responsible for managing password manager user policies and user vaults (i.e., a user vault is a KV-V2 secret store). In addition to the plugin, a web client is provided, offering a user-friendly way to interact with the plugin's password management capabilities. User passwords are encrypted client-side with the user's private key before the data is sent to Vault. This means Vault admins cannot view users' secrets. The user's private key is encrypted in an encryption bundle called the User Unique Key (UUK). The UUK contains the information required to decrypt the user's private key through a two-secret key derivation function.
+This project creates a plugin that can be registered with `HashiCorp Vault`. The plugin is responsible for managing `pwmanager` user policies and user KV-V2 secret mounts, which store user passwords.
 
+In addition to the plugin, a web client is provided to offer a user-friendly interface for interacting with the plugin’s password management capabilities. User passwords are encrypted client-side with a symmetric key before being sent to `HashiCorp Vault`. This ensures that if a `HashiCorp Vault` administrator views a user’s password, it will be encrypted. The user’s private key is stored in an encrypted bundle known as the User Unique Key (UUK). The UUK contains the necessary information to decrypt the user’s private key using a two-secret key derivation function. This private key can then decrypt the required keys for encrypting and decrypting data.
 
 
 ## ⚠️ Early Development - Not for Production Use

@@ -3,11 +3,9 @@ import {
 	exportJwkKey,
 	generateSymmetricKey,
 	prikeyDecrypt,
-	hexToBytes,
 	symmetricEncrypt,
 	importJWKkey,
 	symmetricDecrypt,
-	bytesToHex
 } from '$lib/helper';
 import type { EncryptedEntry } from '../models/bundle/vault/entry';
 import type { BundleMetadata as BundleMetadata } from '../models/bundle/vault/metadata';

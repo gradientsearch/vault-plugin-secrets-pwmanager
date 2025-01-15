@@ -25,13 +25,13 @@
 
 	onMount(() => {});
 
-	let onVaultAddFn = (vm: BundleMetadata) => {
+	let onBundleAddFn = (vm: BundleMetadata) => {
 		entries = vm.entries;
 	};
 
 	async function setBundleService() {
-		if (bundle?.Type === 'vault') {
-			bundleService = new KVBundleService(zarf, bundle, onVaultAddFn);
+		if (bundle?.Type === 'bundle') {
+			bundleService = new KVBundleService(zarf, bundle, onBundleAddFn);
 			let err = await bundleService.init();
 			if (err !== undefined) {
 				errorMessage = err;

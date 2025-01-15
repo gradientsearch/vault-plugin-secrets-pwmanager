@@ -22,6 +22,7 @@
 			ID: ''
 		};
 		entry.Metadata = meta;
+		console.log(bundleService)
 		let err = await bundleService.addEntry(entry);
 		if (err !== undefined) {
 			console.log('err: ', err)

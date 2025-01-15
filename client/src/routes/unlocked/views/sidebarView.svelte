@@ -3,19 +3,19 @@
 	import Icon from '../../../components/icon.svelte';
 
 	let { bundle = $bindable() } = $props();
-	let privateBundle: Bundle | null = $state(null);
+	let defaultBundle: Bundle | undefined = $state(undefined);
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
 		if (info !== null) {
 			let infoObj = JSON.parse(info);
-			let p: Bundle = {
-				Type: 'vault',
-				Path: `vaults/${infoObj['entityID']}/private`,
-				Name: 'private',
+			let b: Bundle = {
+				Type: 'bundle',
+				Path: `bundles/${infoObj['entityID']}/${infoObj['entityID']}`,
+				Name: 'default',
 				Owner: infoObj['entityID']
 			};
-			privateBundle = p;
-			bundle = p;
+			defaultBundle = b;
+			bundle = b;
 		}
 	});
 </script>
@@ -32,11 +32,11 @@
 				<div>Bundles</div>
 			</li>
 
-			{#if privateBundle}
+			{#if defaultBundle}
 				<li
 					class="height-[36px] rounded-lg bg-token_side_nav_color_surface_interactive_active px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:bg-token_side_nav_color_surface_interactive_hover"
 				>
-					<div>{privateBundle.Name}</div>
+					<div>{defaultBundle.Name}</div>
 				</li>
 			{/if}
 		</ul>

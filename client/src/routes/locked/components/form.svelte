@@ -7,7 +7,7 @@
 	import CardContainer from '../../../components/cardContainer.svelte';
 	import Title from '../../../components/title.svelte';
 
-	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
+	import IconAndText from '../../../components/iconAndText.svelte';
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 	import { hexToBytes } from '$lib/helper';
 
@@ -76,7 +76,7 @@
 
 <div class="flex h-full w-full justify-center">
 	<div class="flex-row">
-		<VaultIconAndText className="mt-14"></VaultIconAndText>
+		<IconAndText className="mt-14"></IconAndText>
 		<Title className="mb-2 mt-8">Sign in to PwManger</Title>
 		<CardContainer className="overflow-rounded-3xl">
 			<div class="text-md grid min-w-96 grid-cols-1 gap-6">

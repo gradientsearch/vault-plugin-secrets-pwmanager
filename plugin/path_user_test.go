@@ -259,7 +259,7 @@ func TestRegisterUser(t *testing.T) {
 				t.Fatalf("\t%s should be able to list mounts: %s", FAILURE, err)
 			} else {
 				for k, v := range users {
-					mountPath := fmt.Sprintf("vaults/%s/private/", v.LoginResponse.Auth.EntityID)
+					mountPath := fmt.Sprintf("bundles/%s/%s/", v.LoginResponse.Auth.EntityID, v.LoginResponse.Auth.EntityID)
 					if _, ok := mo[mountPath]; !ok {
 						t.Fatalf("\t%s should be able to create vault mount for %s: %s", FAILURE, k, mountPath)
 					}

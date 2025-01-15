@@ -16,7 +16,7 @@
 	let zarf: Zarf | undefined = $state(undefined);
 	let api: Api | undefined;
 	let bundle: Bundle | null = $state(null);
-	let bundleService: BundleService | null = $state(null);
+	let bundleService: BundleService | undefined = $state(undefined);
 	let selectedEntryMetadata: Metadata | undefined = $state();
 	let entries: Entry[] = $state([]);
 

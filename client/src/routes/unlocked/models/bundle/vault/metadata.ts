@@ -1,6 +1,6 @@
 import type { Metadata as EntryMetadata } from '../../entry';
 
-export interface VaultMetadata {
+export interface BundleMetadata {
 	entries: EntryMetadata[];
 }
 

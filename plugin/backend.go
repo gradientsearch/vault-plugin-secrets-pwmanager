@@ -164,7 +164,7 @@ func (p *pwManagerBackend) Login() error {
 
 // backendHelp should contain help information for the backend
 const backendHelp = `
-The PwManager secrets backend manages access to encrypted user password vaults.
+The PwManager secrets backend manages access to encrypted user password bundles.
 After mounting this backend, users can register with this mount and start creating
-password vaults and adding secrets to those vaults via end-to-end encryption using 2KSD.
+password bundles and adding password entries to those bundles via end-to-end encryption using 2KSD.
 `

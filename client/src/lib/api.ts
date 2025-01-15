@@ -1,6 +1,6 @@
 import type { HvEncryptedEntry } from '../routes/unlocked/models/bundle/vault/entry';
-import type { VaultSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
-import type { HvMetadata, VaultMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
+import type { BundleSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
+import type { HvMetadata, BundleMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
 import { convertCase, revertCase } from './jsonKey';
 import type { newUUK, UUK } from './uuk';
 
@@ -92,10 +92,10 @@ export class Api {
 		return [entriesMetadata, undefined];
 	}
 
-	async getVaultSymmetricKey(
+	async getBundleSymmetricKey(
 		b: Bundle,
 		entityID: string
-	): Promise<[VaultSymmetricKey | undefined, Error | undefined]> {
+	): Promise<[BundleSymmetricKey | undefined, Error | undefined]> {
 		let response = await this.get(`${b.Path}/data/keys/${entityID}`);
 
 		if (response.status === 404) {
@@ -107,7 +107,7 @@ export class Api {
 			return [undefined, new Error(`error getting vault symmetric key: ${err}`)];
 		}
 
-		let vsk = (await response.json()) as VaultSymmetricKey;
+		let vsk = (await response.json()) as BundleSymmetricKey;
 
 		return [vsk, undefined];
 	}

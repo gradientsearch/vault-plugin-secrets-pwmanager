@@ -3,14 +3,12 @@ import {
 	exportJwkKey,
 	generateSymmetricKey,
 	prikeyDecrypt,
-	hexToBytes,
 	symmetricEncrypt,
 	importJWKkey,
 	symmetricDecrypt,
-	bytesToHex
 } from '$lib/helper';
 import type { EncryptedEntry } from '../models/bundle/vault/entry';
-import type { VaultMetadata } from '../models/bundle/vault/metadata';
+import type { BundleMetadata as BundleMetadata } from '../models/bundle/vault/metadata';
 import type { Entry, Metadata } from '../models/entry';
 import type { Zarf } from '../models/zarf';
 import { userService } from './user.service';
@@ -21,22 +19,22 @@ import { userService } from './user.service';
  */
 export interface BundleService {
 	addEntry(pi: Entry): Promise<Error | undefined>;
-	getMetadata(): Promise<[VaultMetadata | undefined, Error | undefined]>;
+	getMetadata(): Promise<[BundleMetadata | undefined, Error | undefined]>;
 	init(): Promise<Error | undefined>;
 }
 
 /**
- * A VaultBundleService is responsible for interfacing with a HashiCorp Vault KV2 secret mount. w.r.t.
- * pwmanager a a KV2 secret mount is a vault. A vault has the following path convention
- * `vaults/{{ identity.entity.id }}/<vault name>
+ * A KVBundleService is responsible for interfacing with a HashiCorp Vault KV2 secret mount. w.r.t.
+ * pwmanager. A KV2 secret mount is a bundle of password entries. A bundle has the following path convention
+ * `bundles/{{ identity.entity.id }}/<bundle guid>
  *
  * The KV2 secret mount contains the following paths:
- * - keys/{{ identity.entity.id }}: each vault has a symmetric key used to encrypt all secrets. That
+ * - keys/{{ identity.entity.id }}: each bundle has a symmetric key used to encrypt all secrets. That
  * symmetric keys is encrypted with users public key
- * - metadata: vault metadata for each entry
+ * - metadata: bundle metadata for each entry
  * - entries/<entry name>: user entires
  */
-export class VaultBundleService implements BundleService {
+export class KVBundleService implements BundleService {
 	onAddFn: Function;
 	zarf: Zarf;
 	bundle: Bundle;
@@ -53,15 +51,15 @@ export class VaultBundleService implements BundleService {
 		//whats the entity id
 
 		let entityID = userService.getEntityID();
-		let [key, err] = await this.zarf.Api.getVaultSymmetricKey(this.bundle, entityID);
+		let [key, err] = await this.zarf.Api.getBundleSymmetricKey(this.bundle, entityID);
 		if (err?.toString().includes('404 not found')) {
-			let [key, err] = await this.createVaultEncryptionKey(entityID);
+			let [key, err] = await this.createBundleEncryptionKey(entityID);
 
 			if (err !== undefined) {
 				return err;
 			}
 
-			err = await this.createVaultMetadata();
+			err = await this.createBundleMetadata();
 			if (err != undefined) {
 				return err;
 			}
@@ -75,14 +73,14 @@ export class VaultBundleService implements BundleService {
 			let ck = await importJWKkey(jwkObj);
 			this.symmetricKey = ck;
 		} else if (this.symmetricKey === undefined) {
-			return Error('error retrieving vault symmetric key');
+			return Error('error retrieving bundle symmetric key');
 		}
 	}
 
-	async createVaultEncryptionKey(
+	async createBundleEncryptionKey(
 		entityID: string
 	): Promise<[CryptoKey | undefined, Error | undefined]> {
-		// TODO make this a version CAS version 0 only operation. Never want to overwrite a vault symmetric key
+		// TODO make this a version CAS version 0 only operation. Never want to overwrite a bundle symmetric key
 		let key = await generateSymmetricKey();
 		let jwk = await exportJwkKey(key);
 		let encrypted = await pubkeyEncrypt(
@@ -92,31 +90,31 @@ export class VaultBundleService implements BundleService {
 		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
 		if (err !== undefined) {
 			console.log('err: ', err);
-			return [undefined, Error('error retrieving vault symmetric key : ', err)];
+			return [undefined, Error('error retrieving bundle symmetric key : ', err)];
 		}
 		this.symmetricKey = key;
 		return [key, undefined];
 	}
 
-	async createVaultMetadata(): Promise<Error | undefined> {
-		let metadata: VaultMetadata = {
+	async createBundleMetadata(): Promise<Error | undefined> {
+		let metadata: BundleMetadata = {
 			entries: []
 		};
 		let [data, err] = await this.encryptPayload(metadata);
 		if (err !== undefined) {
-			return Error('error encrypted vault metadata');
+			return Error('error encrypted bundle metadata');
 		}
 
 		err = await this.zarf.Api.PutMetadata(this.bundle, data);
 		if (err !== undefined) {
-			return Error('error creating encrypted vault metadata');
+			return Error('error creating encrypted bundle metadata');
 		}
 	}
 
 	async encryptPayload(payload: any): Promise<[string | undefined, Error | undefined]> {
 		// TODO refactor this class so this isn't necessary
 		if (this.symmetricKey === undefined) {
-			return [undefined, Error('vault encryption key is undefined')];
+			return [undefined, Error('bundle encryption key is undefined')];
 		}
 
 		let [iv, encrypted] = await symmetricEncrypt(
@@ -139,7 +137,7 @@ export class VaultBundleService implements BundleService {
 	async decryptPayload(ee: EncryptedEntry): Promise<[string | undefined, Error | undefined]> {
 		// TODO refactor this class so this isn't necessary
 		if (this.symmetricKey === undefined) {
-			return [undefined, Error('vault encryption key is undefined')];
+			return [undefined, Error('bundle encryption key is undefined')];
 		}
 
 		let decrypted = await symmetricDecrypt(ee.entry, ee.iv, this.symmetricKey);
@@ -147,7 +145,7 @@ export class VaultBundleService implements BundleService {
 		return [decrypted, undefined];
 	}
 
-	async getMetadata(): Promise<[VaultMetadata | undefined, Error | undefined]> {
+	async getMetadata(): Promise<[BundleMetadata | undefined, Error | undefined]> {
 		let [md, err] = await this.zarf.Api.getMetadata(this.bundle);
 		if (err !== undefined) {
 			return [undefined, err];
@@ -166,7 +164,7 @@ export class VaultBundleService implements BundleService {
 		if (plaintext === undefined) {
 			return [undefined, Error('decrypted metadata entry undefined')];
 		}
-		let vm = JSON.parse(plaintext) as VaultMetadata;
+		let vm = JSON.parse(plaintext) as BundleMetadata;
 
 		return [vm, undefined];
 	}
@@ -190,10 +188,8 @@ export class VaultBundleService implements BundleService {
 
 		let [metadata, err] = await this.getMetadata();
 		if (err !== undefined) {
-			return Error('error retrieving latest vault metadata');
+			return Error('error retrieving latest bundle metadata');
 		}
-
-		console.log(metadata);
 
 		metadata?.entries.push(e.Metadata);
 
@@ -206,7 +202,6 @@ export class VaultBundleService implements BundleService {
 		}
 
 		// TODO if error delete entry
-
 		this.onAddFn(metadata);
 		return new Promise((resolve) => {
 			resolve(undefined);

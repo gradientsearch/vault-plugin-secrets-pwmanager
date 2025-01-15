@@ -6,7 +6,7 @@
 
 	import { Api } from '$lib/api';
 	import Title from '../../../components/title.svelte';
-	import VaultIconAndText from '../../../components/vaultIconAndText.svelte';
+	import IconAndText from '../../../components/iconAndText.svelte';
 	import { bytesToHex } from '$lib/helper';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
@@ -35,8 +35,8 @@
 		isRegistering = true;
 		let randomSeq = bytesToHex(crypto.getRandomValues(new Uint8Array(15)));
 		let secretKeyDisplay = randomSeq.replace(/(.{6})/g, '$1-').slice(0, -1);
-		register.secretKey = `H1-${register.mount}-${randomSeq}`; // combination Secret ID - secret
-		register.secretKeyDisplay = `H1-${register.mount}-${secretKeyDisplay}`;
+		register.secretKey = `${randomSeq}`; // combination Secret ID - secret
+		register.secretKeyDisplay = `${secretKeyDisplay}`;
 
 		let api = new Api(register.token, register.url, register.mount);
 		let tokenInfo = await api.tokenLookup();
@@ -48,7 +48,6 @@
 			encoder.encode(entityID)
 		);
 
-        
 		let err = await api.register(uuk);
 		if (err != undefined) {
 			errorText = err.message;
@@ -63,9 +62,10 @@
 </script>
 
 {#if !registered}
+	<!-- {#if false} -->
 	<div class="flex h-full w-full justify-center">
 		<div class="flex-row">
-			<VaultIconAndText className="mt-14"></VaultIconAndText>
+			<IconAndText className="mt-14"></IconAndText>
 			<Title className="mb-2 mt-8">Register</Title>
 			<CardContainer className="overflow-rounded-3xl">
 				<div class="text-md grid min-w-96 grid-cols-1 gap-6">
@@ -153,10 +153,10 @@
 			</CardContainer>
 		</div>
 	</div>
-{:else}
+{:else if false}
 	<div class="flex h-full w-full justify-center">
 		<div class="max-w-2xl flex-row gap-3">
-			<VaultIconAndText className="mt-14"></VaultIconAndText>
+			<IconAndText className="mt-14"></IconAndText>
 
 			<div
 				class="mt-6 rounded-3xl bg-red-200 p-3 text-center text-base font-bold text-foreground_high_contrast"
@@ -205,21 +205,27 @@
 					</label>
 				</div></CardContainer
 			>
-
-			<p class="mt-3 text-sm">
-				This page contains your Secret Key and a textbox to fill in your Password Manager Secret,
-				both of which are required to unlock your passwords and secrets. Without these, there is no
-				way to access your vault.
-			</p>
-
-			<p class="text-sm">
-				To ensure you don't lose access, we highly recommend that you print this page and store it
-				in a secure place. Do not share your Secret Key, Password Manager Secret, or password with
-				anyone you do not trust.
-			</p>
-			<p class="text-sm">Store it safely! You are the only one who can unlock your vault.</p>
-
-			<Button fn={()=> {goto(`${base}/locked`)}}>Done</Button>
+			<Button
+				fn={() => {
+					goto(`${base}/locked`);
+				}}>Done</Button
+			>
+		</div>
+	</div>
+{:else}
+	<div class="flex h-full w-full justify-center">
+		<div class="max-w-2xl flex-row gap-3">
+			<IconAndText className="mt-14"></IconAndText>
+			<CardContainer>
+				<div class="flex-col">
+					<p>{register.secretKey}</p>
+					<Button
+						fn={() => {
+							goto(`${base}/locked`);
+						}}>Done</Button
+					>
+				</div>
+			</CardContainer>
 		</div>
 	</div>
 {/if}

@@ -1,12 +1,12 @@
 <script>
-	import VaultIcon from './vaultIcon.svelte';
+	import Icon from './icon.svelte';
 
 	var { className } = $props();
 </script>
 
 <div class="flex-row justify-center {className}">
 	<div class="flex justify-center">
-		<VaultIcon className="brand-icon-large"></VaultIcon>
+		<Icon className="brand-icon-large"></Icon>
 	</div>
 	<p class="text-center text-xs">
 		Vault Password Manager <a

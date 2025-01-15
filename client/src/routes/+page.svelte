@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import Button from '../components/button.svelte';
 	import Card from '../components/card.svelte';
-	import VaultIconAndText from '../components/vaultIconAndText.svelte';
+	import IconAndText from '../components/iconAndText.svelte';
 
 	let secretkey = localStorage.getItem('secretkey');
 	if (secretkey && secretkey.length > 0) {
@@ -14,7 +14,7 @@
 {#if !secretkey}
 <div class="flex h-full w-full justify-center">
 	<div class="flex-row">
-		<VaultIconAndText className="mt-14"></VaultIconAndText>
+		<IconAndText className="mt-14"></IconAndText>
 		<!-- <Card
 			className="mt-6"
 			title="Enroll New Device"

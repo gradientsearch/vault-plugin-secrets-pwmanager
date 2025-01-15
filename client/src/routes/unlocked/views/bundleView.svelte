@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { newPasswordEntry as newPasswordEntry, type Entry } from '../models/entry';
-	import { VaultBundleService, type BundleService } from '../services/bundle.service';
+	import { KVBundleService, type BundleService } from '../services/bundle.service';
 	import { base } from '$app/paths';
-	import type { VaultMetadata } from '../models/bundle/vault/metadata';
+	import type { BundleMetadata } from '../models/bundle/vault/metadata';
 
 	let headerHeight = $state(0);
 	let errorMessage: string | undefined = $state(undefined);
@@ -25,13 +25,13 @@
 
 	onMount(() => {});
 
-	let onVaultAddFn = (vm: VaultMetadata) => {
+	let onBundleAddFn = (vm: BundleMetadata) => {
 		entries = vm.entries;
 	};
 
 	async function setBundleService() {
-		if (bundle?.Type === 'vault') {
-			bundleService = new VaultBundleService(zarf, bundle, onVaultAddFn);
+		if (bundle?.Type === 'bundle') {
+			bundleService = new KVBundleService(zarf, bundle, onBundleAddFn);
 			let err = await bundleService.init();
 			if (err !== undefined) {
 				errorMessage = err;
@@ -43,7 +43,7 @@
 				errorMessage = 'Error loading entries';
 			}
 			console.log(entries);
-			entries = (vm as VaultMetadata).entries;
+			entries = (vm as BundleMetadata).entries;
 			console.log(vm);
 		}
 	}

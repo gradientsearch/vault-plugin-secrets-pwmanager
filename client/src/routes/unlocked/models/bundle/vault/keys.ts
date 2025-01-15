@@ -1,4 +1,4 @@
-export interface VaultSymmetricKey {
+export interface BundleSymmetricKey {
   request_id: string;
   lease_id: string;
   renewable: boolean;

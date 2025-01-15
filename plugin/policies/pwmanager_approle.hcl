@@ -1,5 +1,5 @@
 # kv secret mount pwmgr uses as a data store
-path "/sys/mounts/vaults/*" {
+path "/sys/mounts/bundles/*" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }
 

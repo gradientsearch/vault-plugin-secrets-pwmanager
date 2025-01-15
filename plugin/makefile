@@ -22,7 +22,7 @@ client: run-docker run-unseal run-token
 run-docker:
 	mkdir -p vault/data && \
 	chmod -R 777 vault && \
-	docker run -d --cap-add=IPC_LOCK -e 'VAULT_LOCAL_CONFIG={"api_addr":"http://0.0.0.0:8200", "plugin_directory": "/plugins", "storage": {"file": {"path": "/data/file"}}, "listener": [{"tcp": { "address": "0.0.0.0:8200", "tls_disable": true}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h", "ui": true}' -p 8200:8200 -v ${PWD}/vault/plugins/local:/plugins  -v ${PWD}/vault/data:/data --name pwmanger-vault hashicorp/vault  server && \
+	docker run -d --cap-add=IPC_LOCK -e 'VAULT_LOCAL_CONFIG={"api_addr":"http://0.0.0.0:8200", "plugin_directory": "/plugins", "storage": {"file": {"path": "/data/file"}}, "listener": [{"tcp": { "address": "0.0.0.0:8200", "tls_disable": true}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h", "ui": true}' -p 8200:8200 -v ${PWD}/vault/plugins/local:/plugins  -v ${PWD}/vault/data:/data --name pwmanager-vault hashicorp/vault  server && \
 	sleep 5 && \
 	vault operator init -key-shares=1 -key-threshold=1 -format=json > ${PWD}/vault/json
 

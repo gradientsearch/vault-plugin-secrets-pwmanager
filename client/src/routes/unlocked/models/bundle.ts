@@ -1,6 +1,6 @@
 /**
- * A Bundle is a description of a group of entries. Could be a group of Vault Entries or a group of
- * Entry types such as password, login, or secure note.
+ * A Bundle is a description of a group of entries. Could be a group of KV Entries or a group of
+ * Entry types such as password.
  */
 interface Bundle {
 	Type: string;

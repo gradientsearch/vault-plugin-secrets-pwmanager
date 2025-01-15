@@ -9,8 +9,8 @@
 		if (info !== null) {
 			let infoObj = JSON.parse(info);
 			let p: Bundle = {
-				Type: 'bundle',
-				Path: `bundle/${infoObj['entityID']}/private`,
+				Type: 'vault',
+				Path: `vaults/${infoObj['entityID']}/private`,
 				Name: 'private',
 				Owner: infoObj['entityID']
 			};

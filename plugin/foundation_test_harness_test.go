@@ -62,12 +62,14 @@ func StartDB(name string, t *testing.T) (Container, error) {
 	const image = "hashicorp/vault:1.18.3"
 	const port = "8200"
 
-	dockerArgs := []string{"-e", "VAULT_DEV_ROOT_TOKEN_ID=" + token, "-e", "VAULT_DEV_LISTEN_ADDRESS=" + address, "-v", fmt.Sprintf("./vault/plugins/%s:/plugins", name)}
-	appArgs := []string{"server", "-dev", "-dev-root-token-id=root", "-dev-plugin-dir=/plugins", "-log-level=debug"}
+	//dockerArgs := []string{"-e", "VAULT_DEV_ROOT_TOKEN_ID=" + token, "-e", "VAULT_DEV_LISTEN_ADDRESS=" + address}
+	appArgs := []string{"server", "-dev", "-dev-root-token-id=root", "-log-level=debug"}
+	dockerArgs := []string{"-e", "VAULT_DEV_ROOT_TOKEN_ID=" + token, "-e", "VAULT_DEV_LISTEN_ADDRESS=" + address, "-v", fmt.Sprintf("/home/ubuntu/git/vault-plugin-secrets-pwmanager/plugin/vault/plugins/%s:/plugins", name)}
+	//appArgs := []string{"server", "-dev", "-dev-root-token-id=root", "-dev-plugin-dir=/plugins", "-log-level=debug"}
 
 	c, err := StartContainer(image, name, port, dockerArgs, appArgs)
 	if err != nil {
-		return Container{}, fmt.Errorf("starting container: %w", err)
+		return Container{}, fmt.Errorf("error starting container make sure the file permission are set to 755: %w", err)
 	}
 
 	t.Logf("Image:       %s\n", image)

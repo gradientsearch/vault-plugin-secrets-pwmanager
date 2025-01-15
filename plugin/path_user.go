@@ -273,12 +273,12 @@ func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.
 		return nil, err
 	}
 
-	// create private kv store
-	usersPrivateMountPath := fmt.Sprintf("vaults/%s/private", req.EntityID)
+	// create default kv store
+	usersDefaultMountPath := fmt.Sprintf("bundles/%s/%s", req.EntityID, req.EntityID)
 	mi := api.MountInput{
 		Type: "kv-v2",
 	}
-	err = b.c.c.Sys().Mount(usersPrivateMountPath, &mi)
+	err = b.c.c.Sys().Mount(usersDefaultMountPath, &mi)
 	//	TODO Delete user on error creating private vault
 
 	return nil, err

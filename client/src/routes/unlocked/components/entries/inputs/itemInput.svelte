@@ -1,6 +1,6 @@
 <script lang="ts">
 
-let {label, type, placeholder,  value = $bindable(), idx, last} = $props()
+let {label, type, placeholder,  value = $bindable(), idx, last, id} = $props()
 </script>
 
 <label

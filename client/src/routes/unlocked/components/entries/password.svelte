@@ -43,6 +43,7 @@ This is the component used to show the password Entry.
 					bind:value={v.Value}
 					{idx}
 					last={entry.Core.Items.length - 1 === idx}
+					id={entry.Metadata.ID}
 				/>
 			{/each}
 		</div>

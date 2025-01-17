@@ -24,3 +24,19 @@ We recommend that you use this repository for testing and experimentation purpos
 ### Register User Flow
 
 ![register-flow drawio](https://github.com/user-attachments/assets/f590c38c-683e-483c-a813-fca52cce3b37)
+
+
+
+
+
+## License
+
+The client code for this project is licensed under the MIT License. You are free to use, modify, and distribute this code, including for commercial purposes, provided that you include the original copyright notice and disclaimers.
+
+The plugin code is licensed under the Mozilla Public License 2.0 (MPL-2.0). This is because I used the HashiCups demo as a starting point for developing the plugin. The MPL allows for the use, modification, and distribution of the code, but it requires that any modifications to the plugin code be released under the same MPL license.
+
+### License Details:
+
+Client Code: MIT License
+Plugin Code: Mozilla Public License 2.0 (MPL-2.0)
+You can find the full text of these licenses in the MIT License and MPL-2.0 License sections.

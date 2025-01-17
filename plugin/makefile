@@ -3,46 +3,42 @@ SHELL_PATH = /bin/ash
 SHELL = $(if $(wildcard $(SHELL_PATH)),/bin/ash,/bin/bash)
 PWD = $(shell pwd)
 
-build: plugin  run-debug
+setup:
+	export VAULT_ADDR=http://127.0.0.1:8200 && \
+	export VAULT_TOKEN=root && \
+    $(MAKE) dev
 
-plugin:
+dev: build-plugin debug sleep unseal sleep register enable appRole config secretMount userpass entity cors
+
+# Kill the vault server. Run before running setup again.
+kill:
+	$(shell kill $$(ps aux | grep 'vault server' | awk '{print $2}'))
+
+sleep:
+	sleep 5
+
+build-plugin:
 	go clean -testcache && \
 	go clean && \
 	go build -o vault/plugins/local/pwmanager cmd/vault-plugin-secrets-pwmanager/main.go
 
-run-debug:
-	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins/local -log-level=debug
+debug:
+	vault server -dev -dev-root-token-id=root -dev-plugin-dir=./vault/plugins/local -log-level=debug &
 
 
-# set up vault with file storage for client development
-# root token is stored in ./vault/dev_root_token.txt
-# export VAULT_TOKEN=$(cat vault/dev_root_token.txt)
-client: run-docker run-unseal run-token
-
-run-docker:
-	mkdir -p vault/data && \
-	chmod -R 777 vault && \
-	docker run -d --cap-add=IPC_LOCK -e 'VAULT_LOCAL_CONFIG={"api_addr":"http://0.0.0.0:8200", "plugin_directory": "/plugins", "storage": {"file": {"path": "/data/file"}}, "listener": [{"tcp": { "address": "0.0.0.0:8200", "tls_disable": true}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h", "ui": true}' -p 8200:8200 -v ${PWD}/vault/plugins/local:/plugins  -v ${PWD}/vault/data:/data --name pwmanager-vault hashicorp/vault  server && \
-	sleep 5 && \
-	vault operator init -key-shares=1 -key-threshold=1 -format=json > ${PWD}/vault/json
-
-run-unseal:
+unseal:
 	$(eval KEY := $(shell cat ${PWD}/vault/json | jq -r '.unseal_keys_b64 | first ' | tr -d '\n'))
 	vault operator unseal $(KEY)
 
-run-token:
+token:
 	cat ${PWD}/vault/json | jq -r '.root_token' | tr -d '\n' > ${PWD}/vault/dev_root_token.txt
 	export VAULT_TOKEN=$(shell cat vault/dev_root_token.txt)
-
 
 register:
 	vault plugin register -sha256=$(shell sha256sum ./vault/plugins/local/pwmanager | cut -d ' ' -f1 | tr -d '\n') -version=v0.1.0 secret pwmanager
 
 unregister:
 	vault plugin deregister -version=v0.1.0 secret pwmanager
-
-
-configure: enable appRole config secretMount userpass entity cors
 
 enable:
 	vault secrets enable -path=pwmanager pwmanager
@@ -77,7 +73,7 @@ secretMount:
 	vault secrets enable -version=2 -path=pwmanagerkv kv
 
 userpass:
-	vault auth enable userpass 
+	vault auth enable userpass
 	vault write auth/userpass/users/stephen password=hashicorp token_policies="plugins/pwmanager-user-default,pwmanager/entity/stephen" token_ttl="24h"
 
 login:
@@ -87,4 +83,15 @@ entity:
 	vault write /identity/entity/id/$(shell vault write -format json auth/userpass/login/stephen password=hashicorp | jq -r '.auth.entity_id' | tr -d "\n") name=stephen
 	vault policy write plugins/pwmanager-user-default policies/pwmanager_user_default.hcl
 
+# set up vault with file storage for client development
+# root token is stored in ./vault/dev_root_token.txt
+# export VAULT_TOKEN=$(cat vault/dev_root_token.txt)
+# TODO: need to fix plugin not found error when using hashicorp/vault image https://github.com/hashicorp/vault/issues/26550
+client: docker-run unseal token
 
+docker-run:
+	mkdir -p vault/data && \
+	chmod -R 777 vault && \
+	docker run -d --cap-add=IPC_LOCK -e 'VAULT_LOCAL_CONFIG={"api_addr":"http://0.0.0.0:8200", "plugin_directory": "/plugins", "storage": {"file": {"path": "/data/file"}}, "listener": [{"tcp": { "address": "0.0.0.0:8200", "tls_disable": true}}], "default_lease_ttl": "168h", "max_lease_ttl": "720h", "ui": true}' -p 8200:8200 -v ${PWD}/vault/plugins/local:/plugins  -v ${PWD}/vault/data:/data --name pwmanager-vault hashicorp/vault  server && \
+	sleep 5 && \
+	vault operator init -key-shares=1 -key-threshold=1 -format=json > ${PWD}/vault/json

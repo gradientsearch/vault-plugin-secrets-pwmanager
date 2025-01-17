@@ -20,13 +20,36 @@ We recommend that you use this repository for testing and experimentation purpos
 
 > In this demo, I showcase an open-source password manager I’m currently developing, which integrates with HashiCorp Vault via a Vault plugin. I walk through the process of registering a user, unlocking the password manager, and creating and viewing passwords. Additionally, I explain how password entries are stored in Vault using the KV-v2 secret engine, including the encryption and decryption processes, and how Vault policies control access to these entries.
 
+# Environment Setup Instructions
+
+1. **Navigate to the `plugin` directory:**
+   ```bash
+   cd plugin
+   ```
+
+2. **Run the `make setup` command:**
+   ```bash
+   make setup
+   ```
+   This will:
+   - Start the Vault server.
+   - Configure the password manager.
+   - Set up a test user.
+
+3. **Navigate to the `client` directory:**
+   ```bash
+   cd ../client
+   ```
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+   This will start a local webpage where you can begin working on the client-side code.
 
 ### Register User Flow
 
 ![register-flow drawio](https://github.com/user-attachments/assets/f590c38c-683e-483c-a813-fca52cce3b37)
-
-
-
 
 
 ## License

@@ -6,7 +6,7 @@ PWD = $(shell pwd)
 setup:
 	export VAULT_ADDR=http://127.0.0.1:8200 && \
 	export VAULT_TOKEN=root && \
-    $(MAKE) dev
+	$(MAKE) dev
 
 dev: build-plugin debug sleep unseal sleep register enable appRole config secretMount userpass entity cors
 

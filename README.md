@@ -10,6 +10,16 @@ This repository is currently in early development. The code may be unstable, inc
 
 We recommend that you use this repository for testing and experimentation purposes only, and proceed with caution. Contributions and feedback are welcome as we continue to improve the project!
 
+## Milestone Demo
+
+> [!NOTE] 
+> I will continue to make short videos like this to show progress and review code, so future contributors can ramp up quickly. You can find these updates on my YouTube channel: [@gradientsearch](https://www.youtube.com/@gradientsearch).
+
+
+[create password demo](https://github.com/user-attachments/assets/5176f4a6-4bfd-4d4e-9862-b7f8e61d97fa)
+
+> In this demo, I showcase an open-source password manager I’m currently developing, which integrates with HashiCorp Vault via a Vault plugin. I walk through the process of registering a user, unlocking the password manager, and creating and viewing passwords. Additionally, I explain how password entries are stored in Vault using the KV-v2 secret engine, including the encryption and decryption processes, and how Vault policies control access to these entries.
+
 
 ### Register User Flow
 

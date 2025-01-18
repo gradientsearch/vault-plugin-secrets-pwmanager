@@ -172,7 +172,6 @@ export class KVBundleService implements BundleService {
 	async putEntry(e: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// encrypt
-		console.log(e.Metadata)
 		let newEntry = e.Metadata.ID.length === 0;
 		if (newEntry) {
 			let entryName = crypto.randomUUID();
@@ -194,14 +193,14 @@ export class KVBundleService implements BundleService {
 			return Error('error retrieving latest bundle metadata');
 		}
 
-		if (metadata === undefined){
+		if (metadata === undefined) {
 			return Error('error metadata should be defined but was undefined');
 		}
 
-		// loop through and update metadata if it exists
 		if (newEntry) {
 			metadata?.entries.push(e.Metadata);
 		} else {
+			// loop through and update metadata if it exists
 			let updatedMetadata: Metadata[] = [];
 			metadata?.entries.forEach((me) => {
 				if (me.ID === e.Metadata.ID) {
@@ -211,7 +210,7 @@ export class KVBundleService implements BundleService {
 				}
 			});
 
-			metadata.entries = updatedMetadata
+			metadata.entries = updatedMetadata;
 		}
 
 		let ep = await this.encryptPayload(metadata);
@@ -224,9 +223,7 @@ export class KVBundleService implements BundleService {
 
 		// TODO if error delete entry
 		this.onEntriesChanged(metadata);
-		return new Promise((resolve) => {
-			resolve(undefined);
-		});
+		return undefined;
 	}
 
 	async getEntry(m: Metadata): Promise<[Entry | undefined, Error | undefined]> {
@@ -248,6 +245,37 @@ export class KVBundleService implements BundleService {
 
 		let e = JSON.parse(payload);
 		return [e, undefined];
+	}
+
+	async deleteEntry(id: string): Promise<Error | undefined> {
+		let [metadata, err] = await this.getMetadata();
+		if (err !== undefined) {
+			return Error('error retrieving latest bundle metadata');
+		}
+
+		if (metadata === undefined) {
+			return Error('error metadata should be defined but was undefined');
+		}
+
+		// loop through and and remove metadata matching
+		let updatedMetadata: Metadata[] = [];
+		metadata?.entries.forEach((me) => {
+			if (me.ID !== id) {
+				updatedMetadata.push(me);
+			}
+		});
+
+		metadata.entries = updatedMetadata;
+
+		let ep = await this.encryptPayload(metadata);
+
+		// TODO add CAS version from
+		let err4 = await this.zarf.Api.PutMetadata(this.bundle, ep);
+		if (err4 !== undefined) {
+			return Error('error putting metadata: ', err4);
+		}
+
+		return undefined;
 	}
 }
 

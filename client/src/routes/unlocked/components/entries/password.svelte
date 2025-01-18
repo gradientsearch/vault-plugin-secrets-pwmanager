@@ -26,7 +26,6 @@ This is the component used to show the password Entry.
 		save = () => {}
 	} = $props();
 
-
 	async function onSave() {
 		let meta: Metadata = {
 			Name: entry.Name,
@@ -34,20 +33,25 @@ This is the component used to show the password Entry.
 			// Important to note that the 0 indexed value for Password item is username
 			// if this were to to the 1 index that would be the password!
 			Value: entry.Core.Items[0].Value,
-			ID: ''
+			ID: entry.Metadata.ID ? entry.Metadata.ID : ''
 		};
 		entry.Metadata = meta;
+
 		let err = await bundleService.addEntry(entry);
 		if (err !== undefined) {
 			console.log('err: ', err);
+
 			// alert user there was a problem saving the password
 		} else {
-			save()
+			save();
+			mode = MODE.VIEW;
 		}
+	
 	}
 
 	function onCancel() {
 		cancel();
+		mode = MODE.VIEW;
 	}
 </script>
 
@@ -78,7 +82,7 @@ This is the component used to show the password Entry.
 					{idx}
 					last={entry.Core.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
-					mode={mode}
+					{mode}
 				/>
 			{/each}
 		</div>
@@ -89,6 +93,14 @@ This is the component used to show the password Entry.
 		<div class="p-4">
 			<Button fn={onSave}>Save</Button>
 			<Button fn={onCancel} primary={false}>Cancel</Button>
+		</div>
+	{:else}
+		<div class="p-4">
+			<Button
+				fn={() => {
+					mode = MODE.EDIT;
+				}}>Edit</Button
+			>
 		</div>
 	{/if}
 </form>

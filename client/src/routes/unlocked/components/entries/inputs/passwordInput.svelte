@@ -155,10 +155,4 @@ This is the component used to show the password input element
 				</div>
 			{/if}
 		</div>
-		
-	<!-- {:else if mode === MODE.VIEW}
-		<div bind:clientHeight={inputHeight} class=" w-full flex-1">
-			<ItemInput type={'password'} {label} {placeholder} bind:value {idx} {last} {id} bind:mode={mode}></ItemInput>
-		</div>
-	{/if} -->
 </div>

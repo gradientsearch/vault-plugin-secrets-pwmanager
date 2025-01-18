@@ -5,7 +5,7 @@ import {
 	prikeyDecrypt,
 	symmetricEncrypt,
 	importJWKkey,
-	symmetricDecrypt,
+	symmetricDecrypt
 } from '$lib/helper';
 import type { EncryptedEntry } from '../models/bundle/vault/entry';
 import type { BundleMetadata as BundleMetadata } from '../models/bundle/vault/metadata';
@@ -123,13 +123,13 @@ export class KVBundleService implements BundleService {
 		);
 
 		let ed: EncryptedEntry = {
-				entry: encrypted,
-				iv: iv
+			entry: encrypted,
+			iv: iv
 		};
 
 		let data = {
 			data: ed
-		}
+		};
 
 		return [JSON.stringify(data), undefined];
 	}
@@ -171,14 +171,17 @@ export class KVBundleService implements BundleService {
 	async addEntry(e: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// encrypt
-		let entryName = crypto.randomUUID();
-		e.Metadata.ID = entryName;
+		console.log(e.Metadata)
+		let newEntry = e.Metadata.ID.length === 0;
+		if (newEntry) {
+			let entryName = crypto.randomUUID();
+			e.Metadata.ID = entryName;
+		}
 
 		let [data, err2] = await this.encryptPayload(e);
 		if (err2 != undefined) {
 			return err2;
 		}
-
 
 		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.ID);
 		if (err3 !== undefined) {
@@ -190,7 +193,25 @@ export class KVBundleService implements BundleService {
 			return Error('error retrieving latest bundle metadata');
 		}
 
-		metadata?.entries.push(e.Metadata);
+		if (metadata === undefined){
+			return Error('error metadata should be defined but was undefined');
+		}
+
+		// loop through and update metadata if it exists
+		if (newEntry) {
+			metadata?.entries.push(e.Metadata);
+		} else {
+			let updatedMetadata: Metadata[] = [];
+			metadata?.entries.forEach((me) => {
+				if (me.ID === e.Metadata.ID) {
+					updatedMetadata.push(e.Metadata);
+				} else {
+					updatedMetadata.push(me);
+				}
+			});
+
+			metadata.entries = updatedMetadata
+		}
 
 		let ep = await this.encryptPayload(metadata);
 
@@ -208,24 +229,23 @@ export class KVBundleService implements BundleService {
 	}
 
 	async getEntry(m: Metadata): Promise<[Entry | undefined, Error | undefined]> {
-		let [hee, err] = await this.zarf.Api.GetEntry(this.bundle, m.ID)
+		let [hee, err] = await this.zarf.Api.GetEntry(this.bundle, m.ID);
 
-		if (err !== undefined){
-			return [undefined, Error(`error getting entry: ${err}`)]
+		if (err !== undefined) {
+			return [undefined, Error(`error getting entry: ${err}`)];
 		}
 
-		if (hee === undefined){
-			return [undefined, Error(`error - encrypted entry is undefined: ${err}`)]
+		if (hee === undefined) {
+			return [undefined, Error(`error - encrypted entry is undefined: ${err}`)];
 		}
 
-		let [payload, err2] = await this.decryptPayload(hee.data.data)
-
+		let [payload, err2] = await this.decryptPayload(hee.data.data);
 
 		if (err2 !== undefined || payload === undefined) {
-			return [undefined, Error(`error decrypting EncryptedEntry: ${err}`)]
+			return [undefined, Error(`error decrypting EncryptedEntry: ${err}`)];
 		}
 
-		let e = JSON.parse(payload)
+		let e = JSON.parse(payload);
 		return [e, undefined];
 	}
 }

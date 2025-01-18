@@ -168,6 +168,7 @@ export class KVBundleService implements BundleService {
 		return [vm, undefined];
 	}
 
+	// TODO: rename this to put entry
 	async addEntry(e: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// encrypt

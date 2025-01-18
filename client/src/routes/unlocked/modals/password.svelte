@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Button from '../../../components/button.svelte';
-	import { newPasswordEntry, type Metadata, type Entry } from '../models/entry';
+	import { newPasswordEntry, type Metadata, type Entry, MODE } from '../models/entry';
 	import Password from '../components/entries/password.svelte';
 	import type { BundleService } from '../services/bundle.service';
 
@@ -38,5 +38,5 @@
 </script>
 
 <div class="flex flex-col" style="height: {clientHeight}px;">
-	<Password bind:entry bind:bundleService cancel={cancel} state={'create'}></Password>
+	<Password bind:entry bind:bundleService cancel={cancel} mode={MODE.EDIT}></Password>
 </div>

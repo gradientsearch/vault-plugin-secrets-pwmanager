@@ -1,6 +1,19 @@
 <script lang="ts">
+	import { MODE } from "../../../models/entry";
 
-let {label, type, placeholder,  value = $bindable(), idx, last, id} = $props()
+
+let {label, type, placeholder,  value = $bindable(), idx, last, id, mode = $bindable<MODE>()} = $props()
+let disabled = $state(false)
+
+$effect(()=>{
+		mode;
+
+		if (mode=== MODE.EDIT) {
+			disabled = false
+		} else {
+			disabled = true
+		}
+	})
 </script>
 
 <label
@@ -17,6 +30,8 @@ let {label, type, placeholder,  value = $bindable(), idx, last, id} = $props()
 			placeholder="{placeholder}"
 			class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm"
             bind:value={value}
+			disabled={mode === MODE.VIEW}
 		/>
+		MODE {mode === MODE.VIEW}
 	</div>
 </label>

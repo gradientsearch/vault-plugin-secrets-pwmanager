@@ -14,18 +14,17 @@ This is the component used to show the password Entry.
 <script lang="ts">
 	import { base } from '$app/paths';
 	import Button from '../../../../components/button.svelte';
-	import type { Metadata } from '../../models/entry';
+	import { MODE, type Metadata } from '../../models/entry';
 	import type { BundleService } from '../../services/bundle.service';
 	import { getInputComponent } from '../entries/components';
 
 	let {
 		entry = $bindable(),
 		bundleService = $bindable<BundleService>(),
-		state = 'create',
+		mode = $bindable<MODE>(),
 		cancel = () => {}
 	} = $props();
 
-	let states = ['create', 'view', 'edit'];
 
 	async function onSave() {
 		let meta: Metadata = {
@@ -77,14 +76,17 @@ This is the component used to show the password Entry.
 					{idx}
 					last={entry.Core.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
+					mode={mode}
 				/>
 			{/each}
 		</div>
 	</div>
 
 	<span class="flex flex-1"></span>
-	<div class="p-4">
-		<Button fn={onSave}>Save</Button>
-		<Button fn={onCancel} primary={false}>Cancel</Button>
-	</div>
+	{#if mode === MODE.EDIT}
+		<div class="p-4">
+			<Button fn={onSave}>Save</Button>
+			<Button fn={onCancel} primary={false}>Cancel</Button>
+		</div>
+	{/if}
 </form>

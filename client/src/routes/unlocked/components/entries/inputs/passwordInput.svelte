@@ -18,10 +18,13 @@ This is the component used to show the password input element
 
 
 <script lang="ts">
+	import { MODE } from '../../../models/entry';
+
+	
 	import ItemInput from './itemInput.svelte';
 	let reveal = $state(false);
 	let inputHeight = $state(0);
-	let { label, placeholder, value = $bindable(), idx, last, id } = $props();
+	let { label, placeholder, value = $bindable(), idx, last, id, mode} = $props();
 
 
 	/** effect needed to conceal passwords when an entry changes
@@ -35,7 +38,8 @@ This is the component used to show the password input element
 		inputType = 'password'
 	})
 
-	let viewState = $state('edit');
+
+
 	let showMenu = $state(false);
 	let inputType = $state('password');
 
@@ -52,9 +56,9 @@ This is the component used to show the password input element
 </script>
 
 <div class="relative flex flex-row">
-	{#if viewState === 'edit'}
+	{#if mode === MODE.EDIT}
 		<div bind:clientHeight={inputHeight} class=" w-full flex-1">
-			<ItemInput type={inputType} {label} {placeholder} bind:value {idx} {last} id={id}></ItemInput>
+			<ItemInput type={inputType} {label} {placeholder} bind:value {idx} {last} id={id} bind:mode={mode}></ItemInput>
 		</div>
 
 		<div class="absolute right-0"></div>
@@ -154,9 +158,9 @@ This is the component used to show the password input element
 				</div>
 			{/if}
 		</div>
-	{:else if viewState === 'new'}
+	{:else if mode === MODE.VIEW}
 		<div bind:clientHeight={inputHeight} class=" w-full flex-1">
-			<ItemInput type={'password'} {label} {placeholder} bind:value {idx} {last} {id}></ItemInput>
+			<ItemInput type={'password'} {label} {placeholder} bind:value {idx} {last} {id} bind:mode={mode}></ItemInput>
 		</div>
 	{/if}
 </div>

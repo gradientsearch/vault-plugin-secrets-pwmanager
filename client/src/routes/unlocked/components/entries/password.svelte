@@ -37,7 +37,6 @@ This is the component used to show the password Entry.
 			ID: ''
 		};
 		entry.Metadata = meta;
-		console.log(bundleService);
 		let err = await bundleService.addEntry(entry);
 		if (err !== undefined) {
 			console.log('err: ', err);

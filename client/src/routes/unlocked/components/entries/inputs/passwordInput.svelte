@@ -59,8 +59,6 @@ This is the component used to show the password input element
 		<div bind:clientHeight={inputHeight} class=" w-full flex-1">
 			<ItemInput type={inputType} {label} {placeholder} bind:value {idx} {last} id={id} bind:mode={mode}></ItemInput>
 		</div>
-
-		
 		<div class="absolute right-0 z-50">
 			<div
 				style="min-height: {inputHeight}px"

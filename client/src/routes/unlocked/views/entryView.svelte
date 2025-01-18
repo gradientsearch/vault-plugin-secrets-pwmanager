@@ -15,12 +15,9 @@
 
 	$effect(() => {
 		selectedEntryMetadata;
-		console.log('selectedEntryMetadata Entryview: ', selectedEntryMetadata);
 		if (selectedEntryMetadata) {
 			untrack(() => {
 				(async () => {
-					console.log('untrack');
-					console.log('async');
 					let [e, err] = await bundleService.getEntry(selectedEntryMetadata);
 					if (err !== undefined) {
 						console.log(err);

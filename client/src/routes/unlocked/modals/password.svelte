@@ -22,5 +22,5 @@
 </script>
 
 <div class="flex flex-col" style="height: {clientHeight}px;">
-	<Password bind:entry bind:bundleService save={() => onSave()} cancel={() => onCancel} mode={MODE.EDIT}></Password>
+	<Password bind:entry bind:bundleService save={onSave} cancel={onCancel} mode={MODE.EDIT}></Password>
 </div>

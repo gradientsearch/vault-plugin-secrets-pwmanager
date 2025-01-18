@@ -42,9 +42,7 @@
 			if (err2 !== undefined) {
 				errorMessage = 'Error loading entries';
 			}
-			console.log(entries);
 			entries = (vm as BundleMetadata).entries.reverse();
-			console.log(vm);
 		}
 	}
 
@@ -68,7 +66,6 @@
 		{#each entries as e}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-
 			<div
 				onclick={() => {
 					onSelectedEntry(e);

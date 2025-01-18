@@ -155,7 +155,6 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error('no data returned from server')];
 		}
 
-		console.log('metadata is: ', md)
 		let [plaintext, err2] = await this.decryptPayload(md.data.data);
 		if (err2 !== undefined) {
 			return [undefined, err2];
@@ -219,7 +218,6 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error - encrypted entry is undefined: ${err}`)]
 		}
 
-		console.log('hee', hee)
 		let [payload, err2] = await this.decryptPayload(hee.data.data)
 
 

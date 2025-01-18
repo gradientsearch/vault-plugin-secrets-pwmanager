@@ -38,10 +38,5 @@
 </script>
 
 <div class="flex flex-col" style="height: {clientHeight}px;">
-	<Password bind:entry></Password>
-	<span class="flex flex-1"></span>
-	<div class="p-4">
-		<Button fn={onSave}>Save</Button>
-		<Button fn={onCancel} primary={false}>Cancel</Button>
-	</div>
+	<Password bind:entry bind:bundleService cancel={cancel} state={'create'}></Password>
 </div>

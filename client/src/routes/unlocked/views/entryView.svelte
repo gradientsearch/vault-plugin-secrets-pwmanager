@@ -36,8 +36,8 @@
 <div class=" w-full border-t-2 border-border_primary ">
 	{#if copyOfSelectedEntry}
 		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
-		<div class="w-full">
-			<Component bind:entry={copyOfSelectedEntry}></Component>
+		<div class="w-full h-[100%]">
+			<Component bind:entry={copyOfSelectedEntry} bind:bundleService ></Component>
 		</div>
 	{/if}
 </div>

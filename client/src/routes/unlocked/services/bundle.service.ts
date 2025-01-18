@@ -222,7 +222,7 @@ export class KVBundleService implements BundleService {
 		}
 
 		// TODO if error delete entry
-		this.onEntriesChanged(metadata);
+		this.onEntriesChanged();
 		return undefined;
 	}
 
@@ -270,11 +270,20 @@ export class KVBundleService implements BundleService {
 		let ep = await this.encryptPayload(metadata);
 
 		// TODO add CAS version from
-		let err4 = await this.zarf.Api.PutMetadata(this.bundle, ep);
-		if (err4 !== undefined) {
-			return Error('error putting metadata: ', err4);
+		let err2 = await this.zarf.Api.PutMetadata(this.bundle, ep);
+		if (err2 !== undefined) {
+			return Error('error putting metadata: ', err2);
 		}
 
+		let err3 = await this.zarf.Api.DestroyEntry(this.bundle, id);
+		if (err3 !== undefined) {
+			// TODO: this will be an orphaned entry if we don't retry b/c
+			// we removed the entry from the metadata and thats how we keep track
+			// of password entries.
+			return Error('error deleting password entry: ', err3);
+		}
+
+		this.onEntriesChanged(metadata);
 		return undefined;
 	}
 }

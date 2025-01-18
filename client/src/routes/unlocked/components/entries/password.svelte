@@ -101,6 +101,11 @@ This is the component used to show the password Entry.
 					mode = MODE.EDIT;
 				}}>Edit</Button
 			>
+			<Button
+			fn={() => {
+				bundleService.deleteEntry(entry.Metadata.ID)
+			}}>Delete</Button
+		>
 		</div>
 	{/if}
 </form>

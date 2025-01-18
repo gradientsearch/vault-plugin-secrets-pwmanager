@@ -37,6 +37,16 @@ export class Api {
 		});
 	}
 
+	async delete(path: string) {
+		return await fetch(`${this.url}/v1/${path}`, {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json; charset=UTF-8',
+				'X-Vault-Token': this.vaultToken
+			}
+		});
+	}
+
 	async tokenLookup() {
 		let response = await this.get('auth/token/lookup-self');
 
@@ -134,6 +144,15 @@ export class Api {
 		if (response.status != 200) {
 			let err = await response.text();
 			return new Error(`error registering: ${err}`);
+		}
+	}
+
+	async DestroyEntry(b: Bundle, id: string): Promise<Error | undefined> {
+		let response = await this.delete(`${b.Path}/metadata/entries/${id}`);
+
+		if (response.status != 204) {
+			let err = await response.text();
+			return new Error(`error deleting entry: ${err}`);
 		}
 	}
 

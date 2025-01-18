@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { newPasswordEntry as newPasswordEntry, type Entry } from '../models/entry';
 	import { KVBundleService, type BundleService } from '../services/bundle.service';
 	import { base } from '$app/paths';
@@ -23,15 +23,13 @@
 		});
 	});
 
-	onMount(() => {});
-
-	let onBundleAddFn = (vm: BundleMetadata) => {
+	function onEntriesChanged(vm: BundleMetadata) {
 		entries = vm.entries.reverse();
-	};
+	}
 
 	async function setBundleService() {
 		if (bundle?.Type === 'bundle') {
-			bundleService = new KVBundleService(zarf, bundle, onBundleAddFn);
+			bundleService = new KVBundleService(zarf, bundle, onEntriesChanged);
 			let err = await bundleService.init();
 			if (err !== undefined) {
 				errorMessage = err;

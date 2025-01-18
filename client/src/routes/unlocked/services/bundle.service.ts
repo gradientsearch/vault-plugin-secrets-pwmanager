@@ -18,7 +18,7 @@ import { userService } from './user.service';
  * a Category bundle.
  */
 export interface BundleService {
-	addEntry(pi: Entry): Promise<Error | undefined>;
+	putEntry(pi: Entry): Promise<Error | undefined>;
 	getMetadata(): Promise<[BundleMetadata | undefined, Error | undefined]>;
 	init(): Promise<Error | undefined>;
 }
@@ -35,15 +35,15 @@ export interface BundleService {
  * - entries/<entry name>: user entires
  */
 export class KVBundleService implements BundleService {
-	onAddFn: Function;
+	onEntriesChanged: Function;
 	zarf: Zarf;
 	bundle: Bundle;
 	symmetricKey: CryptoKey | undefined;
 
-	constructor(zarf: Zarf, bundle: Bundle, onAddFn: Function) {
+	constructor(zarf: Zarf, bundle: Bundle, onEntriesChanged: Function) {
 		this.zarf = zarf;
 		this.bundle = bundle;
-		this.onAddFn = onAddFn;
+		this.onEntriesChanged = onEntriesChanged;
 	}
 
 	async init(): Promise<Error | undefined> {
@@ -169,7 +169,7 @@ export class KVBundleService implements BundleService {
 	}
 
 	// TODO: rename this to put entry
-	async addEntry(e: Entry): Promise<Error | undefined> {
+	async putEntry(e: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// encrypt
 		console.log(e.Metadata)
@@ -223,7 +223,7 @@ export class KVBundleService implements BundleService {
 		}
 
 		// TODO if error delete entry
-		this.onAddFn(metadata);
+		this.onEntriesChanged(metadata);
 		return new Promise((resolve) => {
 			resolve(undefined);
 		});

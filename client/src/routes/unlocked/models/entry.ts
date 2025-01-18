@@ -40,6 +40,12 @@ export interface Entry {
 	Tags: string[];
 }
 
+export enum MODE {
+    VIEW,
+    EDIT,
+}
+
+
 export function newPasswordEntry(): Entry {
 	return {
 		Tags: [],

@@ -56,12 +56,11 @@ This is the component used to show the password input element
 </script>
 
 <div class="relative flex flex-row">
-	{#if mode === MODE.EDIT}
 		<div bind:clientHeight={inputHeight} class=" w-full flex-1">
 			<ItemInput type={inputType} {label} {placeholder} bind:value {idx} {last} id={id} bind:mode={mode}></ItemInput>
 		</div>
 
-		<div class="absolute right-0"></div>
+		
 		<div class="absolute right-0 z-50">
 			<div
 				style="min-height: {inputHeight}px"
@@ -158,9 +157,10 @@ This is the component used to show the password input element
 				</div>
 			{/if}
 		</div>
-	{:else if mode === MODE.VIEW}
+		
+	<!-- {:else if mode === MODE.VIEW}
 		<div bind:clientHeight={inputHeight} class=" w-full flex-1">
 			<ItemInput type={'password'} {label} {placeholder} bind:value {idx} {last} {id} bind:mode={mode}></ItemInput>
 		</div>
-	{/if}
+	{/if} -->
 </div>

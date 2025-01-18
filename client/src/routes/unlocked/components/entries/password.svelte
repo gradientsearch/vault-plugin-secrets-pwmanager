@@ -60,6 +60,7 @@ This is the component used to show the password Entry.
 				class="form-input mt-1 block w-full"
 				placeholder="Password"
 				bind:value={entry.Name}
+				disabled={mode === MODE.VIEW}
 			/>
 		</div>
 	</header>

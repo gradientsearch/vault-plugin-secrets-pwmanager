@@ -3,17 +3,8 @@
 
 
 let {label, type, placeholder,  value = $bindable(), idx, last, id, mode = $bindable<MODE>()} = $props()
-let disabled = $state(false)
 
-$effect(()=>{
-		mode;
 
-		if (mode=== MODE.EDIT) {
-			disabled = false
-		} else {
-			disabled = true
-		}
-	})
 </script>
 
 <label
@@ -32,6 +23,5 @@ $effect(()=>{
             bind:value={value}
 			disabled={mode === MODE.VIEW}
 		/>
-		MODE {mode === MODE.VIEW}
 	</div>
 </label>

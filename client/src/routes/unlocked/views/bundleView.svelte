@@ -26,7 +26,7 @@
 	onMount(() => {});
 
 	let onBundleAddFn = (vm: BundleMetadata) => {
-		entries = vm.entries;
+		entries = vm.entries.reverse();
 	};
 
 	async function setBundleService() {
@@ -43,7 +43,7 @@
 				errorMessage = 'Error loading entries';
 			}
 			console.log(entries);
-			entries = (vm as BundleMetadata).entries;
+			entries = (vm as BundleMetadata).entries.reverse();
 			console.log(vm);
 		}
 	}
@@ -54,7 +54,7 @@
 </script>
 
 <div
-	class="relative w-full max-w-96 overflow-y-scroll border-2 border-r-8 border-border_primary bg-page_faint"
+	class="relative w-full max-w-96 overflow-x-hidden overflow-y-scroll border-2 border-r-8 border-border_primary bg-page_faint"
 >
 	<header
 		bind:clientHeight={headerHeight}
@@ -66,17 +66,18 @@
 	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
 	{#if entries}
 		{#each entries as e}
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+
 			<div
+				onclick={() => {
+					onSelectedEntry(e);
+				}}
 				style="top: {headerHeight}px"
-				class="flex w-full p-4 text-base hover:bg-surface_interactive_hover"
+				class=" flex w-[100%] text-left text-base hover:scale-110 hover:bg-surface_interactive_hover hover:ps-3.5 hover:shadow-md"
 			>
-				<button
-					onclick={() => {
-						onSelectedEntry(e);
-					}}
-					class="flex w-full flex-row"
-				>
-					<img class="p2 h-8" src="{base}/icons/key.svg" alt="key icon" />
+				<button class="flex w-full flex-row p-4">
+					<img class="h-8" src="{base}/icons/key.svg" alt="key icon" />
 					<div class="flex flex-col text-start">
 						<span class="text-base font-bold text-foreground_strong"> {e.Name}</span>
 						<span class="text-sm text-foreground_faint"> {e.Value}</span>

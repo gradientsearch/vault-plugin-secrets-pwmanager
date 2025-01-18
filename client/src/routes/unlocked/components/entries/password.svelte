@@ -22,7 +22,8 @@ This is the component used to show the password Entry.
 		entry = $bindable(),
 		bundleService = $bindable<BundleService>(),
 		mode = $bindable<MODE>(),
-		cancel = () => {}
+		cancel = () => {},
+		save = () => {}
 	} = $props();
 
 
@@ -42,6 +43,7 @@ This is the component used to show the password Entry.
 			console.log('err: ', err);
 			// alert user there was a problem saving the password
 		} else {
+			save()
 		}
 	}
 

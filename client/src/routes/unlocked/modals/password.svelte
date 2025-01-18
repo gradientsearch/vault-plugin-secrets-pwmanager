@@ -13,30 +13,14 @@
 	let entry: Entry = $state(newPasswordEntry());
 
 	async function onSave() {
-		let meta: Metadata = {
-			Name: entry.Name,
-			Type: 'password',
-			// Important to note that the 0 indexed value for Password item is username
-			// if this were to to the 1 index that would be the password!
-			Value: entry.Core.Items[0].Value,
-			ID: ''
-		};
-		entry.Metadata = meta;
-		console.log(bundleService)
-		let err = await bundleService.addEntry(entry);
-		if (err !== undefined) {
-			console.log('err: ', err)
-			// alert user there was a problem saving the password
-		} else {
-			showModal = false;
-		}
+		
+				showModal = false;
 	}
-
 	function onCancel() {
 		cancel();
 	}
 </script>
 
 <div class="flex flex-col" style="height: {clientHeight}px;">
-	<Password bind:entry bind:bundleService cancel={cancel} mode={MODE.EDIT}></Password>
+	<Password bind:entry bind:bundleService save={() => onSave()} cancel={() => onCancel} mode={MODE.EDIT}></Password>
 </div>

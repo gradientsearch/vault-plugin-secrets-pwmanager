@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
-	import { newPasswordEntry as newPasswordEntry, type Entry } from '../models/entry';
+	import { untrack } from 'svelte';
+	import { newPasswordEntry as newPasswordEntry, type Entry, type Metadata } from '../models/entry';
 	import { KVBundleService, type BundleService } from '../services/bundle.service';
 	import { base } from '$app/paths';
 	import type { BundleMetadata } from '../models/bundle/vault/metadata';
@@ -23,15 +23,26 @@
 		});
 	});
 
-	onMount(() => {});
+	async function onEntriesChanged() {
+		let [metadata, err] = await bundleService.getMetadata();
+		if (err !== undefined) {
+			//TODO Toast error
+			return;
+		}
+		entries = metadata.entries.reverse();
 
-	let onBundleAddFn = (vm: BundleMetadata) => {
-		entries = vm.entries.reverse();
-	};
+		let checkSelectedEntry = metadata.entries.filter((e: Metadata) => {
+			return selectedEntryMetadata?.ID === e.ID;
+		});
+
+		if (checkSelectedEntry.length === 0) {
+			selectedEntryMetadata = undefined;
+		}
+	}
 
 	async function setBundleService() {
 		if (bundle?.Type === 'bundle') {
-			bundleService = new KVBundleService(zarf, bundle, onBundleAddFn);
+			bundleService = new KVBundleService(zarf, bundle, onEntriesChanged);
 			let err = await bundleService.init();
 			if (err !== undefined) {
 				errorMessage = err;

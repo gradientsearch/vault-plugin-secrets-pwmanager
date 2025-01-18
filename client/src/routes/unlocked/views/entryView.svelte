@@ -27,6 +27,8 @@
 					copyOfSelectedEntry = e;
 				})();
 			});
+		} else {
+			copyOfSelectedEntry = undefined
 		}
 	});
 </script>

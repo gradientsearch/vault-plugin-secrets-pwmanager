@@ -37,7 +37,7 @@ This is the component used to show the password Entry.
 		};
 		entry.Metadata = meta;
 
-		let err = await bundleService.addEntry(entry);
+		let err = await bundleService.putEntry(entry);
 		if (err !== undefined) {
 			console.log('err: ', err);
 
@@ -101,6 +101,11 @@ This is the component used to show the password Entry.
 					mode = MODE.EDIT;
 				}}>Edit</Button
 			>
+			<Button
+			fn={() => {
+				bundleService.deleteEntry(entry.Metadata.ID)
+			}}>Delete</Button
+		>
 		</div>
 	{/if}
 </form>

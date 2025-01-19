@@ -71,20 +71,39 @@ This is the component used to show the password Entry.
 
 	<div class="block p-4">
 		<div class="text-md grid min-w-96 grid-cols-1">
-			
-				{#each entry.Core.Items as v, idx}
-					{@const Component = getInputComponent(v.Type)}
-					<Component
-						type={v.Type}
-						label={v.Label}
-						placeholder={v.Placeholder}
-						bind:value={v.Value}
-						{idx}
-						last={entry.Core.Items.length - 1 === idx}
-						id={entry.Metadata.ID}
-						{mode}
-					/>
-				{/each}
+			{#each entry.Core.Items as v, idx}
+				{@const Component = getInputComponent(v.Type)}
+				<Component
+					type={v.Type}
+					label={v.Label}
+					placeholder={v.Placeholder}
+					bind:value={v.Value}
+					{idx}
+					last={entry.Core.Items.length - 1 === idx}
+					id={entry.Metadata.ID}
+					{mode}
+				/>
+			{/each}
+
+			{#if mode === MODE.EDIT}
+				<div class="flex flex-row p-2">
+					<span class="flex-1"></span>
+					<button class="text-base">➕</button>
+				</div>
+			{/if}
+			{#each entry.More.Items as v, idx}
+				{@const Component = getInputComponent(v.Type)}
+				<Component
+					type={v.Type}
+					label={v.Label}
+					placeholder={v.Placeholder}
+					bind:value={v.Value}
+					{idx}
+					last={entry.Core.Items.length - 1 === idx}
+					id={entry.Metadata.ID}
+					{mode}
+				/>
+			{/each}
 		</div>
 	</div>
 

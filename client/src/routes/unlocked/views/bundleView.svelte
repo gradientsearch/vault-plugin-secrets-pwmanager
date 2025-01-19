@@ -69,7 +69,7 @@
 		bind:clientHeight={headerHeight}
 		class="absolute top-0 flex w-full border-b-2 border-border_primary p-2"
 	>
-		<h1 class="text-base">{bundle?.Name} {bundle?.Type}</h1>
+		<h1 class="text-base capitalize">{bundle?.Name} {bundle?.Type}</h1>
 	</header>
 
 	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>

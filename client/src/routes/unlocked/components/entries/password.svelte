@@ -15,14 +15,16 @@ This is the component used to show the password Entry.
 	import { base } from '$app/paths';
 	import Button from '../../../../components/button.svelte';
 	import { MODE, type Metadata } from '../../models/entry';
+	import { DateInput, PasswordInput, TextInput, type Input } from '../../models/input';
 	import type { BundleService } from '../../services/bundle.service';
 	import { getInputComponent } from '../entries/components';
+	import AddItem from './addItem.svelte';
 
 	let {
 		entry = $bindable(),
 		bundleService = $bindable<BundleService>(),
 		mode = $bindable<MODE>(),
-		cancel = () => {},
+		cancel = $bindable(),
 		save = () => {}
 	} = $props();
 
@@ -52,6 +54,25 @@ This is the component used to show the password Entry.
 		cancel();
 		mode = MODE.VIEW;
 	}
+
+	function addItem(itemType: string) {
+		let input: Input;
+		switch (itemType) {
+			case 'password':
+				input = new PasswordInput();
+				break;
+			case 'text':
+				input = new TextInput();
+				break;
+			case 'date':
+				input = new DateInput();
+				break;
+			default:
+				return;
+		}
+
+		entry.More.Items.push(input);
+	}
 </script>
 
 <form class="flex h-[100%] flex-col">
@@ -71,20 +92,45 @@ This is the component used to show the password Entry.
 
 	<div class="block p-4">
 		<div class="text-md grid min-w-96 grid-cols-1">
-			
-				{#each entry.Core.Items as v, idx}
-					{@const Component = getInputComponent(v.Type)}
-					<Component
-						type={v.Type}
-						label={v.Label}
-						placeholder={v.Placeholder}
-						bind:value={v.Value}
-						{idx}
-						last={entry.Core.Items.length - 1 === idx}
-						id={entry.Metadata.ID}
-						{mode}
-					/>
-				{/each}
+			{#each entry.Core.Items as v, idx}
+				{@const Component = getInputComponent(v.Type)}
+				<Component
+					type={v.Type}
+					label={v.Label}
+					placeholder={v.Placeholder}
+					bind:value={v.Value}
+					{idx}
+					last={entry.Core.Items.length - 1 === idx}
+					id={entry.Metadata.ID}
+					{mode}
+				/>
+			{/each}
+
+			{#if entry.More.Items.length > 0}
+				<span class="h-20"></span>
+			{/if}
+
+			{#each entry.More.Items as v, idx}
+				{@const Component = getInputComponent(v.Type)}
+				<Component
+					type={v.Type}
+					label={v.Label}
+					placeholder={v.Placeholder}
+					bind:value={v.Value}
+					{idx}
+					last={entry.More.Items.length - 1 === idx}
+					id={entry.Metadata.ID}
+					{mode}
+				/>
+			{/each}
+		</div>
+
+		<div
+			class="relative flex flex-row p-2"
+			style="visibility: {mode === MODE.EDIT ? 'visible' : 'hidden'};"
+		>
+			<span class="flex-1"></span>
+			<AddItem fn={addItem}></AddItem>
 		</div>
 	</div>
 

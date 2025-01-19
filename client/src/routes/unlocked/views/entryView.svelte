@@ -9,6 +9,7 @@
 		bundleService = $bindable<BundleService>()
 	} = $props();
 
+	let originalEntry:  Entry | undefined = $state();
 	let copyOfSelectedEntry: Entry | undefined = $state();
 	let errMessage: string | undefined = $state(undefined);
 	let mode: MODE = $state(MODE.VIEW);
@@ -23,7 +24,7 @@
 						console.log(err);
 						errMessage = `error getting entry: ${err}`;
 					}
-
+					originalEntry = e
 					copyOfSelectedEntry = e;
 				})();
 			});
@@ -31,13 +32,17 @@
 			copyOfSelectedEntry = undefined
 		}
 	});
+
+	function cancel() {
+		copyOfSelectedEntry = originalEntry
+	}
 </script>
 
-<div class=" w-full border-t-2 border-border_primary">
+<div id="entry-view" class=" w-full border-t-2 border-border_primary overflow-y-scroll">
 	{#if copyOfSelectedEntry}
 		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
 		<div class="h-[100%] w-full">
-			<Component bind:entry={copyOfSelectedEntry} bind:bundleService bind:mode={mode}></Component>
+			<Component bind:entry={copyOfSelectedEntry} bind:bundleService bind:mode={mode} bind:cancel={cancel}></Component>
 		</div>
 	{/if}
 </div>

@@ -21,20 +21,24 @@
 	<div bind:clientHeight={inputHeight} class=" w-full flex-1">
 		<label
 			for="username"
-			class="border-gray-200 focus-within:border-blue-600 focus-within:ring-blue-600 block overflow-hidden {idx ===
+			class="border-gray-200 focus-within:border-blue-600 focus-within:ring-blue-600 block overflow-hidden border-x border-b {idx ===
 			0
-				? 'rounded-t-md border-x border-t'
-				: ''} {last ? 'rounded-b-md border' : ''}  px-3 py-2 shadow-sm focus-within:ring-1"
+				? 'rounded-t-md border-t'
+				: ''} {last ? 'rounded-b-md' : ''} px-3 py-2 shadow-sm focus-within:ring-1"
 		>
 			<div class="text-gray-700 text-xs font-medium">
-				{label}
-
+				<span class="flex w-100">
+					{label}
+				</span>
 				<input
 					autocomplete="off"
 					{type}
-					id={label}
+					id={label + '-' + idx}
 					{placeholder}
-					class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm"
+					class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm {type ===
+					'date'
+						? 'w-auto'
+						: ''}"
 					bind:value
 					disabled={mode === MODE.VIEW}
 				/>

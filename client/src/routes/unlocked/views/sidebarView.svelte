@@ -11,7 +11,7 @@
 			let b: Bundle = {
 				Type: 'bundle',
 				Path: `bundles/${infoObj['entityID']}/${infoObj['entityID']}`,
-				Name: 'default',
+				Name: 'personal',
 				Owner: infoObj['entityID']
 			};
 			defaultBundle = b;
@@ -36,7 +36,7 @@
 				<li
 					class="height-[36px] rounded-lg bg-token_side_nav_color_surface_interactive_active px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:bg-token_side_nav_color_surface_interactive_hover"
 				>
-					<div>{defaultBundle.Name}</div>
+					<div class="capitalize">{defaultBundle.Name}</div>
 				</li>
 			{/if}
 		</ul>

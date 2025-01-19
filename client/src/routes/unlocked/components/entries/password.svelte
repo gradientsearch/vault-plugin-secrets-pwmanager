@@ -58,7 +58,7 @@ This is the component used to show the password Entry.
 <form class="flex h-[100%] flex-col">
 	<header class="p-4">
 		<div class="mt-3 flex flex-row">
-			<img class="max-h-12" src="{base}/icons/key.svg" alt="key icon" />
+			<span class="text-3xl pe-3">🔑</span>
 			<input
 				type="text"
 				multiple
@@ -102,6 +102,7 @@ This is the component used to show the password Entry.
 				}}>Edit</Button
 			>
 			<Button
+			primary={false}
 			fn={() => {
 				bundleService.deleteEntry(entry.Metadata.ID)
 			}}>Delete</Button

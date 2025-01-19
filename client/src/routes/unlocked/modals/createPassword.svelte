@@ -10,9 +10,9 @@
 	let types = [
 		{
 			name: 'password',
-			src: 'key.svg',
+			src: '🔑',
 			component: Password
-		},
+		}
 		// {
 		// 	name: 'note',
 		// 	src: 'note.png'
@@ -39,14 +39,14 @@
 				onclick={() => onSelectedType(t)}
 				class="relative flex min-h-32 flex-row items-center justify-items-start bg-page_faint shadow-lg hover:bg-surface_interactive_hover hover:text-foreground_action_hover"
 			>
-				<img class="h-16" src="{base}/icons/{t.src}" alt="{t.name} icon" />
+				<span class="p-3 text-3xl">{t.src}</span>
 				<span class="left-0 right-0 flex-1 text-center md:absolute">{t.name}</span>
 			</button>
 		{/each}
 	</div>
 {:else}
 	{@const Component = selectedType.component}
-	<div bind:clientHeight={containerHeight} class="h-[100%] ">
+	<div bind:clientHeight={containerHeight} class="h-[100%]">
 		<header bind:clientHeight={headerHeight}>
 			<div class="flex flex-row justify-start border-b-2 border-border_primary p-4 font-bold">
 				<div>New Item</div>

@@ -2,23 +2,24 @@
 	let { className } = $props();
 </script>
 
-<div class="{className}" >
-	🔏
-	<!-- <svg
-		class="flight-icon flight-icon-vault"
-		aria-hidden="true"
-		data-test-icon="vault"
-		fill="currentColor"
-		id="icon-ember4"
+<div class="{className} ">
+	<svg
 		width="100%"
 		height="100%"
 		viewBox="0 0 24 24"
+		version="1.1"
+		id="svg5"
 		xmlns="http://www.w3.org/2000/svg"
 	>
-		<path
-			d="M1 1l10.96 21.334L23 1H1zm9.256 8.469H8.51V7.723h1.746v1.746zm0-2.62H8.51V5.105h1.746v1.744zm2.618 5.238h-1.746v-1.746h1.746v1.746zm0-2.618h-1.746V7.723h1.746v1.746zm0-2.62h-1.746V5.105h1.746v1.744zm2.604 2.62h-1.746V7.723h1.746v1.746zm-1.746-2.62V5.105h1.746v1.744h-1.746z"
-		></path>
-	</svg> -->
+		<defs id="defs2" />
+		<g id="layer1" transform="translate(-42.838212,-68.70485)">
+			<path
+				id="path845"
+				style=""
+				d="m 54.838212,68.70485 a 11.999989,11.999988 0 0 0 -12,12 11.999989,11.999988 0 0 0 12,12 11.999989,11.999988 0 0 0 12,-12 11.999989,11.999988 0 0 0 -12,-12 z m -6.976956,6.463104 h 3.83996 v 1.919979 h -3.83996 z m 5.056976,0.04763 h 3.839961 v 1.920079 h -3.839961 z m 5.056977,0.03016 h 3.840059 v 1.919981 h -3.840059 z m -10.113953,2.973484 h 3.83996 v 1.919981 h -3.83996 z m 5.056976,0.04763 h 3.839961 v 1.919979 h -3.839961 z m 5.056977,0.03006 h 3.840059 v 1.919979 h -3.840059 z m -10.113953,2.973484 h 3.83996 v 1.920079 h -3.83996 z m 5.056976,0.04772 h 3.839961 v 1.919981 h -3.839961 z m 5.056977,0.03006 h 3.840059 v 1.919981 h -3.840059 z m -5.056977,2.973484 h 3.839961 v 1.919981 h -3.839961 z"
+			/>
+		</g>
+	</svg>
 </div>
 
 <style>
@@ -29,7 +30,6 @@
 
 	.nav-header-icon {
 		height: 48px;
-
 	}
 	.nav-header-icon > svg {
 		@apply fill-token_side_nav_color_foreground_strong;

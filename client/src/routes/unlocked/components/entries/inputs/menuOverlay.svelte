@@ -24,7 +24,7 @@
 	}
 </script>
 
-<div class="absolute right-0 z-50">
+<div class="absolute right-0">
 	<div
 		style="min-height: {inputHeight}px"
 		class="flex h-full w-10 items-center justify-center hover:cursor-pointer z-10"
@@ -78,7 +78,7 @@
 	{#if showMenu}
 		<div
 			style="transform: translate3d(0px, -{inputHeight / 4}px, 0px);"
-			class="border-gray-100 bg-white absolute end-0 w-32 rounded-md border bg-page_faint shadow-lg"
+			class="border-gray-100 bg-white absolute end-0 w-32 rounded-md border bg-page_faint shadow-lg z-50"
 			role="menu"
 		>
 			<div class="">

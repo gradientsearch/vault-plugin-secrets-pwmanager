@@ -17,6 +17,7 @@ This is the component used to show the password Entry.
 	import { MODE, type Metadata } from '../../models/entry';
 	import type { BundleService } from '../../services/bundle.service';
 	import { getInputComponent } from '../entries/components';
+	import AddItem from './addItem.svelte';
 
 	let {
 		entry = $bindable(),
@@ -88,7 +89,7 @@ This is the component used to show the password Entry.
 			{#if mode === MODE.EDIT}
 				<div class="flex flex-row p-2">
 					<span class="flex-1"></span>
-					<button class="text-base">➕</button>
+					<AddItem></AddItem>
 				</div>
 			{/if}
 			{#each entry.More.Items as v, idx}

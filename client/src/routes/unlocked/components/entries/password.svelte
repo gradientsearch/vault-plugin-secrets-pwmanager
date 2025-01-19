@@ -106,12 +106,11 @@ This is the component used to show the password Entry.
 				/>
 			{/each}
 
-			{#if mode === MODE.EDIT}
-				<div class="flex flex-row p-2">
-					<span class="flex-1"></span>
-					<AddItem fn={addItem}></AddItem>
-				</div>
-			{/if}
+			<div class="flex flex-row p-2" style="visibility: {mode === MODE.EDIT ? 'visible' : 'hidden'};">
+				<span class="flex-1"></span>
+				<AddItem fn={addItem}></AddItem>
+			</div>
+
 			<span class="h-20"></span>
 
 			{#each entry.More.Items as v, idx}
@@ -122,7 +121,7 @@ This is the component used to show the password Entry.
 					placeholder={v.Placeholder}
 					bind:value={v.Value}
 					{idx}
-					last={entry.Core.Items.length - 1 === idx}
+					last={entry.More.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
 					{mode}
 				/>

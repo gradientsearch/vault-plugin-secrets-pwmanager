@@ -38,7 +38,7 @@
 	}
 </script>
 
-<div class=" w-full border-t-2 border-border_primary">
+<div class=" w-full border-t-2 border-border_primary overflow-y-scroll">
 	{#if copyOfSelectedEntry}
 		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
 		<div class="h-[100%] w-full">

@@ -106,7 +106,9 @@ This is the component used to show the password Entry.
 				/>
 			{/each}
 
-			<span class="h-20"></span>
+			{#if entry.More.Items.length > 0}
+				<span class="h-20"></span>
+			{/if}
 
 			{#each entry.More.Items as v, idx}
 				{@const Component = getInputComponent(v.Type)}

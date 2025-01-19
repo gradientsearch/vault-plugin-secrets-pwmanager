@@ -15,6 +15,7 @@ This is the component used to show the password Entry.
 	import { base } from '$app/paths';
 	import Button from '../../../../components/button.svelte';
 	import { MODE, type Metadata } from '../../models/entry';
+	import { DateInput, PasswordInput, TextInput, type Input } from '../../models/input';
 	import type { BundleService } from '../../services/bundle.service';
 	import { getInputComponent } from '../entries/components';
 	import AddItem from './addItem.svelte';
@@ -23,7 +24,7 @@ This is the component used to show the password Entry.
 		entry = $bindable(),
 		bundleService = $bindable<BundleService>(),
 		mode = $bindable<MODE>(),
-		cancel = () => {},
+		cancel = $bindable(),
 		save = () => {}
 	} = $props();
 
@@ -52,6 +53,25 @@ This is the component used to show the password Entry.
 	function onCancel() {
 		cancel();
 		mode = MODE.VIEW;
+	}
+
+	function addItem(itemType: string) {
+		let input: Input;
+		switch (itemType) {
+			case 'password':
+				input = new PasswordInput();
+				break;
+			case 'text':
+				input = new TextInput();
+				break;
+			case 'date':
+				input = new DateInput();
+				break;
+			default:
+				return;
+		}
+
+		entry.More.Items.push(input);
 	}
 </script>
 
@@ -89,9 +109,11 @@ This is the component used to show the password Entry.
 			{#if mode === MODE.EDIT}
 				<div class="flex flex-row p-2">
 					<span class="flex-1"></span>
-					<AddItem></AddItem>
+					<AddItem fn={addItem}></AddItem>
 				</div>
 			{/if}
+			<span class="h-20"></span>
+
 			{#each entry.More.Items as v, idx}
 				{@const Component = getInputComponent(v.Type)}
 				<Component

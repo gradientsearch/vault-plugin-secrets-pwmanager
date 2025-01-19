@@ -35,7 +35,7 @@
 					id={label}
 					{placeholder}
 					class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm"
-					bind:value
+					bind:value={value}
 					disabled={mode === MODE.VIEW}
 				/>
 			</div>

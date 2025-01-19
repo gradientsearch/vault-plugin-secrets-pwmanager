@@ -19,3 +19,19 @@ export class PasswordInput implements Input {
 	Value: string = '';
 	Metadata: any;
 }
+
+export class TextInput implements Input {
+	Type: string = 'text';
+	Label: string = 'text';
+	Placeholder: string = 'text';
+	Value: string = '';
+	Metadata: any;
+}
+
+export class DateInput implements Input {
+	Type: string = 'date';
+	Label: string = 'date';
+	Placeholder: string = '';
+	Value: string = '';
+	Metadata: any;
+}

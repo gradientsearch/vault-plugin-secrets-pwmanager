@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let showMenu = $state(false);
+	let { fn = $bindable() } = $props();
 
-	let inputType: string | undefined = $state();
-	let reveal = $state(false);
+	let showMenu = $state(false);
 	let clientHeight = $state(0);
 
 	onMount(() => {});
@@ -26,7 +25,7 @@
 	</div>
 	{#if showMenu}
 		<div
-			style="transform: translate3d(-10px, -{clientHeight / 4}px, 0px);"
+			style="transform: translate3d(-10px, 0px, 0px);"
 			class="border-gray-100 bg-white absolute end-0 z-50 w-32 rounded-md border bg-page_faint shadow-lg"
 			role="menu"
 		>
@@ -34,6 +33,7 @@
 				<div class="">
 					<button
 						onclick={() => {
+							fn(i);
 							showMenu = false;
 						}}
 						class="text-gray-500 hover:text-gray-700 block w-full rounded-md rounded-b-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"

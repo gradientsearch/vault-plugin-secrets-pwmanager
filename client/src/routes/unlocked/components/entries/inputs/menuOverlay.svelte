@@ -77,7 +77,7 @@
 	</div>
 	{#if showMenu}
 		<div
-			style="transform: translate3d(0px, -{inputHeight / 4}px, 0px);"
+			style="transform: translate3d(-10px, -{inputHeight / 4}px, 0px);"
 			class="border-gray-100 bg-white absolute end-0 w-32 rounded-md border bg-page_faint shadow-lg z-50"
 			role="menu"
 		>

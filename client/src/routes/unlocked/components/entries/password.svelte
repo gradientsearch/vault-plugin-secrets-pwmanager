@@ -46,7 +46,6 @@ This is the component used to show the password Entry.
 			save();
 			mode = MODE.VIEW;
 		}
-	
 	}
 
 	function onCancel() {
@@ -58,7 +57,7 @@ This is the component used to show the password Entry.
 <form class="flex h-[100%] flex-col">
 	<header class="p-4">
 		<div class="mt-3 flex flex-row">
-			<span class="text-3xl pe-3">🔑</span>
+			<span class="pe-3 text-3xl">🔑</span>
 			<input
 				type="text"
 				multiple
@@ -72,19 +71,20 @@ This is the component used to show the password Entry.
 
 	<div class="block p-4">
 		<div class="text-md grid min-w-96 grid-cols-1">
-			{#each entry.Core.Items as v, idx}
-				{@const Component = getInputComponent(v.Type)}
-				<Component
-					type={v.Type}
-					label={v.Label}
-					placeholder={v.Placeholder}
-					bind:value={v.Value}
-					{idx}
-					last={entry.Core.Items.length - 1 === idx}
-					id={entry.Metadata.ID}
-					{mode}
-				/>
-			{/each}
+			
+				{#each entry.Core.Items as v, idx}
+					{@const Component = getInputComponent(v.Type)}
+					<Component
+						type={v.Type}
+						label={v.Label}
+						placeholder={v.Placeholder}
+						bind:value={v.Value}
+						{idx}
+						last={entry.Core.Items.length - 1 === idx}
+						id={entry.Metadata.ID}
+						{mode}
+					/>
+				{/each}
 		</div>
 	</div>
 
@@ -102,11 +102,11 @@ This is the component used to show the password Entry.
 				}}>Edit</Button
 			>
 			<Button
-			primary={false}
-			fn={() => {
-				bundleService.deleteEntry(entry.Metadata.ID)
-			}}>Delete</Button
-		>
+				primary={false}
+				fn={() => {
+					bundleService.deleteEntry(entry.Metadata.ID);
+				}}>Delete</Button
+			>
 		</div>
 	{/if}
 </form>

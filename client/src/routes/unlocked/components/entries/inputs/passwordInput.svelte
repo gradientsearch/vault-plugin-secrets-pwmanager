@@ -16,29 +16,24 @@ This is the component used to show the password input element
 
 -->
 
-
 <script lang="ts">
 	import { MODE } from '../../../models/entry';
 
-	
 	import ItemInput from './itemInput.svelte';
 	let reveal = $state(false);
 	let inputHeight = $state(0);
-	let { label, placeholder, value = $bindable(), idx, last, id, mode} = $props();
-
+	let { label, placeholder, value = $bindable(), idx, last, id, mode } = $props();
 
 	/** effect needed to conceal passwords when an entry changes
 	 * this happens if the same input type is displayed in the same
 	 * position the element is not recreated. This sets default inputType
 	 * back to password when an entry id is updated.
-	*/
+	 */
 	$effect(() => {
 		id;
 
-		inputType = 'password'
-	})
-
-
+		inputType = 'password';
+	});
 
 	let showMenu = $state(false);
 	let inputType = $state('password');
@@ -55,11 +50,9 @@ This is the component used to show the password input element
 	}
 </script>
 
-<div class="relative flex flex-row">
-		<div bind:clientHeight={inputHeight} class=" w-full flex-1">
-			<ItemInput type={inputType} {label} {placeholder} bind:value {idx} {last} id={id} bind:mode={mode}></ItemInput>
-		</div>
-		<div class="absolute right-0 z-50">
+<ItemInput type={inputType} {label} {placeholder} bind:value {idx} {last} {id} bind:mode
+></ItemInput>
+<!-- <div class="absolute right-0 z-50">
 			<div
 				style="min-height: {inputHeight}px"
 				class="flex h-full w-10 items-center justify-center hover:cursor-pointer"
@@ -154,5 +147,4 @@ This is the component used to show the password input element
 					</div>
 				</div>
 			{/if}
-		</div>
-</div>
+		</div> -->

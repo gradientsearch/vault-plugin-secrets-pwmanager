@@ -14,7 +14,7 @@ This is the component used to show the password Entry.
 <script lang="ts">
 	import { base } from '$app/paths';
 	import Button from '../../../../components/button.svelte';
-	import { MODE, type Metadata } from '../../models/entry';
+	import { MODE, type Entry, type Metadata } from '../../models/entry';
 	import { DateInput, PasswordInput, TextInput, type Input } from '../../models/input';
 	import type { BundleService } from '../../services/bundle.service';
 	import { getInputComponent } from '../entries/components';
@@ -73,6 +73,12 @@ This is the component used to show the password Entry.
 
 		entry.More.Items.push(input);
 	}
+
+	function onDeleteItem(idx: number) {
+		if (idx >= 0 && idx < entry.More.Items.length) {
+			entry.More.Items.splice(idx, 1);
+		}
+	}
 </script>
 
 <form class="flex h-[100%] flex-col">
@@ -103,6 +109,8 @@ This is the component used to show the password Entry.
 					last={entry.Core.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
 					{mode}
+					isCore={true}
+					onDeleteItem
 				/>
 			{/each}
 
@@ -121,6 +129,8 @@ This is the component used to show the password Entry.
 					last={entry.More.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
 					{mode}
+					isCore={false}
+					{onDeleteItem}
 				/>
 			{/each}
 		</div>

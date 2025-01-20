@@ -1,12 +1,21 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount } from 'svelte';
+	import { MODE } from '../../../models/entry';
 
-	let { inputHeight =$bindable(), type = $bindable<string>(), value} = $props();
+	let {
+		inputHeight = $bindable(),
+		type = $bindable<string>(),
+		value,
+		mode,
+		isCore,
+		idx,
+		onDeleteItem
+	} = $props();
 
 	let showMenu = $state(false);
 
 	let inputType: string | undefined = $state();
-    let reveal = $state(false)
+	let reveal = $state(false);
 
 	onMount(() => {
 		inputType = type;
@@ -27,7 +36,7 @@
 <div class="absolute right-0">
 	<div
 		style="min-height: {inputHeight}px"
-		class="flex h-full w-10 items-center justify-center hover:cursor-pointer z-10"
+		class="z-10 flex h-full w-10 items-center justify-center hover:cursor-pointer"
 	>
 		<button
 			style="min-height: {inputHeight}px;"
@@ -78,7 +87,7 @@
 	{#if showMenu}
 		<div
 			style="transform: translate3d(-10px, -{inputHeight / 4}px, 0px);"
-			class="border-gray-100 bg-white absolute end-0 w-32 rounded-md border bg-page_faint shadow-lg z-50"
+			class="border-gray-100 bg-white absolute end-0 z-50 w-32 rounded-md border bg-page_faint shadow-lg"
 			role="menu"
 		>
 			<div class="">
@@ -99,7 +108,7 @@
 							onclick={() => {
 								type = 'text';
 								showMenu = false;
-                                reveal = true
+								reveal = true;
 							}}
 							class="text-gray-500 hover:bg-gray-50 hover:text-gray-700 block w-full rounded-md rounded-t-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
 							role="menuitem"
@@ -111,7 +120,7 @@
 							onclick={() => {
 								type = 'password';
 								showMenu = false;
-                                reveal = false
+								reveal = false;
 							}}
 							class="text-gray-500 hover:bg-gray-50 hover:text-gray-700 block w-full rounded-md rounded-t-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
 							role="menuitem"
@@ -119,6 +128,18 @@
 							Conceal
 						</button>
 					{/if}
+				{/if}
+				{#if !isCore &&  mode === MODE.EDIT}
+					<button
+						onclick={() => {
+							onDeleteItem(idx);
+							showMenu = false;
+						}}
+						class="text-gray-500 hover:text-gray-700 block w-full rounded-md rounded-b-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
+						role="menuitem"
+					>
+						Delete
+					</button>
 				{/if}
 			</div>
 		</div>

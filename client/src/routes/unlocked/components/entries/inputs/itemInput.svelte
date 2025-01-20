@@ -11,7 +11,9 @@
 		idx,
 		last,
 		id,
-		mode = $bindable<MODE>()
+		mode = $bindable<MODE>(),
+		isCore,
+		onDeleteItem
 	} = $props();
 
 	let inputHeight = $state(0);
@@ -27,11 +29,11 @@
 				: ''} {last ? 'rounded-b-md' : ''} px-3 py-2 shadow-sm focus-within:ring-1"
 		>
 			<div class="text-gray-700 text-xs font-medium">
-				<span class="flex w-100">
+				<span class="w-100 flex">
 					{label}
 				</span>
 				<input
-					style="{type === 'date' ? 'width: auto;': ''}"
+					style={type === 'date' ? 'width: auto;' : ''}
 					autocomplete="off"
 					{type}
 					id={label + '-' + idx}
@@ -43,5 +45,5 @@
 			</div>
 		</label>
 	</div>
-	<MenuOverlay bind:inputHeight bind:type {value}></MenuOverlay>
+	<MenuOverlay bind:inputHeight bind:type {value} {mode} {isCore} {idx} {onDeleteItem}></MenuOverlay>
 </div>

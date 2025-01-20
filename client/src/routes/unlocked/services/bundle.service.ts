@@ -258,6 +258,7 @@ export class KVBundleService implements BundleService {
 		}
 
 		// loop through and and remove metadata matching
+		// TODO: do a filter function instead
 		let updatedMetadata: Metadata[] = [];
 		metadata?.entries.forEach((me) => {
 			if (me.ID !== id) {

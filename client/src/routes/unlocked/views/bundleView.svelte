@@ -82,7 +82,7 @@
 					onSelectedEntry(e);
 				}}
 				style="top: {headerHeight}px"
-				class=" flex w-[100%] text-left text-base hover:scale-110 hover:bg-surface_interactive_hover hover:ps-3.5 hover:shadow-md {e.ID === selectedEntryMetadata.ID ? 'bg-blue-100': ''}"
+				class=" flex w-[100%] text-left text-base hover:scale-110 hover:bg-surface_interactive_hover hover:ps-3.5 hover:shadow-md {e.ID === selectedEntryMetadata?.ID ? 'bg-blue-100': ''}"
 			>
 				<button class="flex w-full flex-row items-center p-4">
 					<span class="text-3xl pe-3">🔑</span>

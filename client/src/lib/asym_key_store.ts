@@ -6,8 +6,8 @@ export function isDevelopment() {
 }
 
 export interface KeyPair {
-	PubKey: CryptoKey;
-	PriKey: CryptoKey;
+	PubKey: CryptoKey | undefined;
+	PriKey: CryptoKey | undefined;
 }
 
 let storedKeyPairData;
@@ -18,17 +18,23 @@ if (isDevelopment()) {
 	}
 }
 
-let keyPair: KeyPair = {};
+let keyPair: KeyPair = {
+	PubKey: undefined,
+	PriKey: undefined
+};
 const createStore = (initialState: KeyPair) => {
 	const { set, subscribe, update } = writable(initialState);
 
 	return {
 		set: async (value: KeyPair) => {
 			if (isDevelopment()) {
-				let priKey = await crypto.subtle.exportKey('jwk', value.PriKey);
-				let pubKey = await crypto.subtle.exportKey('jwk', value.PubKey);
-				localStorage.setItem('priKey', JSON.stringify(priKey));
-				localStorage.setItem('pubKey', JSON.stringify(pubKey));
+				if (value.PriKey !== undefined && value.PubKey !== undefined) {
+					let priKey = await crypto.subtle.exportKey('jwk', value.PriKey);
+					let pubKey = await crypto.subtle.exportKey('jwk', value.PubKey);
+
+					localStorage.setItem('priKey', JSON.stringify(priKey));
+					localStorage.setItem('pubKey', JSON.stringify(pubKey));
+				}
 			}
 			keyPair = value;
 		},

@@ -5,9 +5,12 @@ This is the component used to show the password Entry.
 
 ### Props
 - `entry`: The generalized data structure pwmanager uses to define passwords i.e entry could be a password, login, secure note.
-
+- `bundleService`: the service responsible for making requests to the server.
+- `mode`: sets the current mode i.e EDIT or VIEW.
+- `cancel`: a function called if a user is editing an entry and then cancels. Used to reset entry.
+- `save`: a function called on save entry.
 ### Example
-<Password bind:entry></Password>
+<Password bind:entry bind:bundleService></Password>
 
 -->
 

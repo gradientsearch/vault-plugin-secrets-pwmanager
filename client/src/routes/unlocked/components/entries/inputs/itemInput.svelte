@@ -2,12 +2,10 @@
 	import { onMount } from 'svelte';
 	import { MODE } from '../../../models/entry';
 	import MenuOverlay from './menuOverlay.svelte';
+	import type { Input } from '../../../models/input';
 
 	let {
-		label,
-		type,
-		placeholder,
-		value = $bindable<string>(),
+		input = $bindable<Input>(),
 		idx,
 		last,
 		id,
@@ -17,6 +15,16 @@
 	} = $props();
 
 	let inputHeight = $state(0);
+	let inputType: string | undefined = $state();
+
+
+	$effect(() => {
+		id;
+		inputType = input.Type
+	})
+	onMount(() => {
+		inputType = input.Type;
+	});
 </script>
 
 <div class="relative flex flex-row">
@@ -30,20 +38,21 @@
 		>
 			<div class="text-gray-700 text-xs font-medium">
 				<span class="w-100 flex">
-					{label}
+					{input.Label}
 				</span>
+
 				<input
-					style={type === 'date' ? 'width: auto;' : ''}
-					autocomplete="off"
-					{type}
-					id={label + '-' + idx}
-					{placeholder}
+					id={input.Label + '-' + idx}
+					style={input.Type === 'date' ? 'width: auto;' : ''}
 					class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm"
-					bind:value
 					disabled={mode === MODE.VIEW}
+					autocomplete="off"
+					type={inputType}
+					placeholder={input.Placeholder}
+					bind:value={input.Value}
 				/>
 			</div>
 		</label>
 	</div>
-	<MenuOverlay bind:inputHeight bind:type {value} {mode} {isCore} {idx} {onDeleteItem} {id}></MenuOverlay>
+	<MenuOverlay bind:input bind:inputHeight bind:inputType {mode} {isCore} {idx} {onDeleteItem} {id}></MenuOverlay>
 </div>

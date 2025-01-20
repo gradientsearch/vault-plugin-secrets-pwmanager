@@ -100,10 +100,7 @@ This is the component used to show the password Entry.
 			{#each entry.Core.Items as v, idx}
 				{@const Component = getInputComponent(v.Type)}
 				<Component
-					type={v.Type}
-					label={v.Label}
-					placeholder={v.Placeholder}
-					bind:value={v.Value}
+					bind:input={entry.Core.Items[idx]}
 					{idx}
 					last={entry.Core.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
@@ -120,10 +117,7 @@ This is the component used to show the password Entry.
 			{#each entry.More.Items as v, idx}
 				{@const Component = getInputComponent(v.Type)}
 				<Component
-					type={v.Type}
-					label={v.Label}
-					placeholder={v.Placeholder}
-					bind:value={v.Value}
+					bind:input={entry.More.Items[idx]}
 					{idx}
 					last={entry.More.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
@@ -139,7 +133,7 @@ This is the component used to show the password Entry.
 			style="visibility: {mode === MODE.EDIT ? 'visible' : 'hidden'};"
 		>
 			<span class="flex-1"></span>
-			<AddItem fn={addItem}></AddItem>
+			<AddItem fn={addItem} {mode}></AddItem>
 		</div>
 	</div>
 

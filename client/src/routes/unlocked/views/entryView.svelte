@@ -36,7 +36,7 @@
 	});
 
 	function cancel() {
-		copyOfSelectedEntry = originalEntry;
+		copyOfSelectedEntry = JSON.parse(JSON.stringify(originalEntry))
 	}
 </script>
 
@@ -44,7 +44,7 @@
 	{#if copyOfSelectedEntry}
 		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
 		<div class="h-[100%] w-full">
-			<Component bind:entry={copyOfSelectedEntry} bind:bundleService bind:mode bind:cancel
+			<Component bind:entry={copyOfSelectedEntry} bind:bundleService bind:mode cancel={cancel}
 			></Component>
 		</div>
 	{/if}

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { MODE } from '../../../models/entry';
+	import type { Input } from '../../../models/input';
 
 	let {
+		input = $bindable<Input>(),
 		inputHeight = $bindable(),
-		type = $bindable<string>(),
-		value,
+		inputType = $bindable(),
 		mode,
 		isCore,
 		idx,
@@ -14,8 +15,6 @@
 	} = $props();
 
 	let showMenu = $state(false);
-
-	let inputType: string | undefined = $state();
 	let reveal = $state(false);
 
 	$effect(() => {
@@ -23,10 +22,6 @@
 		untrack(() => {
 			reveal = false;
 		});
-	});
-
-	onMount(() => {
-		inputType = type;
 	});
 
 	function copyToClipBoard(text: string) {
@@ -101,7 +96,7 @@
 			<div class="">
 				<button
 					onclick={() => {
-						copyToClipBoard(value);
+						copyToClipBoard(input.Value);
 						showMenu = false;
 					}}
 					class="text-gray-500 hover:text-gray-700 block w-full rounded-md rounded-b-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
@@ -110,11 +105,11 @@
 					Copy
 				</button>
 
-				{#if inputType === 'password'}
+				{#if input.Type === 'password'}
 					{#if !reveal}
 						<button
 							onclick={() => {
-								type = 'text';
+								inputType = 'text';
 								showMenu = false;
 								reveal = true;
 							}}
@@ -126,7 +121,7 @@
 					{:else}
 						<button
 							onclick={() => {
-								type = 'password';
+								inputType = 'password';
 								showMenu = false;
 								reveal = false;
 							}}

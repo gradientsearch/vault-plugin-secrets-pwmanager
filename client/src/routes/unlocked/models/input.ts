@@ -1,4 +1,3 @@
-
 /**
  * An Input stores the HTML input attributes.
  */
@@ -17,7 +16,6 @@ export class PasswordInput implements Input {
 	Label: string = 'password';
 	Placeholder: string = 'password';
 	Value: string = '';
-	Metadata: any;
 }
 
 export class TextInput implements Input {

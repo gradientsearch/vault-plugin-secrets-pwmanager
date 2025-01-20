@@ -5,16 +5,18 @@ This is the component used to show the password Entry.
 
 ### Props
 - `entry`: The generalized data structure pwmanager uses to define passwords i.e entry could be a password, login, secure note.
-
+- `bundleService`: the service responsible for making requests to the server.
+- `mode`: sets the current mode i.e EDIT or VIEW.
+- `cancel`: a function called if a user is editing an entry and then cancels. Used to reset entry.
+- `save`: a function called on save entry.
 ### Example
-<Password bind:entry></Password>
+<Password bind:entry bind:bundleService></Password>
 
 -->
 
 <script lang="ts">
-	import { base } from '$app/paths';
 	import Button from '../../../../components/button.svelte';
-	import { MODE, type Metadata } from '../../models/entry';
+	import { MODE, type Entry, type Metadata } from '../../models/entry';
 	import { DateInput, PasswordInput, TextInput, type Input } from '../../models/input';
 	import type { BundleService } from '../../services/bundle.service';
 	import { getInputComponent } from '../entries/components';
@@ -73,6 +75,12 @@ This is the component used to show the password Entry.
 
 		entry.More.Items.push(input);
 	}
+
+	function onDeleteItem(idx: number) {
+		if (idx >= 0 && idx < entry.More.Items.length) {
+			entry.More.Items.splice(idx, 1);
+		}
+	}
 </script>
 
 <form class="flex h-[100%] flex-col">
@@ -95,14 +103,13 @@ This is the component used to show the password Entry.
 			{#each entry.Core.Items as v, idx}
 				{@const Component = getInputComponent(v.Type)}
 				<Component
-					type={v.Type}
-					label={v.Label}
-					placeholder={v.Placeholder}
-					bind:value={v.Value}
+					bind:input={entry.Core.Items[idx]}
 					{idx}
 					last={entry.Core.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
 					{mode}
+					isCore={true}
+					onDeleteItem
 				/>
 			{/each}
 
@@ -113,14 +120,13 @@ This is the component used to show the password Entry.
 			{#each entry.More.Items as v, idx}
 				{@const Component = getInputComponent(v.Type)}
 				<Component
-					type={v.Type}
-					label={v.Label}
-					placeholder={v.Placeholder}
-					bind:value={v.Value}
+					bind:input={entry.More.Items[idx]}
 					{idx}
 					last={entry.More.Items.length - 1 === idx}
 					id={entry.Metadata.ID}
 					{mode}
+					isCore={false}
+					{onDeleteItem}
 				/>
 			{/each}
 		</div>
@@ -130,7 +136,7 @@ This is the component used to show the password Entry.
 			style="visibility: {mode === MODE.EDIT ? 'visible' : 'hidden'};"
 		>
 			<span class="flex-1"></span>
-			<AddItem fn={addItem}></AddItem>
+			<AddItem fn={addItem} {mode}></AddItem>
 		</div>
 	</div>
 

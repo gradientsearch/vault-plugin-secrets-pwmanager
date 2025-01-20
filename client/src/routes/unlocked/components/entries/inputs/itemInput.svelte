@@ -2,19 +2,29 @@
 	import { onMount } from 'svelte';
 	import { MODE } from '../../../models/entry';
 	import MenuOverlay from './menuOverlay.svelte';
+	import type { Input } from '../../../models/input';
 
 	let {
-		label,
-		type,
-		placeholder,
-		value = $bindable(),
+		input = $bindable<Input>(),
 		idx,
 		last,
 		id,
-		mode = $bindable<MODE>()
+		mode = $bindable<MODE>(),
+		isCore,
+		onDeleteItem
 	} = $props();
 
 	let inputHeight = $state(0);
+	let inputType: string | undefined = $state();
+
+
+	$effect(() => {
+		id;
+		inputType = input.Type
+	})
+	onMount(() => {
+		inputType = input.Type;
+	});
 </script>
 
 <div class="relative flex flex-row">
@@ -27,23 +37,22 @@
 				: ''} {last ? 'rounded-b-md' : ''} px-3 py-2 shadow-sm focus-within:ring-1"
 		>
 			<div class="text-gray-700 text-xs font-medium">
-				<span class="flex w-100">
-					{label}
+				<span class="w-100 flex">
+					{input.Label}
 				</span>
+
 				<input
-					autocomplete="off"
-					{type}
-					id={label + '-' + idx}
-					{placeholder}
-					class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm {type ===
-					'date'
-						? 'w-auto'
-						: ''}"
-					bind:value
+					id={input.Label + '-' + idx}
+					style={input.Type === 'date' ? 'width: auto;' : ''}
+					class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0 sm:text-sm"
 					disabled={mode === MODE.VIEW}
+					autocomplete="off"
+					type={inputType}
+					placeholder={input.Placeholder}
+					bind:value={input.Value}
 				/>
 			</div>
 		</label>
 	</div>
-	<MenuOverlay bind:inputHeight bind:type {value}></MenuOverlay>
+	<MenuOverlay bind:input bind:inputHeight bind:inputType {mode} {isCore} {idx} {onDeleteItem} {id}></MenuOverlay>
 </div>

@@ -20,10 +20,6 @@
 	let selectedEntryMetadata: Metadata | undefined = $state();
 	let entries: Entry[] = $state([]);
 
-	$effect(() => {
-		bundle;
-	});
-
 	onMount(async () => {
 		kp = await storedKeyPair.get();
 

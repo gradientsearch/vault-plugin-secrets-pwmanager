@@ -66,8 +66,9 @@ export class KVBundleService implements BundleService {
 		}
 
 		// TODO this is a little messy. Let's try and clean this up.
-		if (key !== undefined) {
+		if (key !== undefined && this.zarf.Keypair.PriKey) {
 			let encryptedSymmetricKey = key.data.data.key;
+
 			let jwk = await prikeyDecrypt(encryptedSymmetricKey, this.zarf.Keypair.PriKey);
 			let jwkObj = JSON.parse(jwk);
 			let ck = await importJWKkey(jwkObj);
@@ -80,6 +81,11 @@ export class KVBundleService implements BundleService {
 	async createBundleEncryptionKey(
 		entityID: string
 	): Promise<[CryptoKey | undefined, Error | undefined]> {
+		if (!this.zarf.Keypair.PubKey){
+			//TODO handle pubkey undefined
+			return [undefined, Error('public key is undefined')]
+		}
+
 		// TODO make this a version CAS version 0 only operation. Never want to overwrite a bundle symmetric key
 		let key = await generateSymmetricKey();
 		let jwk = await exportJwkKey(key);
@@ -258,6 +264,7 @@ export class KVBundleService implements BundleService {
 		}
 
 		// loop through and and remove metadata matching
+		// TODO: do a filter function instead
 		let updatedMetadata: Metadata[] = [];
 		metadata?.entries.forEach((me) => {
 			if (me.ID !== id) {

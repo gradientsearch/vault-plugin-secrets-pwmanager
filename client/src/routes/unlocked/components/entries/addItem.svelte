@@ -1,24 +1,22 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 
-	let { fn = $bindable() } = $props();
+	let { fn = $bindable(), mode } = $props();
 
 	let showMenu = $state(false);
 	let clientHeight = $state(0);
 	let bottom = $state('');
 
-	onMount(() => {});
+
+	$effect(() => {
+		mode;
+
+		untrack(() => {
+			showMenu = false
+		})
+	})
 
 	let inputTypes = [
-		'text',
-		'password',
-		'date',
-		'text',
-		'password',
-		'date',
-		'text',
-		'password',
-		'date',
 		'text',
 		'password',
 		'date'
@@ -45,7 +43,7 @@
 	{#if showMenu}
 		<div
 			style="transform: translate3d(0px, 0px, 0px);"
-			class="border-gray-100 bg-white absolute end-0 z-50 w-32 rounded-md border bg-page_faint shadow-lg {bottom} right-8 h-32 overflow-y-scroll"
+			class="border-gray-100 bg-white absolute end-0 z-50 w-32 rounded-md border bg-page_faint shadow-lg {bottom} right-8 max-h-32 overflow-y-scroll"
 			role="menu"
 		>
 			{#each inputTypes as i}

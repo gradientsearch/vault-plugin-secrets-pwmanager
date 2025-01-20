@@ -12,7 +12,6 @@ This is the component used to show the password Entry.
 -->
 
 <script lang="ts">
-	import { base } from '$app/paths';
 	import Button from '../../../../components/button.svelte';
 	import { MODE, type Entry, type Metadata } from '../../models/entry';
 	import { DateInput, PasswordInput, TextInput, type Input } from '../../models/input';

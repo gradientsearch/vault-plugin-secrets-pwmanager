@@ -7,7 +7,7 @@
 		label,
 		type,
 		placeholder,
-		value = $bindable(),
+		value = $bindable<string>(),
 		idx,
 		last,
 		id,
@@ -45,5 +45,5 @@
 			</div>
 		</label>
 	</div>
-	<MenuOverlay bind:inputHeight bind:type {value} {mode} {isCore} {idx} {onDeleteItem}></MenuOverlay>
+	<MenuOverlay bind:inputHeight bind:type {value} {mode} {isCore} {idx} {onDeleteItem} {id}></MenuOverlay>
 </div>

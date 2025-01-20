@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { MODE } from '../../../models/entry';
 
 	let {
@@ -9,13 +9,21 @@
 		mode,
 		isCore,
 		idx,
-		onDeleteItem
+		onDeleteItem,
+		id
 	} = $props();
 
 	let showMenu = $state(false);
 
 	let inputType: string | undefined = $state();
 	let reveal = $state(false);
+
+	$effect(() => {
+		id;
+		untrack(() => {
+			reveal = false;
+		});
+	});
 
 	onMount(() => {
 		inputType = type;
@@ -129,7 +137,7 @@
 						</button>
 					{/if}
 				{/if}
-				{#if !isCore &&  mode === MODE.EDIT}
+				{#if !isCore && mode === MODE.EDIT}
 					<button
 						onclick={() => {
 							onDeleteItem(idx);

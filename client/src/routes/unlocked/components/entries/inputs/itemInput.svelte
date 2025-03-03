@@ -17,11 +17,10 @@
 	let inputHeight = $state(0);
 	let inputType: string | undefined = $state();
 
-
 	$effect(() => {
 		id;
-		inputType = input.Type
-	})
+		inputType = input.Type;
+	});
 	onMount(() => {
 		inputType = input.Type;
 	});
@@ -37,9 +36,19 @@
 				: ''} {last ? 'rounded-b-md' : ''} px-3 py-2 shadow-sm focus-within:ring-1"
 		>
 			<div class="text-gray-700 text-xs font-medium">
-				<span class="w-100 flex">
-					{input.Label}
-				</span>
+				{#if isCore}
+					<span class="w-100 flex">
+						{input.Label}
+					</span>
+				{:else}
+					<input
+						disabled={mode === MODE.VIEW}
+						type="text"
+						class="focus:border-transparent mt-1 w-full border-none p-0 focus:outline-none focus:ring-0"
+						autocomplete="off"
+						bind:value={input.Label}
+					/>
+				{/if}
 
 				<input
 					id={input.Label + '-' + idx}
@@ -54,5 +63,6 @@
 			</div>
 		</label>
 	</div>
-	<MenuOverlay bind:input bind:inputHeight bind:inputType {mode} {isCore} {idx} {onDeleteItem} {id}></MenuOverlay>
+	<MenuOverlay bind:input bind:inputHeight bind:inputType {mode} {isCore} {idx} {onDeleteItem} {id}
+	></MenuOverlay>
 </div>

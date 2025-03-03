@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
-	"net/http"
 	"strings"
 	"time"
 
@@ -25,24 +23,6 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	return b, nil
 }
 
-// This provides a default client configuration, but it's recommended
-// this is replaced by the user with application specific settings using
-// the WithClient function at the time a GraphQL is constructed.
-var defaultClient = http.Client{
-	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          1,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	},
-}
-
 // pwManagerBackend defines an object that
 // extends the Vault backend and stores the
 // target API's client.
@@ -54,13 +34,9 @@ type pwManagerBackend struct {
 	renew chan (interface{})
 	done  chan (interface{})
 
-	client *http.Client
-	c      *pwmanagerClient
+	c *pwmanagerClient
 
 	storage logical.Storage
-
-	vaultToken string
-	url        string
 }
 
 // backend defines the target API backend
@@ -76,7 +52,6 @@ func backend() *pwManagerBackend {
 		Name:  "pwManager",
 		Level: hclog.LevelFromString("DEBUG"),
 	})
-	b.client = &defaultClient
 
 	b.logger = appLogger
 	b.Backend = &framework.Backend{
@@ -103,6 +78,7 @@ func (b *pwManagerBackend) initialize(ctx context.Context, req *logical.Initiali
 
 	return nil
 }
+
 func (p *pwManagerBackend) renewLoop() {
 	t := time.NewTicker(45 * time.Minute)
 	for {
@@ -157,7 +133,6 @@ func (p *pwManagerBackend) Login() error {
 	p.logger.Debug("client approle login successful")
 
 	p.c.c.SetToken(response.Auth.ClientToken)
-	// p.renew <- nil
 
 	return nil
 }

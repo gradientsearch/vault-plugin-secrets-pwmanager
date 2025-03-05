@@ -14,3 +14,7 @@ path "pwmanager/users/{{ identity.entity.id }}" {
 path "bundles/{{ identity.entity.id }}/*" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }
+
+path "pwmanager/bundle" {
+    capabilities = ["create", "read", "update", "patch", "delete", "list"]
+}

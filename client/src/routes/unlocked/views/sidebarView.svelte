@@ -4,7 +4,8 @@
 	import { KVBundleService } from '../services/bundle.service';
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
-	let defaultBundle: Bundle | undefined = $state(undefined);
+	let bundles: Bundle[]  = $state([]);
+
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
 		if (info !== null) {
@@ -15,14 +16,22 @@
 				Name: 'personal',
 				Owner: infoObj['entityID']
 			};
-			defaultBundle = b;
+			bundles?.push(b);
 			bundle = b;
 		}
 
 		(async () => {
 			// retrieve list of bundles
-			let bundles = await KVBundleService.getBundles(zarf)
-			console.log(bundle)
+			let [bs, err] = await KVBundleService.getBundles(zarf);
+			if (err !== undefined) {
+				console.log(`error listing bundles ${err}`);
+			}
+
+			if (bs !== undefined) {
+				bundles = [...bundles, ...bs];
+			}
+
+			console.log(bundles);
 
 			// retrieve the name of the bundles and cache that in local storage
 			// list the bundles/ add on click event
@@ -42,12 +51,20 @@
 				<div>Bundles</div>
 			</li>
 
-			{#if defaultBundle}
-				<li
-					class="height-[36px] rounded-lg bg-token_side_nav_color_surface_interactive_active px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:bg-token_side_nav_color_surface_interactive_hover"
-				>
-					<div class="capitalize">{defaultBundle.Name}</div>
-				</li>
+			{#if bundles}
+				{#each bundles as b}
+					<li
+						class="{b.Path === bundle.Path
+							? 'bg-token_side_nav_color_surface_interactive_active'
+							: ''} height-[36px] my-2 min-h-[36px] rounded-lg px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:bg-token_side_nav_color_surface_interactive_hover"
+					>
+						{#if b.Name.length === 0}
+							<div class="capitalize">bundle</div>
+						{:else}
+							<div class="capitalize">{b.Name}</div>
+						{/if}
+					</li>
+				{/each}
 			{/if}
 		</ul>
 	</div>

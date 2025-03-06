@@ -329,6 +329,11 @@ export class KVBundleService implements BundleService {
 				m = JSON.parse(cahcedMetadata);
 			} else {
 				let bundleService = new KVBundleService(zarf, b, () => {});
+				 let initErr = await bundleService.init()
+				if (initErr !== undefined){
+					console.log(`err initing bundle bundleService: ${initErr}`);
+				}
+				
 				let [bm, err] = await bundleService.getMetadata();
 				
 				if (err !== undefined) {

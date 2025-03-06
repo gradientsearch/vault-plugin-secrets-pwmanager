@@ -2,9 +2,12 @@
 	import { onMount } from 'svelte';
 	import Icon from '../../../components/icon.svelte';
 	import { KVBundleService } from '../services/bundle.service';
+	import Modal from '../../../components/modal.svelte';
+	import BundleModal from '../modals/bundle.svelte';
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let bundles: Bundle[] = $state([]);
+	let showModal = $state(false);
 
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
@@ -51,7 +54,12 @@
 				<div class="flex flex-row items-center justify-between">
 					<span>Bundles</span>
 
-					<button onclick={() => {}}>
+					<button
+						onclick={() => {
+							showModal = true;
+							console.log('clicked', showModal);
+						}}
+					>
 						<span class="p-2 text-sm hover:bg-surface_interactive_hover hover:text-blue-300">
 							Add Bundle +
 						</span>
@@ -82,3 +90,6 @@
 		</ul>
 	</div>
 </div>
+<Modal bind:showModal>
+	<BundleModal edit={true} bind:showModal></BundleModal>
+</Modal>

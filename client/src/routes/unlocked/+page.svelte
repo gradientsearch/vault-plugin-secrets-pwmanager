@@ -39,7 +39,7 @@
 
 <div class="flex h-full">
 	{#if zarf !== undefined}
-		<SidebarView bind:bundle></SidebarView>
+		<SidebarView bind:bundle bind:zarf></SidebarView>
 		<div class="h-full w-full flex-col">
 			<HeaderView bind:bundleService></HeaderView>
 			<div class="flex h-[calc(100vh-48px)] w-full">

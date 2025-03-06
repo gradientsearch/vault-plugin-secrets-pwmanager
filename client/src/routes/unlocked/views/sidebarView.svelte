@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import Icon from '../../../components/icon.svelte';
 
-	let { bundle = $bindable() } = $props();
+	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let defaultBundle: Bundle | undefined = $state(undefined);
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
@@ -17,6 +17,12 @@
 			defaultBundle = b;
 			bundle = b;
 		}
+
+		(async () => {
+			// retrieve list of bundles
+			// retrieve the name of the bundles and cache that in local storage
+			// list the bundles/ add on click event
+		})();
 	});
 </script>
 

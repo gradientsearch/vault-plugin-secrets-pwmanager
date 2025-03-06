@@ -148,7 +148,11 @@ export class Api {
 	}
 
 	async DestroyEntry(b: Bundle, id: string): Promise<Error | undefined> {
-		let response = await this.delete(`${b.Path}/metadata/entries/${id}`);
+		// In vault the metadata path is needed to destroy an entry
+		// the naming convention makes this save since the paths will only be 
+		// <EntityID>/<UUID>
+		let metadataPath = b.Path.replace('/data/', '/metadata/')
+		let response = await this.delete(`${metadataPath}/entries/${id}`);
 
 		if (response.status != 204) {
 			let err = await response.text();
@@ -165,7 +169,10 @@ export class Api {
 		}
 	}
 
-	async GetEntry(b: Bundle, id: string ): Promise<[HvEncryptedEntry | undefined, Error | undefined]> {
+	async GetEntry(
+		b: Bundle,
+		id: string
+	): Promise<[HvEncryptedEntry | undefined, Error | undefined]> {
 		let response = await this.get(`${b.Path}/entries/${id}`);
 
 		if (response.status === 404) {
@@ -181,6 +188,33 @@ export class Api {
 
 		let hee = await response.json();
 		return [hee, undefined];
+	}
+
+	// bundles
+	async GetBundles(): Promise<[HvBundle[] | undefined, Error | undefined]> {
+		let response = await this.get(`${this.mount}/bundles`);
+
+		if (response.status === 404) {
+			// no passwords exist for this vault yet
+			// TODO create the pwmanager metadata secret and return the created one
+			return [undefined, Error('entry does not exist')];
+		}
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error getting entry: ${err}`)];
+		}
+
+		let json = await response.json();
+
+		let bs = JSON.parse(json);
+
+		if (bs === undefined) {
+			return [undefined, Error(`error - bundles is undefined`)];
+		}
+
+		let bundles = bs.Data.bundles;
+		return [bundles, undefined];
 	}
 }
 

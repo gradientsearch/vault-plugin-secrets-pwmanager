@@ -31,7 +31,7 @@ type pwmgrBundle struct {
 // when you read the configuration.
 func pathBundle(b *pwManagerBackend) *framework.Path {
 	return &framework.Path{
-		Pattern: "bundle",
+		Pattern: "bundles",
 		Fields:  map[string]*framework.FieldSchema{},
 		Operations: map[logical.Operation]framework.OperationHandler{
 			logical.ReadOperation: &framework.PathOperation{

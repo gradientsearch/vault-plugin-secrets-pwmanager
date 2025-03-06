@@ -48,7 +48,15 @@
 			<li
 				class="height-[36px] px-[8px] py-[9px] text-sm font-bold text-token_side_nav_color_foreground_faint"
 			>
-				<div>Bundles</div>
+				<div class="flex flex-row items-center justify-between">
+					<span>Bundles</span>
+
+					<button onclick={() => {}}>
+						<span class="p-2 text-sm hover:bg-surface_interactive_hover hover:text-blue-300">
+							Add Bundle +
+						</span>
+					</button>
+				</div>
 			</li>
 
 			{#if bundles}
@@ -56,10 +64,12 @@
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 					<li
-						onclick={() => {bundle = b}}
+						onclick={() => {
+							bundle = b;
+						}}
 						class="{b.Path === bundle.Path
 							? 'bg-token_side_nav_color_surface_interactive_active'
-							: ''} hover:cursor-pointer height-[36px] my-2 min-h-[36px] rounded-lg px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:bg-token_side_nav_color_surface_interactive_hover"
+							: ''} height-[36px] my-2 min-h-[36px] rounded-lg px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:cursor-pointer hover:bg-token_side_nav_color_surface_interactive_hover"
 					>
 						{#if b.Name.length === 0}
 							<div class="capitalize">bundle</div>

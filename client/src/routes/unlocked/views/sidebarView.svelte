@@ -10,7 +10,7 @@
 			let infoObj = JSON.parse(info);
 			let b: Bundle = {
 				Type: 'bundle',
-				Path: `bundles/${infoObj['entityID']}/${infoObj['entityID']}`,
+				Path: `bundles/data/${infoObj['entityID']}/${infoObj['entityID']}`,
 				Name: 'personal',
 				Owner: infoObj['entityID']
 			};

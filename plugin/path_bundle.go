@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )
@@ -85,14 +84,14 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 	newBundleName := fmt.Sprintf("%s/%s", req.EntityID, newBundleUUID)
 	//TODO parameterize bundles in config - bundles is the base path for new kv-v2 stores.
 	newBundleMountPath := fmt.Sprintf("bundles/%s", newBundleName)
-	mi := api.MountInput{
-		Type: "kv-v2",
-	}
-	err = b.c.c.Sys().Mount(newBundleMountPath, &mi)
+	// mi := api.MountInput{
+	// 	Type: "kv-v2",
+	// }
+	// err = b.c.c.Sys().Mount(newBundleMountPath, &mi)
 
-	if err != nil {
-		return nil, err
-	}
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	pb := new(pwmgrBundle)
 	pb.Path = newBundleMountPath

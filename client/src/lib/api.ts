@@ -85,7 +85,7 @@ export class Api {
 	}
 
 	async getMetadata(b: Bundle): Promise<[HvMetadata | undefined, Error | undefined]> {
-		let response = await this.get(`${b.Path}/data/metadata/entries`);
+		let response = await this.get(`${b.Path}/metadata/entries`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
@@ -106,7 +106,7 @@ export class Api {
 		b: Bundle,
 		entityID: string
 	): Promise<[BundleSymmetricKey | undefined, Error | undefined]> {
-		let response = await this.get(`${b.Path}/data/keys/${entityID}`);
+		let response = await this.get(`${b.Path}/keys/${entityID}`);
 
 		if (response.status === 404) {
 			return [undefined, Error('404 not found')];
@@ -129,7 +129,7 @@ export class Api {
 				key: key
 			}
 		};
-		let response = await this.post(`${b.Path}/data/keys/${entityID}`, JSON.stringify(data));
+		let response = await this.post(`${b.Path}/keys/${entityID}`, JSON.stringify(data));
 
 		if (response.status != 200) {
 			let err = await response.text();
@@ -139,7 +139,7 @@ export class Api {
 	}
 
 	async PutMetadata(b: Bundle, metadata: any): Promise<Error | undefined> {
-		let response = await this.post(`${b.Path}/data/metadata/entries`, metadata);
+		let response = await this.post(`${b.Path}/metadata/entries`, metadata);
 
 		if (response.status != 200) {
 			let err = await response.text();
@@ -157,7 +157,7 @@ export class Api {
 	}
 
 	async PutEntry(b: Bundle, data: any, id: string): Promise<Error | undefined> {
-		let response = await this.post(`${b.Path}/data/entries/${id}`, data);
+		let response = await this.post(`${b.Path}/entries/${id}`, data);
 
 		if (response.status != 200) {
 			let err = await response.text();
@@ -166,7 +166,7 @@ export class Api {
 	}
 
 	async GetEntry(b: Bundle, id: string ): Promise<[HvEncryptedEntry | undefined, Error | undefined]> {
-		let response = await this.get(`${b.Path}/data/entries/${id}`);
+		let response = await this.get(`${b.Path}/entries/${id}`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet

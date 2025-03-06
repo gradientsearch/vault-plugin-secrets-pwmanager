@@ -3,6 +3,8 @@ package secretsengine
 import (
 	"context"
 	"fmt"
+	"sort"
+	"time"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -17,6 +19,8 @@ const (
 // user bundles.
 type pwmgrBundle struct {
 	Path string `json:"path"`
+	// for order. we could do alphabetically
+	Created int64 `json:"created"`
 }
 
 // pathBundle extends the Vault API with a `/bundle`
@@ -82,8 +86,17 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 	}
 
 	newBundleName := fmt.Sprintf("%s/%s", req.EntityID, newBundleUUID)
-	//TODO parameterize bundles in config - bundles is the base path for new kv-v2 stores.
-	newBundleMountPath := fmt.Sprintf("bundles/%s", newBundleName)
+	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
+	newBundleSecretPath := fmt.Sprintf("bundles/data/%s", newBundleName)
+
+	// There are some pros and cons to creating new secret mounts for new user vaults.
+	// A pro with distinct kv-v2 stores data is separate and metadata per mount is easily
+	// available. A major con is the limit of secret mounts in vault is set to 14000
+	// https://developer.hashicorp.com/vault/docs/internals/limits#mount-point-limits
+	// even tho vault kv-v2 stores are multiplexed there may still be overhead for the additional
+	// mounts. Right now, i've pivoted to just use a single kv-v2 store and use policies to control
+	// access. In the future, we can always pivot back if necessary.
+
 	// mi := api.MountInput{
 	// 	Type: "kv-v2",
 	// }
@@ -94,7 +107,8 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 	// }
 
 	pb := new(pwmgrBundle)
-	pb.Path = newBundleMountPath
+	pb.Path = newBundleSecretPath
+	pb.Created = time.Now().Unix()
 
 	// under the bundles path we store user bundles lists under /bundles/<EntityID>/bundles/<BundleUUID>
 	// we need to specify a seconds bundles in the path because later we will add in shared with me path
@@ -112,7 +126,18 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 		return nil, err
 	}
 
-	return b.pathBundleRead(ctx, req, data)
+	bundles, err := b.listBundles(ctx, req.Storage, req.EntityID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &logical.Response{
+		Data: map[string]interface{}{
+			"bundles": bundles,
+			"path":    newBundleSecretPath,
+		},
+	}, nil
+
 }
 
 // pathBundleDelete removes the configuration for the backend
@@ -152,7 +177,7 @@ func getBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrBundl
 }
 
 // list bundles returns the list of user bundles
-func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, entityID string) ([]string, error) {
+func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, entityID string) ([]pwmgrBundle, error) {
 	if s == nil {
 		return nil, nil
 	}
@@ -167,7 +192,7 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 		userBundlesUUIDs = []string{}
 	}
 
-	userMounts := []string{}
+	userBundles := []pwmgrBundle{}
 	for _, ub := range userBundlesUUIDs {
 		// TODO list needs a / at the end. Clean this up
 		pb, err := getBundle(ctx, s, fmt.Sprintf("%s%s", userBundlePaths, ub))
@@ -178,23 +203,25 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 			b.logger.Warn(fmt.Sprintf("user bundle is nil: path: %s%s", userBundlePaths, ub))
 			continue
 		}
-		userMounts = append(userMounts, pb.Path)
+		userBundles = append(userBundles, *pb)
 	}
 
-	// to accept shared bundle path as well.
-	sharedWithUserBundlePath := fmt.Sprintf("%s/%s/shared-with-user", bundleStoragePath, entityID)
-	sharedWithUserBundles, err := s.List(ctx, sharedWithUserBundlePath)
-	if err != nil {
-		return nil, err
-	}
+	// // to accept shared bundle path as well.
+	// sharedWithUserBundlePath := fmt.Sprintf("%s/%s/shared-with-user", bundleStoragePath, entityID)
+	// sharedWithUserBundles, err := s.List(ctx, sharedWithUserBundlePath)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if sharedWithUserBundles == nil {
-		sharedWithUserBundles = []string{}
-	}
+	// if sharedWithUserBundles == nil {
+	// 	sharedWithUserBundles = []string{}
+	// }
 
-	bundles := append(userMounts, sharedWithUserBundles...)
+	sort.Slice(userBundles, func(i, j int) bool {
+		return userBundles[i].Created < userBundles[j].Created
+	})
 
-	return bundles, nil
+	return userBundles, nil
 }
 
 // pathBundleHelpSynopsis summarizes the help text for the bundles

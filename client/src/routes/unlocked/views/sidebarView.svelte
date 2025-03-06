@@ -4,7 +4,7 @@
 	import { KVBundleService } from '../services/bundle.service';
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
-	let bundles: Bundle[]  = $state([]);
+	let bundles: Bundle[] = $state([]);
 
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
@@ -53,10 +53,13 @@
 
 			{#if bundles}
 				{#each bundles as b}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 					<li
+						onclick={() => {bundle = b}}
 						class="{b.Path === bundle.Path
 							? 'bg-token_side_nav_color_surface_interactive_active'
-							: ''} height-[36px] my-2 min-h-[36px] rounded-lg px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:bg-token_side_nav_color_surface_interactive_hover"
+							: ''} hover:cursor-pointer height-[36px] my-2 min-h-[36px] rounded-lg px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:bg-token_side_nav_color_surface_interactive_hover"
 					>
 						{#if b.Name.length === 0}
 							<div class="capitalize">bundle</div>

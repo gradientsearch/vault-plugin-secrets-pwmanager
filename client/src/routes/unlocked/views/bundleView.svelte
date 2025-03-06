@@ -18,7 +18,9 @@
 
 	$effect(() => {
 		bundle;
+
 		untrack(() => {
+			selectedEntryMetadata = undefined
 			setBundleService();
 		});
 	});

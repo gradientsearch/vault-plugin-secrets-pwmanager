@@ -19,6 +19,6 @@ path "bundles/metadata/{{ identity.entity.id }}/*" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }
 
-path "pwmanager/bundle" {
+path "pwmanager/bundles" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }

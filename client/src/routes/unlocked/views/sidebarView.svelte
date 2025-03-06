@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Icon from '../../../components/icon.svelte';
+	import { KVBundleService } from '../services/bundle.service';
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let defaultBundle: Bundle | undefined = $state(undefined);
@@ -20,6 +21,9 @@
 
 		(async () => {
 			// retrieve list of bundles
+			let bundles = await KVBundleService.getBundles(zarf)
+			console.log(bundle)
+
 			// retrieve the name of the bundles and cache that in local storage
 			// list the bundles/ add on click event
 		})();

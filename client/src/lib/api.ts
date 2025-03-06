@@ -1,6 +1,6 @@
 import type { HvEncryptedEntry } from '../routes/unlocked/models/bundle/vault/entry';
 import type { BundleSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
-import type { HvMetadata, BundleMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
+import type { HvMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
 import { convertCase, revertCase } from './jsonKey';
 import type { newUUK, UUK } from './uuk';
 
@@ -205,15 +205,13 @@ export class Api {
 			return [undefined, new Error(`error getting entry: ${err}`)];
 		}
 
-		let json = await response.json();
-
-		let bs = JSON.parse(json);
+		let bs = await response.json();
 
 		if (bs === undefined) {
 			return [undefined, Error(`error - bundles is undefined`)];
 		}
 
-		let bundles = bs.Data.bundles;
+		let bundles = bs.data.bundles;
 		return [bundles, undefined];
 	}
 }

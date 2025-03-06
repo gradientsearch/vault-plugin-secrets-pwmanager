@@ -81,9 +81,9 @@ export class KVBundleService implements BundleService {
 	async createBundleEncryptionKey(
 		entityID: string
 	): Promise<[CryptoKey | undefined, Error | undefined]> {
-		if (!this.zarf.Keypair.PubKey){
+		if (!this.zarf.Keypair.PubKey) {
 			//TODO handle pubkey undefined
-			return [undefined, Error('public key is undefined')]
+			return [undefined, Error('public key is undefined')];
 		}
 
 		// TODO make this a version CAS version 0 only operation. Never want to overwrite a bundle symmetric key
@@ -105,7 +105,7 @@ export class KVBundleService implements BundleService {
 	async createBundleMetadata(): Promise<Error | undefined> {
 		let metadata: BundleMetadata = {
 			entries: [],
-			BundleName: this.bundle.Name
+			bundleName: this.bundle.Name
 		};
 		let [data, err] = await this.encryptPayload(metadata);
 		if (err !== undefined) {
@@ -295,7 +295,8 @@ export class KVBundleService implements BundleService {
 		return undefined;
 	}
 
-	static async  getBundles(zarf: Zarf): Promise<[Bundle[] | undefined, Error | undefined]> {
+	// getBundles retrieves all bundles and bundle metadata.
+	static async getBundles(zarf: Zarf): Promise<[Bundle[] | undefined, Error | undefined]> {
 		let [hvBundles, err] = await zarf.Api.GetBundles();
 
 		if (err !== undefined) {
@@ -306,32 +307,45 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error getting bundles: bundles should not be undefined`)];
 		}
 
-		
-		let bs : Bundle[] = []
+		let bs: Bundle[] = [];
 
-		for (let i = 0; i < hvBundles.length; i++){
-
-			let hvb = hvBundles[i]
+		for (let i = 0; i < hvBundles.length; i++) {
+			let hvb = hvBundles[i];
 			let b: Bundle = {
 				Type: 'bundle',
 				Path: hvb.path,
 				Name: '',
 				Owner: ''
+			};
+
+			// TODO read from localstorage/indexedDB
+			let cahcedMetadata = localStorage.getItem(`${hvb.path}/metadata`);
+
+			let m: BundleMetadata = {
+				entries: [],
+				bundleName: ''
+			};
+			if (cahcedMetadata) {
+				m = JSON.parse(cahcedMetadata);
+			} else {
+				let bundleService = new KVBundleService(zarf, b, () => {});
+				let [bm, err] = await bundleService.getMetadata();
+				
+				if (err !== undefined) {
+					console.log(`err getting bundle metadata: ${err}`);
+				}
+
+				if (bm !== undefined) {
+					m = bm;
+					localStorage.setItem(`${hvb.path}/metadata`, JSON.stringify(m));
+				}
 			}
 
-			// TODO read from localstorage 
-			let cahcedMetadata = localStorage.getItem(`${hvb.path}/metadata`)
-			let bundleName = localStorage.getItem(`${hvb.path}/bundleName`)
-
-			if (!bundleName){
-
-			}
-			let bundleService = new KVBundleService(zarf, b, ()=>{});
-			let metadata = await bundleService.getMetadata()
-			// cache metadata for search later.
+			b.Name = m.bundleName;
+			bs.push(b)
 		}
-		
-		return [, undefined];
+
+		return [bs, undefined];
 	}
 }
 

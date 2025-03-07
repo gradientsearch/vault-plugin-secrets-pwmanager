@@ -22,9 +22,6 @@
 	let containerHeight: number | undefined = $state();
 	let headerHeight: number | undefined = $state();
 
-	onMount(() => {
-		console.log('mounted');
-	});
 </script>
 
 <div bind:clientHeight={containerHeight} class="h-[100%]">

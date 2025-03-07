@@ -95,7 +95,6 @@ export class KVBundleService implements BundleService {
 		);
 		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
 		if (err !== undefined) {
-			console.log('err: ', err);
 			return [undefined, Error('error retrieving bundle symmetric key : ', err)];
 		}
 		this.symmetricKey = key;

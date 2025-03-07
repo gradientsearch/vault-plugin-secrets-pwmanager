@@ -21,7 +21,6 @@
 				(async () => {
 					let [e, err] = await bundleService.getEntry(selectedEntryMetadata);
 					if (err !== undefined) {
-						console.log(err);
 						errMessage = `error getting entry: ${err}`;
 					}
 					originalEntry = e;

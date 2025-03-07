@@ -309,22 +309,28 @@ export class KVBundleService implements BundleService {
 				Owner: ''
 			};
 
+			let bundleService = new KVBundleService(zarf, b, () => {});
+			let initErr = await bundleService.init();
+			if (initErr !== undefined) {
+				console.log(`err initing bundle bundleService: ${initErr}`);
+			}
 			// TODO read from localstorage/indexedDB
-			let cahcedMetadata = localStorage.getItem(`${hvb.path}/metadata`);
+			let encryptedCachedMetadata = localStorage.getItem(`${hvb.path}/metadata`);
 
 			let m: BundleMetadata = {
 				entries: [],
 				bundleName: ''
 			};
-			if (cahcedMetadata) {
-				m = JSON.parse(cahcedMetadata);
-			} else {
-				let bundleService = new KVBundleService(zarf, b, () => {});
-				let initErr = await bundleService.init();
-				if (initErr !== undefined) {
-					console.log(`err initing bundle bundleService: ${initErr}`);
-				}
+			if (encryptedCachedMetadata) {
+				let json = JSON.parse(encryptedCachedMetadata);
+				let [cahcedMetadata, err] = await bundleService.decryptPayload(json.data);
 
+				if (err !== undefined || cahcedMetadata === undefined) {
+					//TODO handle error
+				} else {
+					m = JSON.parse(cahcedMetadata);
+				}
+			} else {
 				let [bm, err] = await bundleService.getMetadata();
 
 				if (err !== undefined) {
@@ -333,7 +339,12 @@ export class KVBundleService implements BundleService {
 
 				if (bm !== undefined) {
 					m = bm;
-					localStorage.setItem(`${hvb.path}/metadata`, JSON.stringify(m));
+					let [em, err] = await bundleService.encryptPayload(m);
+					if (err !== undefined || em === undefined) {
+						//TODO Handle error
+					} else {
+						localStorage.setItem(`${hvb.path}/metadata`, em);
+					}
 				}
 			}
 

@@ -1,14 +1,26 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import Icon from '../../../components/icon.svelte';
 	import { KVBundleService } from '../services/bundle.service';
 	import Modal from '../../../components/modal.svelte';
 	import BundleModal from '../modals/bundle.svelte';
 
-	let { bundle = $bindable(), zarf = $bindable() } = $props();
+	let { bundle = $bindable(), zarf = $bindable(), clientHeight } = $props();
 	let bundles: Bundle[] = $state([]);
 	let showModal = $state(false);
-	let newBundle: string | undefined = $state()
+	let newBundle: Bundle | undefined = $state();
+
+	$effect(() => {
+		newBundle;
+		untrack(() => {
+			console.log('new bundle', newBundle?.Name);
+			if (newBundle !== undefined) {
+				let copyBundle = Object.assign({}, newBundle);
+				bundles.push(copyBundle);
+				newBundle = undefined;
+			}
+		});
+	});
 
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
@@ -41,15 +53,18 @@
 			// list the bundles/ add on click event
 		})();
 	});
+
+	let headerHeight = $state(0);
 </script>
 
-<div class="hidden w-full bg-token_side_nav_color_surface_primary md:max-w-64 lg:block">
-	<div class="flex-row px-3 py-4">
-		<div class="flex content-start">
+<div
+	style="max-height: {clientHeight}px"
+	class="w-full bg-token_side_nav_color_surface_primary md:max-w-64 lg:block"
+>
+	<div class="flex-row">
+		<div bind:clientHeight={headerHeight} class="flex-column flex content-start p-2">
 			<Icon className="nav-header-icon"></Icon>
-		</div>
-		<ul class="pt-3">
-			<li
+			<div
 				class="height-[36px] px-[8px] py-[9px] text-sm font-bold text-token_side_nav_color_foreground_faint"
 			>
 				<div class="flex flex-row items-center justify-between">
@@ -66,8 +81,9 @@
 						</span>
 					</button>
 				</div>
-			</li>
-
+			</div>
+		</div>
+		<ul style="max-height: {clientHeight - headerHeight}px; height: {clientHeight - headerHeight}px" class="overflow-hidden overflow-y-scroll">
 			{#if bundles}
 				{#each bundles as b}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -92,5 +108,5 @@
 	</div>
 </div>
 <Modal bind:showModal>
-	<BundleModal edit={true} bind:showModal bind:bundles bind:newBundle bind:zarf></BundleModal>
+	<BundleModal edit={true} bind:showModal bind:newBundle bind:zarf></BundleModal>
 </Modal>

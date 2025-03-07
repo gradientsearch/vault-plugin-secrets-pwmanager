@@ -295,18 +295,10 @@ export class KVBundleService implements BundleService {
 		return undefined;
 	}
 
-	// getBundles retrieves all bundles and bundle metadata.
-	static async getBundles(zarf: Zarf): Promise<[Bundle[] | undefined, Error | undefined]> {
-		let [hvBundles, err] = await zarf.Api.GetBundles();
-
-		if (err !== undefined) {
-			return [undefined, Error(`error getting bundles: ${err}`)];
-		}
-
-		if (hvBundles === undefined) {
-			return [undefined, Error(`error getting bundles: bundles should not be undefined`)];
-		}
-
+	static async initBundles(
+		zarf: Zarf,
+		hvBundles: HvBundle[]
+	): Promise<[Bundle[] | undefined, Error | undefined]> {
 		let bs: Bundle[] = [];
 
 		for (let i = 0; i < hvBundles.length; i++) {
@@ -329,13 +321,13 @@ export class KVBundleService implements BundleService {
 				m = JSON.parse(cahcedMetadata);
 			} else {
 				let bundleService = new KVBundleService(zarf, b, () => {});
-				 let initErr = await bundleService.init()
-				if (initErr !== undefined){
+				let initErr = await bundleService.init();
+				if (initErr !== undefined) {
 					console.log(`err initing bundle bundleService: ${initErr}`);
 				}
 
 				let [bm, err] = await bundleService.getMetadata();
-				
+
 				if (err !== undefined) {
 					console.log(`err getting bundle metadata: ${err}`);
 				}
@@ -347,28 +339,52 @@ export class KVBundleService implements BundleService {
 			}
 
 			b.Name = m.bundleName;
-			bs.push(b)
+			bs.push(b);
 		}
 
 		return [bs, undefined];
 	}
 
-	static async createBundle(zarf: Zarf): Promise<[any | undefined, Error | undefined]> {
-		let [hvBundles, err] = await zarf.Api.CreateBundle();
-		if (err !== undefined){
-			return [undefined, Error(`error creating bundle: ${err}`)]
-		}
+	// getBundles retrieves all bundles and bundle metadata.
+	static async getBundles(zarf: Zarf): Promise<[Bundle[] | undefined, Error | undefined]> {
+		let [hvBundles, err] = await zarf.Api.GetBundles();
 
+		if (err !== undefined) {
+			return [undefined, Error(`error getting bundles: ${err}`)];
+		}
 
 		if (hvBundles === undefined) {
 			return [undefined, Error(`error getting bundles: bundles should not be undefined`)];
 		}
 
-		return [hvBundles, undefined]
-
+		return KVBundleService.initBundles(zarf, hvBundles);
 	}
-	
 
+	static async createBundle(
+		zarf: Zarf,
+		name: string
+	): Promise<[Bundle | undefined, Error | undefined]> {
+		let [path, err] = await zarf.Api.CreateBundle();
+		if (err !== undefined) {
+			return [undefined, Error(`error creating bundle: ${err}`)];
+		}
+
+		if (path === undefined) {
+			return [undefined, Error(`error creating bundle: bundles should not be undefined`)];
+		}
+
+		let b: Bundle = {
+			Type: 'bundle',
+			Path: path,
+			Name: name,
+			Owner: ''
+		};
+
+		let bundleService = new KVBundleService(zarf, b, () => {});
+		await bundleService.init();
+
+		return [b, undefined];
+	}
 }
 
 export class CategoryBundleService {}

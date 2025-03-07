@@ -35,11 +35,12 @@
 			Api: api
 		};
 	});
+	let clientHeight = $state(0)
 </script>
 
-<div class="flex h-full">
+<div bind:clientHeight class="flex h-full">
 	{#if zarf !== undefined}
-		<SidebarView bind:bundle bind:zarf></SidebarView>
+		<SidebarView bind:bundle bind:zarf {clientHeight}></SidebarView>
 		<div class="h-full w-full flex-col">
 			<HeaderView bind:bundleService></HeaderView>
 			<div class="flex h-[calc(100vh-48px)] w-full">

@@ -3,9 +3,8 @@
 	import { KVBundleService, type BundleService } from '../../services/bundle.service';
 
 	let {
-        bundles = $bindable(),
-        newBundle = $bindable(),
-        zarf = $bindable(),
+		newBundle = $bindable(),
+		zarf = $bindable(),
 		edit = false,
 		cancel = $bindable(),
 		save = () => {}
@@ -13,13 +12,13 @@
 
 	let isEdit = $state(edit);
 	async function onSave() {
-        let [hvBundles, err] = await KVBundleService.createBundle(zarf)
-        if (err !== undefined){
-            console.log(`error creating bundle: ${err}`)
-            return
-        }
-        bundles = hvBundles.bundles
-        newBundle = hvBundles.path
+		let [bundle, err] = await KVBundleService.createBundle(zarf, name);
+		if (err !== undefined) {
+			console.log(`error creating bundle: ${err}`);
+			return;
+		}
+
+		newBundle = bundle;
 		save();
 	}
 
@@ -27,11 +26,10 @@
 		cancel();
 	}
 
-    let name = $state('')
+	let name = $state('');
 </script>
 
 <div class="flex flex-row p-4">
-	
 	<div class="flex flex-row">
 		<div class="text-md grid min-w-96 grid-cols-1 gap-6">
 			<label class="block">

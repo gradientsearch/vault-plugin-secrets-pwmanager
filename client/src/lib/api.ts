@@ -215,8 +215,8 @@ export class Api {
 		return [bundles, undefined];
 	}
 
-	async CreateBundle(): Promise<[HvBundles | undefined, Error | undefined]> {
-		let response = await this.post(`${this.mount}/bundles`, {});
+	async CreateBundle(): Promise<[string | undefined, Error | undefined]> {
+		let response = await this.post(`${this.mount}/bundles`, undefined);
 
 		if (response.status != 200) {
 			let err = await response.text();
@@ -224,7 +224,7 @@ export class Api {
 		}
 
 		let bs = await response.json();
-		return [bs.data, undefined]
+		return [bs.data.path, undefined]
 	}
 
 }

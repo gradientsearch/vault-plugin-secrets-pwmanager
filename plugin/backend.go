@@ -63,6 +63,7 @@ func backend() *pwManagerBackend {
 			pathUser(&b),
 			[]*framework.Path{
 				pathConfig(&b),
+				pathBundle(&b),
 			},
 		),
 		BackendType:    logical.TypeLogical,

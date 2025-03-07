@@ -49,7 +49,7 @@ export enum MODE {
 export function newPasswordEntry(): Entry {
 	return {
 		Tags: [],
-		Name: 'Password',
+		Name: '',
 		Type: 'password',
 		Metadata: {
 			Name: 'Password',

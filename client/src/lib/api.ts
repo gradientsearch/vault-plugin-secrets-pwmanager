@@ -1,6 +1,6 @@
 import type { HvEncryptedEntry } from '../routes/unlocked/models/bundle/vault/entry';
 import type { BundleSymmetricKey } from '../routes/unlocked/models/bundle/vault/keys';
-import type { HvMetadata, BundleMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
+import type { HvMetadata } from '../routes/unlocked/models/bundle/vault/metadata';
 import { convertCase, revertCase } from './jsonKey';
 import type { newUUK, UUK } from './uuk';
 
@@ -85,7 +85,7 @@ export class Api {
 	}
 
 	async getMetadata(b: Bundle): Promise<[HvMetadata | undefined, Error | undefined]> {
-		let response = await this.get(`${b.Path}/data/metadata/entries`);
+		let response = await this.get(`${b.Path}/metadata/entries`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
@@ -106,7 +106,7 @@ export class Api {
 		b: Bundle,
 		entityID: string
 	): Promise<[BundleSymmetricKey | undefined, Error | undefined]> {
-		let response = await this.get(`${b.Path}/data/keys/${entityID}`);
+		let response = await this.get(`${b.Path}/keys/${entityID}`);
 
 		if (response.status === 404) {
 			return [undefined, Error('404 not found')];
@@ -129,7 +129,7 @@ export class Api {
 				key: key
 			}
 		};
-		let response = await this.post(`${b.Path}/data/keys/${entityID}`, JSON.stringify(data));
+		let response = await this.post(`${b.Path}/keys/${entityID}`, JSON.stringify(data));
 
 		if (response.status != 200) {
 			let err = await response.text();
@@ -139,7 +139,7 @@ export class Api {
 	}
 
 	async PutMetadata(b: Bundle, metadata: any): Promise<Error | undefined> {
-		let response = await this.post(`${b.Path}/data/metadata/entries`, metadata);
+		let response = await this.post(`${b.Path}/metadata/entries`, metadata);
 
 		if (response.status != 200) {
 			let err = await response.text();
@@ -148,7 +148,11 @@ export class Api {
 	}
 
 	async DestroyEntry(b: Bundle, id: string): Promise<Error | undefined> {
-		let response = await this.delete(`${b.Path}/metadata/entries/${id}`);
+		// In vault the metadata path is needed to destroy an entry
+		// the naming convention makes this save since the paths will only be 
+		// <EntityID>/<UUID>
+		let metadataPath = b.Path.replace('/data/', '/metadata/')
+		let response = await this.delete(`${metadataPath}/entries/${id}`);
 
 		if (response.status != 204) {
 			let err = await response.text();
@@ -157,7 +161,7 @@ export class Api {
 	}
 
 	async PutEntry(b: Bundle, data: any, id: string): Promise<Error | undefined> {
-		let response = await this.post(`${b.Path}/data/entries/${id}`, data);
+		let response = await this.post(`${b.Path}/entries/${id}`, data);
 
 		if (response.status != 200) {
 			let err = await response.text();
@@ -165,8 +169,11 @@ export class Api {
 		}
 	}
 
-	async GetEntry(b: Bundle, id: string ): Promise<[HvEncryptedEntry | undefined, Error | undefined]> {
-		let response = await this.get(`${b.Path}/data/entries/${id}`);
+	async GetEntry(
+		b: Bundle,
+		id: string
+	): Promise<[HvEncryptedEntry | undefined, Error | undefined]> {
+		let response = await this.get(`${b.Path}/entries/${id}`);
 
 		if (response.status === 404) {
 			// no passwords exist for this vault yet
@@ -182,6 +189,44 @@ export class Api {
 		let hee = await response.json();
 		return [hee, undefined];
 	}
+
+	// bundles
+	async GetBundles(): Promise<[HvBundle[] | undefined, Error | undefined]> {
+		let response = await this.get(`${this.mount}/bundles`);
+
+		if (response.status === 404) {
+			// no passwords exist for this vault yet
+			// TODO create the pwmanager metadata secret and return the created one
+			return [undefined, Error('entry does not exist')];
+		}
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error getting entry: ${err}`)];
+		}
+
+		let bs = await response.json();
+
+		if (bs === undefined) {
+			return [undefined, Error(`error - bundles is undefined`)];
+		}
+
+		let bundles = bs.data.bundles;
+		return [bundles, undefined];
+	}
+
+	async CreateBundle(): Promise<[string | undefined, Error | undefined]> {
+		let response = await this.post(`${this.mount}/bundles`, undefined);
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error registering: ${err}`)];
+		}
+
+		let bs = await response.json();
+		return [bs.data.path, undefined]
+	}
+
 }
 
 export function getAPI() {

@@ -70,7 +70,7 @@ config:
 	url="localhost:8200"
 
 secretMount:
-	vault secrets enable -version=2 -path=pwmanagerkv kv
+	vault secrets enable -version=2 -path=bundles kv
 
 userpass:
 	vault auth enable userpass

@@ -37,18 +37,13 @@
 	});
 </script>
 
-<div class="flex h-full">
+<div class="flex h-[100vh]">
 	{#if zarf !== undefined}
-		<SidebarView bind:bundle></SidebarView>
+		<SidebarView bind:bundle bind:zarf></SidebarView>
 		<div class="h-full w-full flex-col">
 			<HeaderView bind:bundleService></HeaderView>
 			<div class="flex h-[calc(100vh-48px)] w-full">
-				<BundleView
-					bind:zarf
-					bind:bundleService
-					bind:bundle
-					bind:selectedEntryMetadata
-					bind:entries
+				<BundleView bind:zarf bind:bundleService bind:bundle bind:selectedEntryMetadata bind:entries
 				></BundleView>
 				<EntryView bind:selectedEntryMetadata bind:bundleService></EntryView>
 			</div>

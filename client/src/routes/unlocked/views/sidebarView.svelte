@@ -5,7 +5,7 @@
 	import Modal from '../../../components/modal.svelte';
 	import BundleModal from '../modals/bundle.svelte';
 
-	let { bundle = $bindable(), zarf = $bindable(), clientHeight } = $props();
+	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let bundles: Bundle[] = $state([]);
 	let showModal = $state(false);
 	let newBundle: Bundle | undefined = $state();

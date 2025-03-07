@@ -1,18 +1,26 @@
 <script lang="ts">
 	import Button from '../../../../components/button.svelte';
-	import type { BundleService } from '../../services/bundle.service';
+	import { KVBundleService, type BundleService } from '../../services/bundle.service';
 
 	let {
-		bundleService = $bindable<BundleService>(),
+        bundles = $bindable(),
+        newBundle = $bindable(),
+        zarf = $bindable(),
 		edit = false,
 		cancel = $bindable(),
 		save = () => {}
 	} = $props();
 
 	let isEdit = $state(edit);
-	function onSave() {
+	async function onSave() {
+        let [hvBundles, err] = await KVBundleService.createBundle(zarf)
+        if (err !== undefined){
+            console.log(`error creating bundle: ${err}`)
+            return
+        }
+        bundles = hvBundles.bundles
+        newBundle = hvBundles.path
 		save();
-		bundleService;
 	}
 
 	function onCancel() {

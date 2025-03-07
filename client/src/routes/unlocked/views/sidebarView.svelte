@@ -8,6 +8,7 @@
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let bundles: Bundle[] = $state([]);
 	let showModal = $state(false);
+	let newBundle: string | undefined = $state()
 
 	onMount(() => {
 		let info = localStorage.getItem('loginInfo');
@@ -91,5 +92,5 @@
 	</div>
 </div>
 <Modal bind:showModal>
-	<BundleModal edit={true} bind:showModal></BundleModal>
+	<BundleModal edit={true} bind:showModal bind:bundles bind:newBundle bind:zarf></BundleModal>
 </Modal>

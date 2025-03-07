@@ -7,8 +7,10 @@
 	import { onMount } from 'svelte';
 
 	let {
-		bundleService = $bindable<BundleService>(),
 		showModal = $bindable<Boolean>(),
+        zarf = $bindable(),
+        bundles = $bindable(),
+        newBundle = $bindable(),
 		edit
 	} = $props();
 
@@ -34,6 +36,6 @@
 	</header>
 
 	<div class="flex flex-col" style="height: {containerHeight - headerHeight}px;">
-		<Bundle bind:bundleService save={onSave} cancel={onCancel} {edit}></Bundle>
+		<Bundle bind:zarf bind:bundles bind:newBundle save={onSave} cancel={onCancel} {edit} ></Bundle>
 	</div>
 </div>

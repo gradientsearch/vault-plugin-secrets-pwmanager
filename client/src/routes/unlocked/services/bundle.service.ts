@@ -333,7 +333,7 @@ export class KVBundleService implements BundleService {
 				if (initErr !== undefined){
 					console.log(`err initing bundle bundleService: ${initErr}`);
 				}
-				
+
 				let [bm, err] = await bundleService.getMetadata();
 				
 				if (err !== undefined) {
@@ -352,6 +352,23 @@ export class KVBundleService implements BundleService {
 
 		return [bs, undefined];
 	}
+
+	static async createBundle(zarf: Zarf): Promise<[any | undefined, Error | undefined]> {
+		let [hvBundles, err] = await zarf.Api.CreateBundle();
+		if (err !== undefined){
+			return [undefined, Error(`error creating bundle: ${err}`)]
+		}
+
+
+		if (hvBundles === undefined) {
+			return [undefined, Error(`error getting bundles: bundles should not be undefined`)];
+		}
+
+		return [hvBundles, undefined]
+
+	}
+	
+
 }
 
 export class CategoryBundleService {}

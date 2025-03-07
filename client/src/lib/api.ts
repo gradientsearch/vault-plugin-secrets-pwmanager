@@ -214,6 +214,19 @@ export class Api {
 		let bundles = bs.data.bundles;
 		return [bundles, undefined];
 	}
+
+	async CreateBundle(): Promise<[HvBundles | undefined, Error | undefined]> {
+		let response = await this.post(`${this.mount}/bundles`, {});
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error registering: ${err}`)];
+		}
+
+		let bs = await response.json();
+		return [bs.data, undefined]
+	}
+
 }
 
 export function getAPI() {

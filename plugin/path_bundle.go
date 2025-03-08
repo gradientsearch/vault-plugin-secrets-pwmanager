@@ -15,12 +15,28 @@ const (
 	bundleStoragePath = "bundle"
 )
 
+type pwmgrUser struct {
+	EntityID     string   `json:"entity_id"`
+	IsAdmin      bool     `json:"is_admin"`
+	Capabilities []string `json:"capabilities"`
+}
+
 // pwmgrBundle includes the info related to
 // user bundles.
 type pwmgrBundle struct {
 	Path string `json:"path"`
 	// for order. we could do alphabetically
 	Created int64 `json:"created"`
+
+	Users []pwmgrUser `json:"users"`
+}
+
+type pwmgrSharedBundle struct {
+	Path string `json:"path"`
+	// for order. we could do alphabetically
+	Created     int64 `json:"created"`
+	HasAccepted bool  `json:"has_accepted"`
+	IsAdmin     bool  `json:"is_admin"`
 }
 
 // pathBundle extends the Vault API with a `/bundle`
@@ -29,27 +45,67 @@ type pwmgrBundle struct {
 // required, and named. For example, password
 // is marked as sensitive and will not be output
 // when you read the configuration.
-func pathBundle(b *pwManagerBackend) *framework.Path {
-	return &framework.Path{
-		Pattern: "bundles",
-		Fields:  map[string]*framework.FieldSchema{},
-		Operations: map[logical.Operation]framework.OperationHandler{
-			logical.ReadOperation: &framework.PathOperation{
-				Callback: b.pathBundleRead,
+func pathBundle(b *pwManagerBackend) []*framework.Path {
+	return []*framework.Path{
+		{
+			Pattern: "bundles",
+			Fields:  map[string]*framework.FieldSchema{},
+			Operations: map[logical.Operation]framework.OperationHandler{
+				logical.ReadOperation: &framework.PathOperation{
+					Callback: b.pathBundleRead,
+				},
+				logical.CreateOperation: &framework.PathOperation{
+					Callback: b.pathBundleWrite,
+				},
+				logical.UpdateOperation: &framework.PathOperation{
+					Callback: b.pathBundleWrite,
+				},
+				logical.DeleteOperation: &framework.PathOperation{
+					Callback: b.pathBundleDelete,
+				},
 			},
-			logical.CreateOperation: &framework.PathOperation{
-				Callback: b.pathBundleWrite,
-			},
-			logical.UpdateOperation: &framework.PathOperation{
-				Callback: b.pathBundleWrite,
-			},
-			logical.DeleteOperation: &framework.PathOperation{
-				Callback: b.pathBundleDelete,
-			},
+			ExistenceCheck:  b.pathBundleExistenceCheck,
+			HelpSynopsis:    pathBundleHelpSynopsis,
+			HelpDescription: pathBundleHelpDescription,
 		},
-		ExistenceCheck:  b.pathBundleExistenceCheck,
-		HelpSynopsis:    pathBundleHelpSynopsis,
-		HelpDescription: pathBundleHelpDescription,
+		{
+			Pattern: fmt.Sprintf("bundles/%s/%s/users/%s", uuidRegex("owner_entity_id"), uuidRegex("bundle_id"), uuidRegex("user_entity_id")),
+			Fields: map[string]*framework.FieldSchema{
+				"owner_entity_id": {
+					Type:        framework.TypeLowerCaseString,
+					Description: "entity id of the bundle owner",
+					Required:    true,
+				},
+				"bundle_id": {
+					Type:        framework.TypeLowerCaseString,
+					Description: "uuid of the bundle",
+					Required:    true,
+				},
+				"user_entity_id": {
+					Type:        framework.TypeLowerCaseString,
+					Description: "user entity id for user to add",
+					Required:    false,
+				},
+				"capabilities": {
+					Type:        framework.TypeStringSlice,
+					Description: "capabilities of new user",
+					Required:    false,
+				},
+				"is_admin": {
+					Type:        framework.TypeBool,
+					Description: "defines if user is an admin",
+					Required:    false,
+				},
+			},
+			Operations: map[logical.Operation]framework.OperationHandler{
+				logical.UpdateOperation: &framework.PathOperation{
+					Callback: b.pathBundleUsersWrite,
+				},
+			},
+			ExistenceCheck:  b.pathBundleExistenceCheck,
+			HelpSynopsis:    pathBundleHelpSynopsis,
+			HelpDescription: pathBundleHelpDescription,
+		},
 	}
 }
 
@@ -222,6 +278,103 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 	})
 
 	return userBundles, nil
+}
+
+// bundles/<id>/users
+
+// pathBundleWrite updates the configuration for the backend
+func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	ownerEntityID, ok := d.GetOk("owner_entity_id")
+	if !ok {
+		return logical.ErrorResponse("missing owner entity id "), nil
+	}
+
+	bundleID, ok := d.GetOk("bundle_id")
+	if !ok {
+		return logical.ErrorResponse("missing bundle id "), nil
+	}
+
+	newUserEntityID, ok := d.GetOk("user_entity_id")
+	if !ok {
+		return logical.ErrorResponse("missing user entity id "), nil
+	}
+
+	newUserCapabilities, ok := d.GetOk("capabilities")
+	if !ok {
+		return logical.ErrorResponse("missing user capabilities "), nil
+	}
+
+	newUserIsAdmin, ok := d.GetOk("is_admin")
+	if !ok {
+		return logical.ErrorResponse("missing user is_admin "), nil
+	}
+
+	bundleName := fmt.Sprintf("%s/%s", ownerEntityID, bundleID)
+	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
+
+	// under the bundles path we store user bundles lists under /bundles/<EntityID>/bundles/<BundleUUID>
+	// we need to specify a seconds bundles in the path because later we will add in shared with me path
+	// for all bundles that are shared with a user.
+	// Note user bundle mounts have the naming convention /bundles/<EntityID>/<UUID>.
+	bundlePath := fmt.Sprintf("%s/%s/bundles/%s", bundleStoragePath, ownerEntityID, bundleName)
+	pb, err := getBundle(ctx, req.Storage, bundlePath)
+
+	// validate user has perms to manipulate vault users
+	isAdmin := false
+	if req.EntityID == ownerEntityID {
+		isAdmin = true
+	} else {
+		for _, u := range pb.Users {
+			if u.IsAdmin && u.EntityID == req.EntityID {
+				isAdmin = true
+				break
+			}
+		}
+	}
+
+	if !isAdmin {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	// add user to users
+	newUser := pwmgrUser{
+		EntityID:     (newUserEntityID).(string),
+		IsAdmin:      (newUserIsAdmin).(bool),
+		Capabilities: (newUserCapabilities).([]string),
+	}
+
+	pb.Users = append(pb.Users, newUser)
+
+	// add bundle to users shared bundles (duplicate data is ok)
+
+	newUserSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe/%s", bundleStoragePath, newUserEntityID, bundleName)
+
+	sb := pwmgrSharedBundle{
+		Path:        pb.Path,
+		Created:     time.Now().Unix(),
+		HasAccepted: false,
+		IsAdmin:     newUserIsAdmin.(bool),
+	}
+
+	entry, err := logical.StorageEntryJSON(newUserSharedBundlePath, sb)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := req.Storage.Put(ctx, entry); err != nil {
+
+		return nil, err
+	}
+
+	// grab the public key of user
+
+	//newUsersUUKPath = fmt.Sprintf("%s/%s/sharedWithMe/%s", bundleStoragePath, newUserEntityID, bundleName)
+
+	return &logical.Response{
+		Data: map[string]interface{}{},
+	}, nil
+
 }
 
 // pathBundleHelpSynopsis summarizes the help text for the bundles

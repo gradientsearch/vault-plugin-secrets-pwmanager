@@ -1,9 +1,12 @@
 package secretsengine
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"sort"
+	"strings"
 	"time"
 
 	mapstructure "github.com/go-viper/mapstructure/v2"
@@ -57,6 +60,17 @@ type pwmgrSharedBundle struct {
 }
 
 type pwmgrSharedBundles map[string]pwmgrSharedBundle
+
+var tmplt = `
+{{range $index, $bundle := . }}
+path "bundles/data/{{$bundle.Path}}/*" {
+    capabilities = [{{$first := true}}{{range $bundle.Capabilities}}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{.}}"{{end}} ]
+}
+
+path "bundles/metadata/{{$bundle.Path}}/*" {
+    capabilities = [ {{$first := true}}{{range $bundle.Capabilities}}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{.}}"{{end}} ]
+}
+{{end}}`
 
 // pathBundle extends the Vault API with a `/bundle`
 // endpoint for the backend. You can choose whether
@@ -333,17 +347,6 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 		userBundles = append(userBundles, *pb)
 	}
 
-	// // to accept shared bundle path as well.
-	// sharedWithUserBundlePath := fmt.Sprintf("%s/%s/shared-with-user", bundleStoragePath, entityID)
-	// sharedWithUserBundles, err := s.List(ctx, sharedWithUserBundlePath)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// if sharedWithUserBundles == nil {
-	// 	sharedWithUserBundles = []string{}
-	// }
-
 	sort.Slice(userBundles, func(i, j int) bool {
 		return userBundles[i].Created < userBundles[j].Created
 	})
@@ -594,10 +597,45 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 				return nil, err
 			}
 
+			//TODO move this out of loop
+			tmpl, err := template.New("test").Parse(tmplt)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return nil, err
+			}
+
+			sharedBundles := []interface{}{}
+			for _, v := range *sbp {
+				// update users policy
+				paths := strings.Split(v.Path, `/data/`)
+				if len(paths) != 2 {
+					sharedBundleLock.Unlock()
+					return nil, fmt.Errorf("bundle path is invalid: %s", v.Path)
+				}
+
+				caps := strings.Split(v.Capabilities, `,`)
+
+				b := struct {
+					Path         string
+					Capabilities []string
+				}{Path: paths[1], Capabilities: caps}
+
+				sharedBundles = append(sharedBundles, b)
+
+			}
+
+			var tpl bytes.Buffer
+			err = tmpl.Execute(&tpl, sharedBundles)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return nil, err
+			}
+
+			b.logger.Debug("policy", tpl.String())
+
 			sharedBundleLock.Unlock()
 		}
 
-		// update users policy
 		//// pull in all user shared bundles
 		// error handling to undo if not successful
 	}

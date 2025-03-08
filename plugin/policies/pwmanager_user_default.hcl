@@ -26,3 +26,8 @@ path "pwmanager/bundles" {
 path "pwmanager/bundles/+/+/users/+" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }
+
+// User needs to know what their entity name is. 
+path "identity/entity/id/{{ identity.entity.id }}" {
+    capabilities = ["read"]
+}

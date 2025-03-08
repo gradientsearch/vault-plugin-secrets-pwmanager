@@ -280,6 +280,13 @@ func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.
 	// err = b.c.c.Sys().Mount(usersDefaultMountPath, &mi)
 	// //	TODO Delete user on error creating private vault
 
+	entity, err := b.c.Identity().EntityByID(req.EntityID)
+	if err != nil {
+		return logical.ErrorResponse("error retrieving users Entity Name"), nil
+	}
+
+	err = b.setUserNameEntityID(ctx, req.Storage, entity.Name, req.EntityID)
+
 	return nil, err
 }
 
@@ -311,6 +318,25 @@ func (b *pwManagerBackend) setUser(ctx context.Context, s logical.Storage, entit
 	return nil
 }
 
+// setRegister adds the register to the Vault storage API
+func (b *pwManagerBackend) setUserNameEntityID(ctx context.Context, s logical.Storage, entityName string, entityID string) error {
+
+	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/names/%s", USER_SCHEMA, entityName), map[string]string{"id": entityID})
+	if err != nil {
+		return err
+	}
+
+	if entry == nil {
+		return fmt.Errorf("failed to create storage entry for user name id map")
+	}
+
+	if err := s.Put(ctx, entry); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // getUser gets the register from the Vault storage API
 func (b *pwManagerBackend) getUser(ctx context.Context, s logical.Storage, entityID string) (*pwManagerUserEntry, error) {
 	if entityID == "" {
@@ -333,6 +359,31 @@ func (b *pwManagerBackend) getUser(ctx context.Context, s logical.Storage, entit
 	}
 
 	return register, nil
+}
+
+// getUser gets the register from the Vault storage API
+func (b *pwManagerBackend) getUserEntityIDByName(ctx context.Context, s logical.Storage, entityName string) (string, error) {
+	if entityName == "" {
+		return "", fmt.Errorf("missing register entity ID")
+	}
+
+	entry, err := s.Get(ctx, fmt.Sprintf("%s/names/%s", USER_SCHEMA, entityName))
+	if err != nil {
+		return "", err
+	}
+
+	if entry == nil {
+		// TODO this needs to return an error!!!!
+		return "", fmt.Errorf("entity name `%s` does not exist", entityName)
+	}
+
+	id := map[string]string{}
+
+	if err := entry.DecodeJSON(&id); err != nil {
+		return "", err
+	}
+
+	return id["id"], nil
 }
 
 const (

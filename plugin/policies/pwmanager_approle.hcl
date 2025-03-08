@@ -6,3 +6,7 @@ path "/sys/mounts/bundles/*" {
 path "/sys/policies/acl/pwmanager/*" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }
+
+path "identity/entity/id/+" {
+    capabilities = ["read"]
+}

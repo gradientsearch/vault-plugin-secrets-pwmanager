@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -16,9 +17,16 @@ const (
 )
 
 type pwmgrUser struct {
-	EntityID     string   `json:"entity_id"`
-	IsAdmin      bool     `json:"is_admin"`
-	Capabilities []string `json:"capabilities"`
+	EntityID        string `json:"entity_id" mapstructure:"entity_id"`
+	EntityName      string `json:"entity_name" mapstructure:"entity_name"`
+	IsAdmin         bool   `json:"is_admin" mapstructure:"is_admin"`
+	SharedTimestamp int64  `json:"shared_timestamp" mapstructure:"shared_timestamp"`
+	// comma separated string of capabilities
+	Capabilities string `json:"capabilities" mapstructure:"capabilities"`
+}
+
+type pwmgrUsers struct {
+	Users []pwmgrUser `json:"users" mapstructure:"users"`
 }
 
 // pwmgrBundle includes the info related to
@@ -42,6 +50,8 @@ type pwmgrSharedBundle struct {
 	OwnerEntityID string `json:"owner_entity_id"`
 	HasAccepted   bool   `json:"has_accepted"`
 	IsAdmin       bool   `json:"is_admin"`
+	// comma separated string of capabilities
+	Capabilities string `json:"capabilities" mapstructure:"capabilities"`
 }
 
 // pathBundle extends the Vault API with a `/bundle`
@@ -74,7 +84,7 @@ func pathBundle(b *pwManagerBackend) []*framework.Path {
 			HelpDescription: pathBundleHelpDescription,
 		},
 		{
-			Pattern: fmt.Sprintf("bundles/%s/%s/users/%s", uuidRegex("owner_entity_id"), uuidRegex("bundle_id"), uuidRegex("user_entity_id")),
+			Pattern: fmt.Sprintf("bundles/%s/%s/users", uuidRegex("owner_entity_id"), uuidRegex("bundle_id")),
 			Fields: map[string]*framework.FieldSchema{
 				"owner_entity_id": {
 					Type:        framework.TypeLowerCaseString,
@@ -86,19 +96,9 @@ func pathBundle(b *pwManagerBackend) []*framework.Path {
 					Description: "uuid of the bundle",
 					Required:    true,
 				},
-				"user_entity_id": {
-					Type:        framework.TypeLowerCaseString,
-					Description: "user entity id for user to add",
-					Required:    false,
-				},
-				"capabilities": {
-					Type:        framework.TypeStringSlice,
-					Description: "capabilities of new user",
-					Required:    false,
-				},
-				"is_admin": {
-					Type:        framework.TypeBool,
-					Description: "defines if user is an admin",
+				"users": {
+					Type:        framework.TypeMap,
+					Description: "users for this bundle",
 					Required:    false,
 				},
 			},
@@ -243,6 +243,31 @@ func getBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrBundl
 	return pb, nil
 }
 
+func getSharedUserBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrSharedBundle, error) {
+
+	if s == nil {
+		return nil, nil
+	}
+
+	entry, err := s.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if entry == nil {
+		// TODO this needs to return an error!!!!
+		return nil, nil
+	}
+
+	sb := new(pwmgrSharedBundle)
+	if err := entry.DecodeJSON(&sb); err != nil {
+		return nil, fmt.Errorf("error reading root configuration: %w", err)
+	}
+
+	// return the bundle path, we are done
+	return sb, nil
+}
+
 // list bundles returns the list of user bundles
 func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, entityID string) ([]pwmgrBundle, error) {
 	if s == nil {
@@ -305,26 +330,26 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		return logical.ErrorResponse("missing bundle id "), nil
 	}
 
-	newUserEntityID, ok := d.GetOk("user_entity_id")
-	if !ok {
-		return logical.ErrorResponse("missing user entity id "), nil
+	newUsers := pwmgrUsers{}
+
+	if users, ok := d.GetOk("users"); ok {
+		if err := mapstructure.Decode(users, &newUsers); err != nil {
+			return logical.ErrorResponse("error decoding users"), nil
+		}
+	} else {
+		return logical.ErrorResponse("missing users"), nil
 	}
 
-	newUserCapabilities, ok := d.GetOk("capabilities")
-	if !ok {
-		return logical.ErrorResponse("missing user capabilities "), nil
-	}
+	usersPubKeys := map[string]map[string]string{}
 
-	newUserIsAdmin, ok := d.GetOk("is_admin")
-	if !ok {
-		return logical.ErrorResponse("missing user is_admin "), nil
-	}
+	for _, nu := range newUsers.Users {
+		// grab the public key of user
+		userUUK, err := b.getUser(ctx, req.Storage, nu.EntityID)
 
-	// grab the public key of user
-	userUUK, err := b.getUser(ctx, req.Storage, newUserEntityID.(string))
-
-	if err != nil || userUUK == nil {
-		return logical.ErrorResponse("error retrieving new users public key"), nil
+		if err != nil || userUUK == nil {
+			return logical.ErrorResponse("error retrieving new users public key"), nil
+		}
+		usersPubKeys[nu.EntityID] = userUUK.UUK.PubKey
 	}
 
 	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
@@ -357,22 +382,50 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		return logical.ErrorResponse("not authorized"), nil
 	}
 
-	// add user to users
-	newUser := pwmgrUser{
-		EntityID:     (newUserEntityID).(string),
-		IsAdmin:      (newUserIsAdmin).(bool),
-		Capabilities: (newUserCapabilities).([]string),
-	}
+	modifiedUsers := []pwmgrUser{}
+	users := []pwmgrUser{}
 
-	// TODO think through workflow .
-	// how will a user be modified?
-	for _, u := range pb.Users {
-		if u.EntityID == (newUserEntityID).(string) {
-			return logical.ErrorResponse("user already exists"), nil
+	for _, nu := range newUsers.Users {
+		// TODO think through workflow .
+		// how will a user be modified?
+		// we go ahead and update the users policy to allow
+		// if users declines invitation we can delete the bundle
+		// and recreate the policy for that user
+		var userMatch *pwmgrUser
+
+		for _, u := range pb.Users {
+			if u.EntityID == nu.EntityID {
+				userMatch = &u
+			}
 		}
+
+		if userMatch != nil {
+			// check if modified
+			if nu.Capabilities != userMatch.Capabilities {
+				modifiedUsers = append(modifiedUsers, nu)
+				continue
+			}
+
+			if nu.IsAdmin != userMatch.IsAdmin {
+				modifiedUsers = append(modifiedUsers, nu)
+				continue
+			}
+
+			if nu.EntityName != userMatch.EntityName {
+				modifiedUsers = append(modifiedUsers, nu)
+				continue
+			}
+
+		} else {
+			nu.SharedTimestamp = time.Now().Unix()
+			modifiedUsers = append(modifiedUsers, nu)
+		}
+
+		users = append(users, nu)
+
 	}
 
-	pb.Users = append(pb.Users, newUser)
+	pb.Users = users
 	newBundleEntry, err := logical.StorageEntryJSON(bundlePath, pb)
 
 	if err != nil {
@@ -383,26 +436,42 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		return logical.ErrorResponse("error storing bundle with new user"), err
 	}
 
-	// add bundle to users shared bundles (duplicate data is ok)
-	newUserSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe/%s", BUNDLE_SCHEMA, newUserEntityID, bundleID)
+	for _, mu := range modifiedUsers {
 
-	sb := pwmgrSharedBundle{
-		ID:            pb.ID,
-		OwnerEntityID: pb.OwnerEntityID,
-		Path:          pb.Path,
-		Created:       time.Now().Unix(),
-		HasAccepted:   false,
-		IsAdmin:       newUserIsAdmin.(bool),
-	}
+		// add bundle to users shared bundles (duplicate data is ok)
+		newUserSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, mu.EntityID)
 
-	entry, err := logical.StorageEntryJSON(newUserSharedBundlePath, sb)
+		var sb *pwmgrSharedBundle
+		sb, err := getSharedUserBundle(ctx, req.Storage, newUserSharedBundlePath)
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return logical.ErrorResponse("error reading users shared bundle"), err
+		}
 
-	if err := req.Storage.Put(ctx, entry); err != nil {
-		return logical.ErrorResponse("error adding bundle to users sharedWithMe bundles"), err
+		if sb == nil {
+			sb = &pwmgrSharedBundle{
+				ID:            pb.ID,
+				OwnerEntityID: pb.OwnerEntityID,
+				Path:          pb.Path,
+				Created:       time.Now().Unix(),
+				HasAccepted:   false,
+				IsAdmin:       mu.IsAdmin,
+				Capabilities:  mu.Capabilities,
+			}
+		}
+
+		entry, err := logical.StorageEntryJSON(newUserSharedBundlePath, *sb)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if err := req.Storage.Put(ctx, entry); err != nil {
+			return logical.ErrorResponse("error adding bundle to users sharedWithMe bundles"), err
+		}
+
+		// update users policy
+		//// pull in all user shared bundles
 	}
 
 	return &logical.Response{

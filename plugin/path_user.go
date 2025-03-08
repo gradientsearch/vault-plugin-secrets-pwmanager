@@ -188,12 +188,12 @@ func (b *pwManagerBackend) pathUsersWrite(ctx context.Context, req *logical.Requ
 		return nil, fmt.Errorf("missing username in user")
 	}
 
-	if uuk, ok := d.GetOk("uk"); ok {
+	if uuk, ok := d.GetOk("uuk"); ok {
 		if err := mapstructure.Decode(uuk, &userEntry.UUK); err != nil {
 			return logical.ErrorResponse("error decoding uuk"), nil
 		}
 	} else if !ok && createOperation {
-		return nil, fmt.Errorf("missing username in user")
+		return nil, fmt.Errorf("missing uuk")
 	}
 
 	if err := b.setUser(ctx, req.Storage, req.EntityID, userEntry); err != nil {

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	bundleStoragePath = "bundle"
+	BUNDLE_SCHEMA = "bundle"
 )
 
 type pwmgrUser struct {
@@ -170,7 +170,7 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 	// we need to specify a seconds bundles in the path because later we will add in shared with me path
 	// for all bundles that are shared with a user.
 	// Note user bundle mounts have the naming convention /bundles/<EntityID>/<UUID>.
-	newBundlePath := fmt.Sprintf("%s/%s/bundles/%s", bundleStoragePath, req.EntityID, newBundleUUID)
+	newBundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, req.EntityID, newBundleUUID)
 	entry, err := logical.StorageEntryJSON(newBundlePath, pb)
 
 	if err != nil {
@@ -198,7 +198,7 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 
 // pathBundleDelete removes the configuration for the backend
 func (b *pwManagerBackend) pathBundleDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	err := req.Storage.Delete(ctx, bundleStoragePath)
+	err := req.Storage.Delete(ctx, BUNDLE_SCHEMA)
 
 	if err == nil {
 		// reset the client so the next invocation will pick up the new configuration
@@ -238,7 +238,7 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 		return nil, nil
 	}
 
-	userBundlePaths := fmt.Sprintf("%s/%s/bundles/", bundleStoragePath, entityID)
+	userBundlePaths := fmt.Sprintf("%s/%s/bundles/", BUNDLE_SCHEMA, entityID)
 	userBundlesUUIDs, err := s.List(ctx, userBundlePaths)
 	if err != nil {
 		return nil, err
@@ -316,8 +316,11 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	// we need to specify a seconds bundles in the path because later we will add in shared with me path
 	// for all bundles that are shared with a user.
 	// Note user bundle mounts have the naming convention /bundles/<EntityID>/<UUID>.
-	bundlePath := fmt.Sprintf("%s/%s/bundles/%s", bundleStoragePath, ownerEntityID, bundleName)
+	bundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, ownerEntityID, bundleName)
 	pb, err := getBundle(ctx, req.Storage, bundlePath)
+	if err != nil {
+		return logical.ErrorResponse("bundle not found"), nil
+	}
 
 	// validate user has perms to manipulate vault users
 	isAdmin := false
@@ -333,7 +336,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	}
 
 	if !isAdmin {
-		return nil, fmt.Errorf("not authorized")
+		return logical.ErrorResponse("not authorized"), nil
 	}
 
 	// add user to users
@@ -346,8 +349,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	pb.Users = append(pb.Users, newUser)
 
 	// add bundle to users shared bundles (duplicate data is ok)
-
-	newUserSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe/%s", bundleStoragePath, newUserEntityID, bundleName)
+	newUserSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe/%s", BUNDLE_SCHEMA, newUserEntityID, bundleName)
 
 	sb := pwmgrSharedBundle{
 		Path:        pb.Path,
@@ -363,16 +365,20 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	}
 
 	if err := req.Storage.Put(ctx, entry); err != nil {
-
-		return nil, err
+		return logical.ErrorResponse("error adding bundle to users sharedWithMe bundles"), err
 	}
 
 	// grab the public key of user
+	userUUK, err := b.getUser(ctx, req.Storage, newUserEntityID.(string))
 
-	//newUsersUUKPath = fmt.Sprintf("%s/%s/sharedWithMe/%s", bundleStoragePath, newUserEntityID, bundleName)
+	if err != nil {
+		return logical.ErrorResponse("error retrieving new users public key"), nil
+	}
 
 	return &logical.Response{
-		Data: map[string]interface{}{},
+		Data: map[string]interface{}{
+			"pubkey": userUUK.UUK.PubKey,
+		},
 	}, nil
 
 }

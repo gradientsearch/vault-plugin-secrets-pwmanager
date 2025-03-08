@@ -323,6 +323,7 @@ func (b *pwManagerBackend) getUser(ctx context.Context, s logical.Storage, entit
 	}
 
 	if entry == nil {
+		// TODO this needs to return an error!!!!
 		return nil, nil
 	}
 

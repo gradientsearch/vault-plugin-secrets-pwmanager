@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	BUNDLE_SCHEMA = "bundle"
+	BUNDLE_SCHEMA = "bundles"
 )
 
 type pwmgrUser struct {
@@ -24,19 +24,24 @@ type pwmgrUser struct {
 // pwmgrBundle includes the info related to
 // user bundles.
 type pwmgrBundle struct {
+	ID   string `json:"id"`
 	Path string `json:"path"`
 	// for order. we could do alphabetically
 	Created int64 `json:"created"`
+
+	OwnerEntityID string `json:"owner_entity_id"`
 
 	Users []pwmgrUser `json:"users"`
 }
 
 type pwmgrSharedBundle struct {
+	ID   string `json:"id"`
 	Path string `json:"path"`
 	// for order. we could do alphabetically
-	Created     int64 `json:"created"`
-	HasAccepted bool  `json:"has_accepted"`
-	IsAdmin     bool  `json:"is_admin"`
+	Created       int64  `json:"created"`
+	OwnerEntityID string `json:"owner_entity_id"`
+	HasAccepted   bool   `json:"has_accepted"`
+	IsAdmin       bool   `json:"is_admin"`
 }
 
 // pathBundle extends the Vault API with a `/bundle`
@@ -168,6 +173,8 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 	pb := new(pwmgrBundle)
 	pb.Path = newBundleSecretPath
 	pb.Created = time.Now().Unix()
+	pb.OwnerEntityID = req.EntityID
+	pb.ID = newBundleUUID
 
 	// under the bundles path we store user bundles lists under /bundles/<EntityID>/bundles/<BundleUUID>
 	// we need to specify a seconds bundles in the path because later we will add in shared with me path
@@ -223,6 +230,7 @@ func getBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrBundl
 	}
 
 	if entry == nil {
+		// TODO this needs to return an error!!!!
 		return nil, nil
 	}
 
@@ -312,16 +320,23 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		return logical.ErrorResponse("missing user is_admin "), nil
 	}
 
-	bundleName := fmt.Sprintf("%s/%s", ownerEntityID, bundleID)
+	// grab the public key of user
+	userUUK, err := b.getUser(ctx, req.Storage, newUserEntityID.(string))
+
+	if err != nil || userUUK == nil {
+		return logical.ErrorResponse("error retrieving new users public key"), nil
+	}
+
 	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
 
 	// under the bundles path we store user bundles lists under /bundles/<EntityID>/bundles/<BundleUUID>
 	// we need to specify a seconds bundles in the path because later we will add in shared with me path
 	// for all bundles that are shared with a user.
 	// Note user bundle mounts have the naming convention /bundles/<EntityID>/<UUID>.
-	bundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, ownerEntityID, bundleName)
+	bundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, ownerEntityID, bundleID)
+
 	pb, err := getBundle(ctx, req.Storage, bundlePath)
-	if err != nil {
+	if err != nil || pb == nil {
 		return logical.ErrorResponse("bundle not found"), nil
 	}
 
@@ -349,16 +364,35 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		Capabilities: (newUserCapabilities).([]string),
 	}
 
+	// TODO think through workflow .
+	// how will a user be modified?
+	for _, u := range pb.Users {
+		if u.EntityID == (newUserEntityID).(string) {
+			return logical.ErrorResponse("user already exists"), nil
+		}
+	}
+
 	pb.Users = append(pb.Users, newUser)
+	newBundleEntry, err := logical.StorageEntryJSON(bundlePath, pb)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := req.Storage.Put(ctx, newBundleEntry); err != nil {
+		return logical.ErrorResponse("error storing bundle with new user"), err
+	}
 
 	// add bundle to users shared bundles (duplicate data is ok)
-	newUserSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe/%s", BUNDLE_SCHEMA, newUserEntityID, bundleName)
+	newUserSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe/%s", BUNDLE_SCHEMA, newUserEntityID, bundleID)
 
 	sb := pwmgrSharedBundle{
-		Path:        pb.Path,
-		Created:     time.Now().Unix(),
-		HasAccepted: false,
-		IsAdmin:     newUserIsAdmin.(bool),
+		ID:            pb.ID,
+		OwnerEntityID: pb.OwnerEntityID,
+		Path:          pb.Path,
+		Created:       time.Now().Unix(),
+		HasAccepted:   false,
+		IsAdmin:       newUserIsAdmin.(bool),
 	}
 
 	entry, err := logical.StorageEntryJSON(newUserSharedBundlePath, sb)
@@ -369,13 +403,6 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 	if err := req.Storage.Put(ctx, entry); err != nil {
 		return logical.ErrorResponse("error adding bundle to users sharedWithMe bundles"), err
-	}
-
-	// grab the public key of user
-	userUUK, err := b.getUser(ctx, req.Storage, newUserEntityID.(string))
-
-	if err != nil {
-		return logical.ErrorResponse("error retrieving new users public key"), nil
 	}
 
 	return &logical.Response{

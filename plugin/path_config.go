@@ -177,6 +177,7 @@ func getConfig(ctx context.Context, s logical.Storage) (*pwmgrConfig, error) {
 	}
 
 	if entry == nil {
+		// TODO this needs to return an error!!!!
 		return nil, nil
 	}
 

@@ -138,9 +138,21 @@ func (b *pwManagerBackend) pathBundleRead(ctx context.Context, req *logical.Requ
 		return nil, err
 	}
 
+	userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, req.EntityID)
+	sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if sbp == nil {
+		sbp = &pwmgrSharedBundles{}
+	}
+
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"bundles": bundles,
+			"bundles":        bundles,
+			"shared_bundles": *sbp,
 		},
 	}, nil
 }
@@ -259,7 +271,6 @@ func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (
 	}
 
 	if entry == nil {
-		// TODO this needs to return an error!!!!
 		return nil, nil
 	}
 
@@ -512,6 +523,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		}
 	}
 
+	// TODO move this to a putBundle method
 	pb.Users = users
 	newBundleEntry, err := logical.StorageEntryJSON(bundlePath, *pb)
 

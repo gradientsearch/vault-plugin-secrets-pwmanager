@@ -344,7 +344,16 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 	usersPubKeys := map[string]map[string]string{}
 
-	for _, nu := range newUsers.Users {
+	for i := range newUsers.Users {
+		nu := &newUsers.Users[i]
+		// make sure entity name and entity id have integrity
+		userEntityID, err := b.getUserEntityIDByName(ctx, req.Storage, nu.EntityName)
+		nu.EntityID = userEntityID
+
+		if err != nil {
+			return logical.ErrorResponse("error retrieving new users entityID"), nil
+		}
+
 		// grab the public key of user
 		userUUK, err := b.getUser(ctx, req.Storage, nu.EntityID)
 
@@ -403,23 +412,24 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 		if userMatch != nil {
 			// check if modified
+			modified := false
 			if nu.Capabilities != userMatch.Capabilities {
-				modifiedUsers = append(modifiedUsers, nu)
-				continue
+				modified = true
 			}
 
 			if nu.IsAdmin != userMatch.IsAdmin {
-				modifiedUsers = append(modifiedUsers, nu)
-				continue
+				modified = true
 			}
 
 			if nu.EntityName != userMatch.EntityName {
+				modified = true
+			}
+
+			if modified {
 				modifiedUsers = append(modifiedUsers, nu)
-				continue
 			}
 
 		} else {
-
 			// grab the entity of the new user
 			nu.SharedTimestamp = time.Now().Unix()
 			modifiedUsers = append(modifiedUsers, nu)
@@ -485,6 +495,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 			} else {
 				sb.Capabilities = mu.Capabilities
 				sb.IsAdmin = mu.IsAdmin
+				sb.Created = time.Now().Unix()
 				sbsm[bundleID.(string)] = sb
 			}
 		}

@@ -23,8 +23,8 @@ path "pwmanager/bundles" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }
 
-path "pwmanager/bundles/+/+/users/+" {
-    capabilities = ["create", "read", "update", "patch", "delete", "list"]
+path "pwmanager/bundles/+/+/users" {
+    capabilities = ["create", "read", "update", "patch", "list"]
 }
 
 // User needs to know what their entity name is. 

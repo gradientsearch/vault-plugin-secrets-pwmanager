@@ -29,8 +29,8 @@ type Unlocker interface {
 	Unlock()
 }
 
-// New returns an initalized M.
-func New() *M {
+// NewMapOfMu returns an initalized M.
+func NewMapOfMu() *M {
 	return &M{ma: make(map[interface{}]*mentry)}
 }
 

@@ -75,12 +75,22 @@ secretMount:
 userpass:
 	vault auth enable userpass
 	vault write auth/userpass/users/stephen password=hashicorp token_policies="plugins/pwmanager-user-default,pwmanager/entity/stephen" token_ttl="24h"
+	vault write auth/userpass/users/bob password=hashicorp token_policies="plugins/pwmanager-user-default,pwmanager/entity/bob" token_ttl="24h"
+	vault write auth/userpass/users/alice password=hashicorp token_policies="plugins/pwmanager-user-default,pwmanager/entity/alice" token_ttl="24h"
+
+login-bob:
+	vault write -format json auth/userpass/login/bob password=hashicorp
+
+login-alice:
+	vault write -format json auth/userpass/login/alice password=hashicorp
 
 login:
 	vault write -format json auth/userpass/login/stephen password=hashicorp
 
 entity:
 	vault write /identity/entity/id/$(shell vault write -format json auth/userpass/login/stephen password=hashicorp | jq -r '.auth.entity_id' | tr -d "\n") name=stephen
+	vault write /identity/entity/id/$(shell vault write -format json auth/userpass/login/bob password=hashicorp | jq -r '.auth.entity_id' | tr -d "\n") name=bob
+	vault write /identity/entity/id/$(shell vault write -format json auth/userpass/login/alice password=hashicorp | jq -r '.auth.entity_id' | tr -d "\n") name=alice
 	vault policy write plugins/pwmanager-user-default policies/pwmanager_user_default.hcl
 
 # set up vault with file storage for client development

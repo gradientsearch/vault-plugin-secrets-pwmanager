@@ -101,6 +101,9 @@ func pathBundle(b *pwManagerBackend) []*framework.Path {
 				logical.UpdateOperation: &framework.PathOperation{
 					Callback: b.pathBundleUsersWrite,
 				},
+				logical.CreateOperation: &framework.PathOperation{
+					Callback: b.pathBundleUsersWrite,
+				},
 			},
 			ExistenceCheck:  b.pathBundleExistenceCheck,
 			HelpSynopsis:    pathBundleHelpSynopsis,

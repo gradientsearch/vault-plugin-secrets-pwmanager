@@ -263,11 +263,30 @@ func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (
 
 	sb := new(pwmgrSharedBundles)
 	if err := entry.DecodeJSON(&sb); err != nil {
-		return nil, fmt.Errorf("error reading root configuration: %w", err)
+		return nil, fmt.Errorf("error reading shared bundles %w", err)
 	}
 
 	// return the bundle path, we are done
 	return sb, nil
+}
+
+func putSharedUserBundles(ctx context.Context, s logical.Storage, path string, sbp pwmgrSharedBundles) error {
+	//	TODO versioned writes
+	if s == nil {
+		return fmt.Errorf("error storage cannot be nil")
+	}
+
+	entry, err := logical.StorageEntryJSON(path, sbp)
+
+	if err != nil {
+		return err
+	}
+
+	if err := s.Put(ctx, entry); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // list bundles returns the list of user bundles
@@ -439,6 +458,43 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 	}
 
+	// delete old users
+	deletedUsers := map[string]bool{}
+	for _, u := range pb.Users {
+		deletedUsers[u.EntityID] = true
+	}
+
+	for _, u := range users {
+		deletedUsers[u.EntityID] = false
+	}
+
+	for k, v := range deletedUsers {
+		if v {
+			// add bundle to users shared bundles (duplicate data is ok)
+			// TODO add LOCK here
+			userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, k)
+			var sbp *pwmgrSharedBundles
+			sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
+
+			if err != nil {
+				return logical.ErrorResponse("error reading users shared bundles"), err
+			}
+
+			sbpm := *sbp
+			delete(sbpm, bundleID.(string))
+
+			err = putSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
+
+			if err != nil {
+				return nil, err
+			}
+
+			// TODO update user policy
+			// template new policy
+			// post to vault
+		}
+	}
+
 	pb.Users = users
 	newBundleEntry, err := logical.StorageEntryJSON(bundlePath, pb)
 
@@ -455,6 +511,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		// add bundle to users shared bundles (duplicate data is ok)
 		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, mu.EntityID)
 
+		// TODO add lock here
 		var sbp *pwmgrSharedBundles
 		sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
 
@@ -500,14 +557,10 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 			}
 		}
 
-		entry, err := logical.StorageEntryJSON(userSharedBundlePath, *sbp)
+		err = putSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
 
 		if err != nil {
 			return nil, err
-		}
-
-		if err := req.Storage.Put(ctx, entry); err != nil {
-			return logical.ErrorResponse("error adding bundle to users sharedWithMe bundles"), err
 		}
 
 		// update users policy

@@ -1,12 +1,17 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { newPasswordEntry as newPasswordEntry, type Entry, type Metadata } from '../models/entry';
 	import { KVBundleService, type BundleService } from '../services/bundle.service';
 	import { base } from '$app/paths';
 	import type { BundleMetadata } from '../models/bundle/vault/metadata';
+	import Modal from '../../../components/modal.svelte';
+	import CreatePassword from '../modals/createPassword.svelte';
+	import { userService } from '../services/user.service';
 
 	let headerHeight = $state(0);
+	let showModal = $state(false);
 	let errorMessage: string | undefined = $state(undefined);
+	let usersEntityID: string  =''
 
 	let {
 		bundle = $bindable(),
@@ -64,6 +69,10 @@
 	function onSelectedEntry(e: Entry) {
 		selectedEntryMetadata = e;
 	}
+
+	onMount(()=>{
+		usersEntityID = userService.getEntityID()
+	})
 </script>
 
 <div
@@ -73,7 +82,22 @@
 		bind:clientHeight={headerHeight}
 		class="absolute top-0 flex w-full border-b-2 border-border_primary p-2"
 	>
-		<h1 class="text-base capitalize">{bundle?.Name} {bundle?.Type}</h1>
+		<h1 class="flex items-end text-base capitalize">{bundle?.Name} {bundle?.Type}</h1>
+		<span class="flex flex-1"></span>
+		{#if !(bundle?.Path.split('/')[3] === usersEntityID)}
+			{#if bundle.isAdmin ||  bundle?.Path.split('/')[2] === usersEntityID}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<span
+					onclick={() => {
+						showModal = true;
+					}}
+					class="flex items-end px-2 text-sm hover:cursor-pointer hover:bg-surface_interactive_hover hover:text-blue-300"
+				>
+					Edit
+				</span>
+			{/if}
+		{/if}
 	</header>
 
 	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
@@ -102,3 +126,6 @@
 		{/each}
 	{/if}
 </div>
+<Modal bind:showModal>
+	<CreatePassword bind:bundleService bind:showModal></CreatePassword>
+</Modal>

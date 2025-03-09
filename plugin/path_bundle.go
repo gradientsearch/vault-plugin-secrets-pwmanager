@@ -45,6 +45,8 @@ type pwmgrBundle struct {
 	OwnerEntityID string `json:"owner_entity_id"`
 
 	Users []pwmgrUser `json:"users"`
+
+	WALEntry bool `json:"wal_entry"`
 }
 
 type pwmgrSharedBundle struct {
@@ -61,7 +63,8 @@ type pwmgrSharedBundle struct {
 
 type pwmgrSharedBundles map[string]pwmgrSharedBundle
 
-var tmplt = `
+// admin template
+var adminTmpl = `
 {{range $index, $bundle := . }}
 path "bundles/data/{{$bundle.Path}}/*" {
     capabilities = [{{$first := true}}{{range $bundle.Capabilities}}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{.}}"{{end}} ]
@@ -273,6 +276,30 @@ func getBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrBundl
 	return pb, nil
 }
 
+func setBundle(ctx context.Context, s logical.Storage, path string, pb pwmgrBundle) error {
+
+	if s == nil {
+		return nil
+	}
+
+	// TODO move this to a putBundle method
+	// Only after successfully completing previous step
+	// we will update the users. Even if the previous
+	// steps were partially completed, for example
+	newBundleEntry, err := logical.StorageEntryJSON(path, pb)
+
+	if err != nil {
+		return err
+	}
+
+	if err := s.Put(ctx, newBundleEntry); err != nil {
+		return err
+	}
+
+	// return the bundle path, we are done
+	return nil
+}
+
 func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (*pwmgrSharedBundles, error) {
 
 	if s == nil {
@@ -370,6 +397,8 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 	newUsers := pwmgrUsers{}
 
+	// TODO add WAL Write
+
 	if users, ok := d.GetOk("users"); ok {
 		if err := mapstructure.Decode(users, &newUsers); err != nil {
 			return logical.ErrorResponse("error decoding users"), nil
@@ -415,6 +444,23 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		return logical.ErrorResponse("bundle not found"), nil
 	}
 
+	// The current edge cases are around data integrity.
+	// If a current bundle user was given less/more access
+	// and those updates were written for the user but the
+	// server crashed before the bundle users were written
+	// to disk.
+	//
+	// Other scenarios exists but have less security concerns. e.g
+	// 1. If a user was added but the server crashed the users pubkey
+	// was not returned to encrypt the bundle key.
+	// 2. If a user was deleted the user will still show up
+	// in list of bundle users.
+	//
+	// In the future we can write to a WAL log and then
+	// revert to the previous well known state.
+	pb.WALEntry = true
+	setBundle(ctx, req.Storage, bundlePath, *pb)
+
 	// validate user has perms to manipulate vault users
 	isAdmin := false
 	if req.EntityID == ownerEntityID {
@@ -456,6 +502,12 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 			// check if modified
 			modified := false
+
+			// If pervious request did not finish we'll update all user
+			if pb.WALEntry {
+				modified = true
+			}
+
 			if nu.Capabilities != userMatch.Capabilities {
 				modified = true
 			}
@@ -482,7 +534,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 	}
 
-	// delete old users
+	/////////// delete users ////////////////
 	deletedUsers := map[string]bool{}
 	for _, u := range pb.Users {
 		deletedUsers[u.EntityID] = true
@@ -521,21 +573,13 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 				// TODO update user policy
 				// template new policy
 				// post to vault
+
+				// TODO remove user key from bundle
+				//
+
 			}
 
 		}
-	}
-
-	// TODO move this to a putBundle method
-	pb.Users = users
-	newBundleEntry, err := logical.StorageEntryJSON(bundlePath, *pb)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := req.Storage.Put(ctx, newBundleEntry); err != nil {
-		return logical.ErrorResponse("error storing bundle with new user"), err
 	}
 
 	for _, mu := range modifiedUsers {
@@ -598,7 +642,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 			}
 
 			//TODO move this out of loop
-			tmpl, err := template.New("test").Parse(tmplt)
+			tmpl, err := template.New("test").Parse(adminTmpl)
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return nil, err
@@ -647,7 +691,18 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		// error handling to undo if not successful
 	}
 
-	// TODO filter to only modified user pubkeys
+	// TODO move this to a putBundle method
+	// Only after successfully completing previous step
+	// we will update the users. Even if the previous
+	// steps were partially completed, for example
+	pb.Users = users
+	pb.WALEntry = false
+
+	err = setBundle(ctx, req.Storage, bundlePath, *pb)
+	if err != nil {
+		return logical.ErrorResponse("error storing bundle with new user"), err
+	}
+
 	return &logical.Response{
 		Data: map[string]interface{}{
 			"pubkey": usersPubKeys,

@@ -7,6 +7,7 @@
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let bundles: Bundle[] = $state([]);
+	let sharedBundles: Bundle[] = $state([]);
 	let showModal = $state(false);
 	let newBundle: Bundle | undefined = $state();
 
@@ -42,8 +43,14 @@
 				console.log(`error listing bundles ${err}`);
 			}
 
-			if (bs !== undefined) {
-				bundles = [...bundles, ...bs];
+			console.log(bs);
+
+			if (bs !== undefined && bs.bundles) {
+				bundles = [...bundles, ...bs.bundles];
+			}
+
+			if (bs !== undefined && bs.sharedBundles) {
+				sharedBundles = [...bs.sharedBundles];
 			}
 		})();
 	});
@@ -51,7 +58,9 @@
 
 <div class="h-[100vh] w-full bg-token_side_nav_color_surface_primary md:max-w-64 lg:block">
 	<div class="flex-row">
-		<div class=" flex h-[64px] flex-row content-start px-1 py-2 bg-token_side_nav_color_surface_primary">
+		<div
+			class=" flex h-[64px] flex-row content-start bg-token_side_nav_color_surface_primary px-1 py-2"
+		>
 			<Icon className="nav-header-icon max-w-16"></Icon>
 			<span class="flex flex-1"></span>
 			<div
@@ -69,9 +78,7 @@
 						showModal = true;
 					}}
 				>
-					<span
-						class="p-2 text-3xl hover:bg-surface_interactive_hover hover:text-blue-300"
-					>
+					<span class="p-2 text-3xl hover:bg-surface_interactive_hover hover:text-blue-300">
 						+
 					</span>
 				</button>
@@ -88,10 +95,36 @@
 							? 'bg-token_side_nav_color_surface_interactive_active'
 							: ''} height-[36px] my-2 min-h-[36px] px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:cursor-pointer hover:bg-token_side_nav_color_surface_interactive_hover"
 					>
-						{#if b.Name.length === 0}
+						{#if b?.Name?.length === 0}
 							<div class="capitalize">bundle</div>
 						{:else}
-							<div class="capitalize">{b.Name}</div>
+							<div class="capitalize">{b?.Name}</div>
+						{/if}
+					</li>
+				{/each}
+			{/if}
+
+			<li
+				class="height-[36px] my-2 flex min-h-[36px] flex-row px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_faint"
+			>
+				<span class="flex items-end">Shared</span>
+			</li>
+			{#if sharedBundles}
+				{#each sharedBundles as b}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+					<li
+						onclick={() => {
+							bundle = b;
+						}}
+						class="{b.Path === bundle.Path
+							? 'bg-token_side_nav_color_surface_interactive_active'
+							: ''} height-[36px] my-2 min-h-[36px] px-[8px] py-[9px] text-sm text-token_side_nav_color_foreground_strong hover:cursor-pointer hover:bg-token_side_nav_color_surface_interactive_hover"
+					>
+						{#if b?.Name?.length === 0}
+							<div class="capitalize">bundle</div>
+						{:else}
+							<div class="capitalize">{b?.Name}</div>
 						{/if}
 					</li>
 				{/each}

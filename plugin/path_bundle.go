@@ -631,8 +631,15 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 				return nil, err
 			}
 
-			b.logger.Debug("policy", tpl.String())
+			// TODO find out if backend knows the mount we currently are in. if not we can
+			// add it to the config
+			policyName := fmt.Sprintf("%s/entity/%s", "pwmanager", mu.EntityName)
+			err = b.c.c.Sys().PutPolicy(policyName, tpl.String())
 
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return logical.ErrorResponse(fmt.Sprintf("error updating user policy: %s", err)), nil
+			}
 			sharedBundleLock.Unlock()
 		}
 

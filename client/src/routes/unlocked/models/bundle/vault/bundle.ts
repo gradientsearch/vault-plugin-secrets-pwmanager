@@ -10,6 +10,7 @@ interface HvBundles {
 
 interface Data {
   bundles: HvBundle[];
+  shared_bundles: any
   // Only present on create bundle payload
   path: string;
 }

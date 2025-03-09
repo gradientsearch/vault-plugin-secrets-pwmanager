@@ -191,7 +191,7 @@ export class Api {
 	}
 
 	// bundles
-	async GetBundles(): Promise<[HvBundle[] | undefined, Error | undefined]> {
+	async GetBundles(): Promise<[any | undefined, Error | undefined]> {
 		let response = await this.get(`${this.mount}/bundles`);
 
 		if (response.status === 404) {
@@ -211,8 +211,8 @@ export class Api {
 			return [undefined, Error(`error - bundles is undefined`)];
 		}
 
-		let bundles = bs.data.bundles;
-		return [bundles, undefined];
+		
+		return [bs.data, undefined];
 	}
 
 	async CreateBundle(): Promise<[string | undefined, Error | undefined]> {

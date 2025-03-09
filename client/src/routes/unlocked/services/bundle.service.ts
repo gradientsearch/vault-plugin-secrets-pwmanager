@@ -356,7 +356,7 @@ export class KVBundleService implements BundleService {
 	}
 
 	// getBundles retrieves all bundles and bundle metadata.
-	static async getBundles(zarf: Zarf): Promise<[Bundle[] | undefined, Error | undefined]> {
+	static async getBundles(zarf: Zarf): Promise<[any | undefined, Error | undefined]> {
 		let [hvBundles, err] = await zarf.Api.GetBundles();
 
 		if (err !== undefined) {
@@ -367,7 +367,32 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error getting bundles: bundles should not be undefined`)];
 		}
 
-		return KVBundleService.initBundles(zarf, hvBundles);
+		let [bundles, err2] =  await KVBundleService.initBundles(zarf, hvBundles.bundles);
+
+		if (err2 !== undefined) {
+			return [undefined, Error(`error getting bundles: ${err2}`)];
+		}
+
+
+		let sharedBundles: HvBundle[] = []
+		if (hvBundles.shared_bundles !== undefined){
+			Object.keys(hvBundles.shared_bundles).forEach((k)=>{
+				let sb = hvBundles.shared_bundles[k]
+				let b: HvBundle = {
+					created: sb.created,
+					path: sb.path
+				}
+				sharedBundles.push(b)
+			})
+		}
+
+		let [sbs, err3] = await KVBundleService.initBundles(zarf, sharedBundles);
+
+		if (err3 !== undefined) {
+			return [undefined, Error(`error getting bundles: ${err3}`)];
+		}
+
+		return [{bundles: bundles, sharedBundles: sbs }, undefined]
 	}
 
 	static async createBundle(

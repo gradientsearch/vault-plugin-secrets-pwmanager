@@ -3,14 +3,13 @@
 	import { newPasswordEntry, type Metadata, type Entry, MODE } from '../models/entry';
 	import Password from '../components/entries/password.svelte';
 	import type { BundleService } from '../services/bundle.service';
-	import Bundle from '../components/bundles/bundle.svelte';
+	import EditBundle from '../components/bundles/editBundle.svelte';
 	import { onMount } from 'svelte';
 
 	let {
 		showModal = $bindable<Boolean>(),
         zarf = $bindable(),
-        newBundle = $bindable(),
-		edit
+        bundle = $bindable(),
 	} = $props();
 
 	async function onSave() {
@@ -27,11 +26,11 @@
 <div bind:clientHeight={containerHeight} class="h-[100%]">
 	<header bind:clientHeight={headerHeight}>
 		<div class="flex flex-row justify-start border-b-2 border-border_primary p-4 font-bold">
-			<div>New Bundle</div>
+			<div>Edit {bundle?.Name} Bundle</div>
 		</div>
 	</header>
 
 	<div class="flex flex-col" style="height: {containerHeight - headerHeight}px;">
-		<Bundle bind:zarf bind:newBundle save={onSave} cancel={onCancel} {edit} ></Bundle>
+		<EditBundle bind:zarf bind:bundle save={onSave} cancel={onCancel} ></EditBundle>
 	</div>
 </div>

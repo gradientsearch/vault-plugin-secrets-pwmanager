@@ -7,4 +7,14 @@ interface Bundle {
 	Path: string;
 	Name: string;
 	Owner: string;
+	IsAdmin: boolean;
+	ID: string;
+	Users: BundleUser[]
+}
+
+interface BundleUser {
+	EntityName: string
+	EntityID: string
+	Capabilities: any
+	IsAdmin: boolean
 }

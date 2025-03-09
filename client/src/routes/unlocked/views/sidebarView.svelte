@@ -3,7 +3,7 @@
 	import Icon from '../../../components/icon.svelte';
 	import { KVBundleService } from '../services/bundle.service';
 	import Modal from '../../../components/modal.svelte';
-	import BundleModal from '../modals/bundle.svelte';
+	import BundleModal from '../modals/createBundle.svelte';
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let bundles: Bundle[] = $state([]);
@@ -31,7 +31,10 @@
 				Type: 'bundle',
 				Path: `bundles/data/${infoObj['entityID']}/${infoObj['entityID']}`,
 				Name: 'personal',
-				Owner: infoObj['entityID']
+				Owner: infoObj['entityID'],
+				IsAdmin: true,
+				ID: infoObj['entityID'],
+				Users: []
 			};
 			bundles?.push(b);
 			bundle = b;

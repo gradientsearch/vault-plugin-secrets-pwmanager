@@ -302,11 +302,30 @@ export class KVBundleService implements BundleService {
 
 		for (let i = 0; i < hvBundles.length; i++) {
 			let hvb = hvBundles[i];
+
+			let users: BundleUser[] = []
+			hvb.users?.forEach((u) => {
+				let caps: any = {}
+				u.capabilities.split(',').forEach((c)=>{
+					caps[c] = true
+				})
+				let bu: BundleUser = {
+					EntityName: u.entity_name,
+					EntityID: u.entity_id,
+					Capabilities: caps,
+					IsAdmin: u.is_admin
+				}
+				users.push(bu)
+			})
+			
 			let b: Bundle = {
 				Type: 'bundle',
 				Path: hvb.path,
 				Name: '',
-				Owner: ''
+				Owner: hvb.owner_entity_id,
+				IsAdmin: false,
+				ID: hvb.id,
+				Users: users
 			};
 
 			let bundleService = new KVBundleService(zarf, b, () => {});
@@ -380,7 +399,10 @@ export class KVBundleService implements BundleService {
 				let sb = hvBundles.shared_bundles[k]
 				let b: HvBundle = {
 					created: sb.created,
-					path: sb.path
+					path: sb.path,
+					id: sb.id,
+					owner_entity_id: sb.owner_entity_id,
+					users: []
 				}
 				sharedBundles.push(b)
 			})
@@ -412,7 +434,10 @@ export class KVBundleService implements BundleService {
 			Type: 'bundle',
 			Path: path,
 			Name: name,
-			Owner: ''
+			Owner: '',
+			IsAdmin: false,
+			ID: '',
+			Users: []
 		};
 
 		let bundleService = new KVBundleService(zarf, b, () => {});

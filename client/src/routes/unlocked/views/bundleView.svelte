@@ -7,6 +7,7 @@
 	import Modal from '../../../components/modal.svelte';
 	import CreatePassword from '../modals/createPassword.svelte';
 	import { userService } from '../services/user.service';
+	import EditBundle from '../modals/editBundle.svelte';
 
 	let headerHeight = $state(0);
 	let showModal = $state(false);
@@ -85,7 +86,7 @@
 		<h1 class="flex items-end text-base capitalize">{bundle?.Name} {bundle?.Type}</h1>
 		<span class="flex flex-1"></span>
 		{#if !(bundle?.Path.split('/')[3] === usersEntityID)}
-			{#if bundle.isAdmin ||  bundle?.Path.split('/')[2] === usersEntityID}
+			{#if bundle?.isAdmin ||  bundle?.Path.split('/')[2] === usersEntityID}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<span
@@ -127,5 +128,5 @@
 	{/if}
 </div>
 <Modal bind:showModal>
-	<CreatePassword bind:bundleService bind:showModal></CreatePassword>
+	<EditBundle bind:bundle bind:zarf bind:showModal></EditBundle>
 </Modal>

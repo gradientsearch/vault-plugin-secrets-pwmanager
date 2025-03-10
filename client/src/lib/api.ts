@@ -122,14 +122,7 @@ export class Api {
 		return [vsk, undefined];
 	}
 
-	async PutUserKey(b: Bundle, entityID: string, key: string): Promise<Error | undefined> {
-		// TODO move this up to bundle service
-		let data = {
-			data: {
-				key: key
-			}
-			// PUT CAS 0 HERE
-		};
+	async PutUserKey(b: Bundle, entityID: string, data:any): Promise<Error | undefined> {
 		let response = await this.post(`${b.Path}/keys/${entityID}`, JSON.stringify(data));
 
 		if (response.status != 200) {

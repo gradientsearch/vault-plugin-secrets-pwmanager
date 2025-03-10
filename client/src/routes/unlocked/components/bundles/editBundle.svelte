@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Button from '../../../../components/button.svelte';
-	import { KVBundleService, type BundleService } from '../../services/bundle.service';
 
 	let {
 		bundle = $bindable(),
+		bundleService = $bindable(),
 		zarf = $bindable(),
 		cancel = $bindable(),
 		save = () => {}
@@ -28,7 +28,7 @@
 	async function onSave() {
 		let bundleUsers: BundleUser[] = [];
 		users.forEach((u) => {
-			let ucap:any = [];
+			let ucap: any = [];
 			Object.keys(u.Capabilities).forEach((c) => {
 				if (u.Capabilities[c]) {
 					ucap.push(c);
@@ -38,7 +38,7 @@
 			bundleUsers.push(u);
 		});
 
-		let [pubkeys, err] = await KVBundleService.updateSharedBundleUsers(
+		let [pubkeys, err] = await bundleService.updateSharedBundleUsers(
 			zarf,
 			bundle.Owner,
 			bundle.ID,
@@ -47,6 +47,25 @@
 		if (err !== undefined) {
 			console.log(`error updating bundle users: ${err}`);
 			return;
+		}
+
+		let userEntityIDs = Object.keys(pubkeys);
+		// advise against async forEach
+		for (let i = 0; i < userEntityIDs.length; i++) {
+			let usersEntityID = userEntityIDs[i];
+			let pk = pubkeys[usersEntityID];
+			let pubkey = await crypto.subtle.importKey(
+				'jwk',
+				pk,
+				{
+					name: 'RSA-OAEP',
+					hash: 'SHA-256'
+				},
+				true,
+				['encrypt']
+			);
+
+			bundleService.encryptBundleKey(pubkey, usersEntityID);
 		}
 
 		console.log(pubkeys);

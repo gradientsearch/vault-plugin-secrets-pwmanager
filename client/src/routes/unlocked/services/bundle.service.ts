@@ -105,6 +105,23 @@ export class KVBundleService implements BundleService {
 		return [key, undefined];
 	}
 
+	async encryptBundleKey(pubkey: CryptoKey, entityID: string): Promise<Error | undefined> {
+		if (!pubkey) {
+			return Error('public key is undefined');
+		}
+
+		if (this.symmetricKey === undefined) {
+			return Error('bundle key is undefined');
+		}
+		// TODO make this a version CAS version 0 only operation. Never want to overwrite a bundle symmetric key
+		let jwk = await exportJwkKey(this.symmetricKey);
+		let encrypted = await pubkeyEncrypt(new TextEncoder().encode(JSON.stringify(jwk)), pubkey);
+		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
+		if (err !== undefined) {
+			return Error(`error setting bundle symmetric key for ${entityID}`);
+		}
+	}
+
 	async createBundleMetadata(): Promise<Error | undefined> {
 		let metadata: BundleMetadata = {
 			entries: [],
@@ -449,7 +466,7 @@ export class KVBundleService implements BundleService {
 		return [b, undefined];
 	}
 
-	static async updateSharedBundleUsers(
+	async updateSharedBundleUsers(
 		zarf: Zarf,
 		ownerEntityID: string,
 		bundleID: string,

@@ -128,5 +128,5 @@
 	{/if}
 </div>
 <Modal bind:showModal>
-	<EditBundle bind:bundle bind:zarf bind:showModal></EditBundle>
+	<EditBundle bind:bundle bind:bundleService bind:zarf bind:showModal></EditBundle>
 </Modal>

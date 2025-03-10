@@ -8,8 +8,9 @@
 
 	let {
 		showModal = $bindable<Boolean>(),
-        zarf = $bindable(),
-        bundle = $bindable(),
+		bundleService = $bindable(),
+		zarf = $bindable(),
+		bundle = $bindable()
 	} = $props();
 
 	async function onSave() {
@@ -20,7 +21,6 @@
 	}
 	let containerHeight: number | undefined = $state();
 	let headerHeight: number | undefined = $state();
-
 </script>
 
 <div bind:clientHeight={containerHeight} class="h-[100%]">
@@ -31,6 +31,7 @@
 	</header>
 
 	<div class="flex flex-col" style="height: {containerHeight - headerHeight}px;">
-		<EditBundle bind:zarf bind:bundle save={onSave} cancel={onCancel} ></EditBundle>
+		<EditBundle bind:bundleService bind:zarf bind:bundle save={onSave} cancel={onCancel}
+		></EditBundle>
 	</div>
 </div>

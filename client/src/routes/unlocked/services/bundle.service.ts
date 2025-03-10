@@ -446,7 +446,7 @@ export class KVBundleService implements BundleService {
 
 	static async createBundle(
 		zarf: Zarf,
-		name: string
+		name: string,
 	): Promise<[Bundle | undefined, Error | undefined]> {
 		let [path, err] = await zarf.Api.CreateBundle();
 		if (err !== undefined) {
@@ -457,11 +457,12 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error creating bundle: bundles should not be undefined`)];
 		}
 
+		
 		let b: Bundle = {
 			Type: 'bundle',
 			Path: path,
 			Name: name,
-			Owner: '',
+			Owner: userService.getEntityID(),
 			IsAdmin: false,
 			ID: '',
 			Users: []

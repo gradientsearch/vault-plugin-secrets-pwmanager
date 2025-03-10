@@ -166,10 +166,20 @@ func (b *pwManagerBackend) pathBundleRead(ctx context.Context, req *logical.Requ
 		sbp = &pwmgrSharedBundles{}
 	}
 
+	sharedBundles := []pwmgrSharedBundle{}
+
+	for _, v := range *sbp {
+		sharedBundles = append(sharedBundles, v)
+	}
+
+	sort.Slice(sharedBundles, func(i, j int) bool {
+		return sharedBundles[i].Created < sharedBundles[j].Created
+	})
+
 	return &logical.Response{
 		Data: map[string]interface{}{
 			"bundles":        bundles,
-			"shared_bundles": *sbp,
+			"shared_bundles": sharedBundles,
 		},
 	}, nil
 }

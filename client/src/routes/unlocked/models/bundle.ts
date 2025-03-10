@@ -14,7 +14,7 @@ interface Bundle {
 
 interface BundleUser {
 	EntityName: string
-	EntityID: string
+	EntityId: string
 	Capabilities: any
 	IsAdmin: boolean
 }

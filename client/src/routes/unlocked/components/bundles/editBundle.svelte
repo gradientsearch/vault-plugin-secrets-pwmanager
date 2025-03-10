@@ -26,6 +26,30 @@
 	};
 
 	async function onSave() {
+		let bundleUsers: BundleUser[] = [];
+		users.forEach((u) => {
+			let ucap:any = [];
+			Object.keys(u.Capabilities).forEach((c) => {
+				if (u.Capabilities[c]) {
+					ucap.push(c);
+				}
+			});
+			u.Capabilities = ucap.join(',');
+			bundleUsers.push(u);
+		});
+
+		let [pubkeys, err] = await KVBundleService.updateSharedBundleUsers(
+			zarf,
+			bundle.Owner,
+			bundle.ID,
+			bundleUsers
+		);
+		if (err !== undefined) {
+			console.log(`error updating bundle users: ${err}`);
+			return;
+		}
+
+		console.log(pubkeys);
 
 		//update bundle metadata
 		save();
@@ -37,13 +61,12 @@
 
 	let bundleUser = {
 		EntityName: '',
-		EntityID: '',
+		EntityId: '',
 		Capabilities: {},
 		IsAdmin: false
 	};
 
 	let bundleName = $state('');
-	let newUserName = $state('');
 	let bu: BundleUser = $state(Object.assign({}, bundleUser));
 
 	let users: BundleUser[] = $state([]);
@@ -210,8 +233,7 @@
 									primary={false}
 									fn={() => {
 										users.splice(idx, 1);
-										users=users
-										
+										users = users;
 									}}>delete {idx}</Button
 								>
 							</div>

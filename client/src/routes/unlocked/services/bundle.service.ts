@@ -53,18 +53,22 @@ export class KVBundleService implements BundleService {
 		let entityID = userService.getEntityID();
 		let [key, err] = await this.zarf.Api.getBundleSymmetricKey(this.bundle, entityID);
 		if (err?.toString().includes('404 not found')) {
-			let [key, err] = await this.createBundleEncryptionKey(entityID);
+			if (this.bundle.Owner === entityID) {
+				let [key, err] = await this.createBundleEncryptionKey(entityID);
 
-			if (err !== undefined) {
-				return err;
-			}
+				if (err !== undefined) {
+					return err;
+				}
 
-			err = await this.createBundleMetadata();
-			if (err != undefined) {
-				return err;
+				err = await this.createBundleMetadata();
+				if (err != undefined) {
+					return err;
+				}
+			} else {
+				alert('no bundle key available for user');
+				return;
 			}
 		}
-
 		// TODO this is a little messy. Let's try and clean this up.
 		if (key !== undefined && this.zarf.Keypair.PriKey) {
 			let encryptedSymmetricKey = key.data.data.key;
@@ -303,21 +307,21 @@ export class KVBundleService implements BundleService {
 		for (let i = 0; i < hvBundles.length; i++) {
 			let hvb = hvBundles[i];
 
-			let users: BundleUser[] = []
+			let users: BundleUser[] = [];
 			hvb.users?.forEach((u) => {
-				let caps: any = {}
-				u.capabilities.split(',').forEach((c)=>{
-					caps[c] = true
-				})
+				let caps: any = {};
+				u.capabilities.split(',').forEach((c) => {
+					caps[c] = true;
+				});
 				let bu: BundleUser = {
 					EntityName: u.entity_name,
-					EntityID: u.entity_id,
+					EntityId: u.entity_id,
 					Capabilities: caps,
 					IsAdmin: u.is_admin
-				}
-				users.push(bu)
-			})
-			
+				};
+				users.push(bu);
+			});
+
 			let b: Bundle = {
 				Type: 'bundle',
 				Path: hvb.path,
@@ -386,26 +390,25 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error getting bundles: bundles should not be undefined`)];
 		}
 
-		let [bundles, err2] =  await KVBundleService.initBundles(zarf, hvBundles.bundles);
+		let [bundles, err2] = await KVBundleService.initBundles(zarf, hvBundles.bundles);
 
 		if (err2 !== undefined) {
 			return [undefined, Error(`error getting bundles: ${err2}`)];
 		}
 
-
-		let sharedBundles: HvBundle[] = []
-		if (hvBundles.shared_bundles !== undefined){
-			Object.keys(hvBundles.shared_bundles).forEach((k)=>{
-				let sb = hvBundles.shared_bundles[k]
+		let sharedBundles: HvBundle[] = [];
+		if (hvBundles.shared_bundles !== undefined) {
+			Object.keys(hvBundles.shared_bundles).forEach((k) => {
+				let sb = hvBundles.shared_bundles[k];
 				let b: HvBundle = {
 					created: sb.created,
 					path: sb.path,
 					id: sb.id,
 					owner_entity_id: sb.owner_entity_id,
 					users: []
-				}
-				sharedBundles.push(b)
-			})
+				};
+				sharedBundles.push(b);
+			});
 		}
 
 		let [sbs, err3] = await KVBundleService.initBundles(zarf, sharedBundles);
@@ -414,7 +417,7 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error getting bundles: ${err3}`)];
 		}
 
-		return [{bundles: bundles, sharedBundles: sbs }, undefined]
+		return [{ bundles: bundles, sharedBundles: sbs }, undefined];
 	}
 
 	static async createBundle(
@@ -444,6 +447,24 @@ export class KVBundleService implements BundleService {
 		await bundleService.init();
 
 		return [b, undefined];
+	}
+
+	static async updateSharedBundleUsers(
+		zarf: Zarf,
+		ownerEntityID: string,
+		bundleID: string,
+		users: BundleUser[]
+	): Promise<[any[] | undefined, Error | undefined]> {
+		let [pubkey, err] = await zarf.Api.updateSharedBundleUsers(ownerEntityID, bundleID, users);
+		if (err !== undefined) {
+			return [undefined, Error(`error updating bundle users: ${err}`)];
+		}
+
+		if (pubkey === undefined) {
+			return [undefined, Error(`error updating shared bundle: bundles should return pubkeys`)];
+		}
+
+		return [pubkey, undefined];
 	}
 }
 

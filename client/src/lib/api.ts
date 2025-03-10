@@ -149,9 +149,9 @@ export class Api {
 
 	async DestroyEntry(b: Bundle, id: string): Promise<Error | undefined> {
 		// In vault the metadata path is needed to destroy an entry
-		// the naming convention makes this save since the paths will only be 
+		// the naming convention makes this save since the paths will only be
 		// <EntityID>/<UUID>
-		let metadataPath = b.Path.replace('/data/', '/metadata/')
+		let metadataPath = b.Path.replace('/data/', '/metadata/');
 		let response = await this.delete(`${metadataPath}/entries/${id}`);
 
 		if (response.status != 204) {
@@ -211,7 +211,6 @@ export class Api {
 			return [undefined, Error(`error - bundles is undefined`)];
 		}
 
-		
 		return [bs.data, undefined];
 	}
 
@@ -224,9 +223,37 @@ export class Api {
 		}
 
 		let bs = await response.json();
-		return [bs.data.path, undefined]
+		return [bs.data.path, undefined];
 	}
 
+	async updateSharedBundleUsers(
+		ownerEntityID: string,
+		bundleID: string,
+		users: any
+	): Promise<[any[] | undefined, Error | undefined]> {
+		let data = {
+			users: {
+				users: users
+			}
+		};
+
+		console.log(JSON.stringify(data))
+
+
+		let response = await this.post(
+			`${this.mount}/bundles/${ownerEntityID}/${bundleID}/users`,
+			convertCase(data, true)
+		);
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error registering: ${err}`)];
+		}
+
+		let bs = await response.json();
+		// TODO update to keys
+		return [bs.data.pubkey, undefined];
+	}
 }
 
 export function getAPI() {

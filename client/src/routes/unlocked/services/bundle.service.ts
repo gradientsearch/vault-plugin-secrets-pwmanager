@@ -99,7 +99,7 @@ export class KVBundleService implements BundleService {
 		);
 		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
 		if (err !== undefined) {
-			return [undefined, Error('error retrieving bundle symmetric key : ', err)];
+			return [undefined, Error('error creating bundle encryption key: ', err)];
 		}
 		this.symmetricKey = key;
 		return [key, undefined];
@@ -125,12 +125,15 @@ export class KVBundleService implements BundleService {
 	async createBundleMetadata(): Promise<Error | undefined> {
 		let metadata: BundleMetadata = {
 			entries: [],
-			bundleName: this.bundle.Name
+			bundleName: this.bundle.Name,
+			version: 0
 		};
 		let [data, err] = await this.encryptPayload(metadata);
 		if (err !== undefined) {
 			return Error('error encrypted bundle metadata');
 		}
+
+		// ADD CAS 0 here for metadata create
 
 		err = await this.zarf.Api.PutMetadata(this.bundle, data);
 		if (err !== undefined) {
@@ -190,12 +193,12 @@ export class KVBundleService implements BundleService {
 		if (plaintext === undefined) {
 			return [undefined, Error('decrypted metadata entry undefined')];
 		}
-		let vm = JSON.parse(plaintext) as BundleMetadata;
+		let bm = JSON.parse(plaintext) as BundleMetadata;
+		bm.version = md.data.metadata.version
 
-		return [vm, undefined];
+		return [bm, undefined];
 	}
 
-	// TODO: rename this to put entry
 	async putEntry(e: Entry): Promise<Error | undefined> {
 		//store data in vault
 		// encrypt
@@ -203,6 +206,7 @@ export class KVBundleService implements BundleService {
 		if (newEntry) {
 			let entryName = crypto.randomUUID();
 			e.Metadata.ID = entryName;
+			e.Version = 0
 		}
 
 		let [data, err2] = await this.encryptPayload(e);
@@ -271,6 +275,8 @@ export class KVBundleService implements BundleService {
 		}
 
 		let e = JSON.parse(payload);
+		e.Version = hee.data.metadata.version
+
 		return [e, undefined];
 	}
 
@@ -359,7 +365,8 @@ export class KVBundleService implements BundleService {
 
 			let m: BundleMetadata = {
 				entries: [],
-				bundleName: ''
+				bundleName: '',
+				version: 0
 			};
 			if (encryptedCachedMetadata) {
 				let json = JSON.parse(encryptedCachedMetadata);

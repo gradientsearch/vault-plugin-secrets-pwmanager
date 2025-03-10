@@ -38,6 +38,7 @@ export interface Entry {
 	Core: Core;
 	More: More;
 	Tags: string[];
+	Version: number
 }
 
 export enum MODE {

@@ -128,6 +128,7 @@ export class Api {
 			data: {
 				key: key
 			}
+			// PUT CAS 0 HERE
 		};
 		let response = await this.post(`${b.Path}/keys/${entityID}`, JSON.stringify(data));
 

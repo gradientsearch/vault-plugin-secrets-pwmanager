@@ -186,13 +186,22 @@ func (b *pwManagerBackend) pathBundleRead(ctx context.Context, req *logical.Requ
 
 // pathBundleWrite updates the configuration for the backend
 func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	d, err := b.bundleWrite(ctx, req.Storage, req.EntityID)
+	if err != nil {
+		return logical.ErrorResponse("error creating bundle"), nil
+	}
+	return &logical.Response{
+		Data: d,
+	}, nil
+}
 
+func (b *pwManagerBackend) bundleWrite(ctx context.Context, s logical.Storage, entityID string) (map[string]interface{}, error) {
 	newBundleUUID, err := uuid.GenerateUUID()
 	if err != nil {
 		return nil, err
 	}
 
-	newBundleName := fmt.Sprintf("%s/%s", req.EntityID, newBundleUUID)
+	newBundleName := fmt.Sprintf("%s/%s", entityID, newBundleUUID)
 	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
 	newBundleSecretPath := fmt.Sprintf("bundles/data/%s", newBundleName)
 
@@ -216,49 +225,40 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 	pb := new(pwmgrBundle)
 	pb.Path = newBundleSecretPath
 	pb.Created = time.Now().Unix()
-	pb.OwnerEntityID = req.EntityID
+	pb.OwnerEntityID = entityID
 	pb.ID = newBundleUUID
 
 	// under the bundles path we store user bundles lists under /bundles/<EntityID>/bundles/<BundleUUID>
 	// we need to specify a seconds bundles in the path because later we will add in shared with me path
 	// for all bundles that are shared with a user.
 	// Note user bundle mounts have the naming convention /bundles/<EntityID>/<UUID>.
-	newBundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, req.EntityID, newBundleUUID)
+	newBundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, entityID, newBundleUUID)
 	entry, err := logical.StorageEntryJSON(newBundlePath, pb)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if err := req.Storage.Put(ctx, entry); err != nil {
+	if err := s.Put(ctx, entry); err != nil {
 
 		return nil, err
 	}
 
-	bundles, err := b.listBundles(ctx, req.Storage, req.EntityID)
+	bundles, err := b.listBundles(ctx, s, entityID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &logical.Response{
-		Data: map[string]interface{}{
-			"bundles": bundles,
-			"path":    newBundleSecretPath,
-		},
+	return map[string]interface{}{
+		"bundles": bundles,
+		"path":    newBundleSecretPath,
 	}, nil
 
 }
 
 // pathBundleDelete removes the configuration for the backend
 func (b *pwManagerBackend) pathBundleDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	err := req.Storage.Delete(ctx, BUNDLE_SCHEMA)
-
-	if err == nil {
-		// reset the client so the next invocation will pick up the new configuration
-		b.renew <- nil
-	}
-
-	return nil, err
+	return logical.ErrorResponse("not implemented"), nil
 }
 
 func getBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrBundle, error) {
@@ -354,13 +354,14 @@ func putSharedUserBundles(ctx context.Context, s logical.Storage, path string, s
 }
 
 // list bundles returns the list of user bundles
+// TODO make this a map instead of a list
 func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, entityID string) ([]pwmgrBundle, error) {
 	if s == nil {
 		return nil, nil
 	}
 
-	userBundlePaths := fmt.Sprintf("%s/%s/bundles/", BUNDLE_SCHEMA, entityID)
-	userBundlesUUIDs, err := s.List(ctx, userBundlePaths)
+	userBundleListPaths := fmt.Sprintf("%s/%s/bundles/", BUNDLE_SCHEMA, entityID)
+	userBundlesUUIDs, err := s.List(ctx, userBundleListPaths)
 	if err != nil {
 		return nil, err
 	}
@@ -370,9 +371,11 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 	}
 
 	userBundles := []pwmgrBundle{}
+
+	// Note no slash at the end
+	userBundlePaths := fmt.Sprintf("%s/%s/bundles", BUNDLE_SCHEMA, entityID)
 	for _, ub := range userBundlesUUIDs {
-		// TODO list needs a / at the end. Clean this up
-		pb, err := getBundle(ctx, s, fmt.Sprintf("%s%s", userBundlePaths, ub))
+		pb, err := getBundle(ctx, s, fmt.Sprintf("%s/%s", userBundlePaths, ub))
 		if err != nil {
 			return nil, err
 		}

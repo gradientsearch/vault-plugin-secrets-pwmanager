@@ -18,34 +18,50 @@
 
 	$effect(() => {
 		selectedEntryMetadata;
+		untrack(() => {
+			createCopyOfEntry();
+		});
+	});
+
+	/**
+	 * createCopyOfEntry retrieves the entry and creates a copy of 
+	 * the entry for the user to modify.
+	*/
+	async function createCopyOfEntry() {
 		if (selectedEntryMetadata) {
-			untrack(() => {
-				(async () => {
-					let [e, err] = await bundleService.getEntry(selectedEntryMetadata);
-					if (err !== undefined) {
-						errMessage = `error getting entry: ${err}`;
-					}
-					originalEntry = e;
-					copyOfSelectedEntry = e;
-				})();
-				mode = MODE.VIEW;
-			});
+			let [e, err] = await bundleService.getEntry(selectedEntryMetadata);
+			if (err !== undefined) {
+				errMessage = `error getting entry: ${err}`;
+			}
+			originalEntry = e;
+			copyOfSelectedEntry = Object.assign({}, e);
+
+			mode = MODE.VIEW;
 		} else {
 			copyOfSelectedEntry = undefined;
 			mode = MODE.VIEW;
 		}
-	});
-
-	function cancel() {
-		copyOfSelectedEntry = JSON.parse(JSON.stringify(originalEntry))
 	}
+
+	/**
+	 * cancel will replace the edited entry with the original entry.
+	 */
+	function cancel() {
+		copyOfSelectedEntry = JSON.parse(JSON.stringify(originalEntry));
+	}
+
 </script>
 
 <div id="entry-view" class=" w-full overflow-y-scroll border-t-2 border-border_primary">
 	{#if copyOfSelectedEntry}
 		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
 		<div class="h-[100%] w-full">
-			<Component bind:entry={copyOfSelectedEntry} bind:bundleMetadata bind:bundleService bind:mode cancel={cancel}
+			<Component
+				bind:entry={copyOfSelectedEntry}
+				bind:bundleMetadata
+				bind:bundleService
+				bind:mode
+				{cancel}
 			></Component>
 		</div>
 	{/if}

@@ -4,13 +4,14 @@
 	import { KVBundleService } from '../services/bundle.service';
 	import Modal from '../../../components/modal.svelte';
 	import BundleModal from '../modals/createBundle.svelte';
+	import { userService } from '../services/user.service';
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
 	let bundles: Bundle[] = $state([]);
 	let sharedBundles: Bundle[] = $state([]);
 	let showModal = $state(false);
 	let newBundle: Bundle | undefined = $state();
-
+	let username: string = $state('')
 	$effect(() => {
 		newBundle;
 		untrack(() => {
@@ -38,6 +39,7 @@
 			};
 			bundles?.push(b);
 			bundle = b;
+			username = userService.getUsername()
 		}
 
 		(async () => {
@@ -66,7 +68,10 @@
 			<span class="flex flex-1"></span>
 			<div
 				class="height-[36px] px-[8px] py-[9px] text-sm font-bold text-token_side_nav_color_foreground_faint"
-			></div>
+
+			>
+			{username}
+		</div>
 		</div>
 		<ul class="h-[calc(100vh-64px)] overflow-hidden overflow-y-scroll">
 			<li

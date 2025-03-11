@@ -40,6 +40,9 @@
 		let tokenInfo = await api.tokenLookup();
 		let entityID = tokenInfo['data']['entity_id'];
 
+		// TODO update when using different auth methods
+		let username = tokenInfo['data']['meta']['username']
+
 		let [uuk,err] = await api.uuk(entityID);
 		if (err != undefined || uuk == undefined) {
 			errorText = 'error retrieving UUK';
@@ -67,7 +70,7 @@
 		};
 
 		storedKeyPair.set(keypair);
-		localStorage.setItem('loginInfo', JSON.stringify({token: signIn.token, url: signIn.url, mount: signIn.mount, entityID: entityID}))
+		localStorage.setItem('loginInfo', JSON.stringify({token: signIn.token, url: signIn.url, mount: signIn.mount, entityID: entityID, username: username}))
 		
 		goto(`${base}/unlocked`);
 		isSigningIn = false;

@@ -37,6 +37,24 @@ type pwManagerBackend struct {
 	c *pwmanagerClient
 
 	storage logical.Storage
+
+	policyService PolicyService
+}
+
+type PolicyService interface {
+	PutPolicy(name, rules string) error
+}
+
+type PolicyServicer struct {
+	c *pwmanagerClient
+}
+
+func (p *PolicyServicer) PutPolicy(name, rules string) error {
+	return p.c.c.Sys().PutPolicy(name, rules)
+}
+
+func NewPolicyService(c *pwmanagerClient) PolicyService {
+	return &PolicyServicer{c: c}
 }
 
 // backend defines the target API backend
@@ -134,6 +152,7 @@ func (p *pwManagerBackend) Login() error {
 	p.logger.Debug("client approle login successful")
 
 	p.c.c.SetToken(response.Auth.ClientToken)
+	p.policyService = NewPolicyService(p.c)
 
 	return nil
 }

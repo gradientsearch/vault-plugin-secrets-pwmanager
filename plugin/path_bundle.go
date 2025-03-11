@@ -63,18 +63,6 @@ type pwmgrSharedBundle struct {
 
 type pwmgrSharedBundles map[string]pwmgrSharedBundle
 
-// admin template
-var adminTmpl = `
-{{range $index, $bundle := . }}
-path "bundles/data/{{$bundle.Path}}/*" {
-    capabilities = [{{$first := true}}{{range $bundle.Capabilities}}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{.}}"{{end}} ]
-}
-
-path "bundles/metadata/{{$bundle.Path}}/*" {
-    capabilities = [ {{$first := true}}{{range $bundle.Capabilities}}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{.}}"{{end}} ]
-}
-{{end}}`
-
 // pathBundle extends the Vault API with a `/bundle`
 // endpoint for the backend. You can choose whether
 // or not certain attributes should be displayed,
@@ -100,7 +88,6 @@ func pathBundle(b *pwManagerBackend) []*framework.Path {
 					Callback: b.pathBundleDelete,
 				},
 			},
-			ExistenceCheck:  b.pathBundleExistenceCheck,
 			HelpSynopsis:    pathBundleHelpSynopsis,
 			HelpDescription: pathBundleHelpDescription,
 		},
@@ -138,15 +125,7 @@ func pathBundle(b *pwManagerBackend) []*framework.Path {
 	}
 }
 
-// pathBundleExistenceCheck verifies if the configuration exists.
-func (b *pwManagerBackend) pathBundleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
-	out, err := req.Storage.Get(ctx, req.Path)
-	if err != nil {
-		return false, fmt.Errorf("existence check failed: %w", err)
-	}
-
-	return out != nil, nil
-}
+///////////////////////// bundle read /////////////////////////
 
 // pathBundleRead returns the users owned and shared with me bundles
 func (b *pwManagerBackend) pathBundleRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
@@ -177,147 +156,6 @@ func (b *pwManagerBackend) pathBundleCreate(ctx context.Context, req *logical.Re
 	return &logical.Response{
 		Data: d,
 	}, nil
-}
-
-func (b *pwManagerBackend) bundleCreate(ctx context.Context, s logical.Storage, entityID string) (map[string]interface{}, error) {
-	newBundleUUID, err := uuid.GenerateUUID()
-	if err != nil {
-		return nil, err
-	}
-
-	newBundleName := fmt.Sprintf("%s/%s", entityID, newBundleUUID)
-	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
-	newBundleSecretPath := fmt.Sprintf("bundles/data/%s", newBundleName)
-
-	pb := new(pwmgrBundle)
-	pb.Path = newBundleSecretPath
-	pb.Created = time.Now().Unix()
-	pb.OwnerEntityID = entityID
-	pb.ID = newBundleUUID
-
-	// under the bundles path we store user bundles lists under /bundles/<EntityID>/bundles/<BundleUUID>
-	// we need to specify a seconds bundles in the path because later we will add in shared with me path
-	// for all bundles that are shared with a user.
-	// Note user bundle mounts have the naming convention /bundles/<EntityID>/<UUID>.
-	newBundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, entityID, newBundleUUID)
-	entry, err := logical.StorageEntryJSON(newBundlePath, pb)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.Put(ctx, entry); err != nil {
-
-		return nil, err
-	}
-
-	bundles, err := b.listBundles(ctx, s, entityID)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]interface{}{
-		"bundles": bundles,
-		"path":    newBundleSecretPath,
-	}, nil
-
-}
-
-// pathBundleDelete removes the configuration for the backend
-func (b *pwManagerBackend) pathBundleDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	return logical.ErrorResponse("not implemented"), nil
-}
-
-func getBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrBundle, error) {
-
-	if s == nil {
-		return nil, nil
-	}
-
-	entry, err := s.Get(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-
-	if entry == nil {
-		// TODO this needs to return an error!!!!
-		return nil, nil
-	}
-
-	pb := new(pwmgrBundle)
-	if err := entry.DecodeJSON(&pb); err != nil {
-		return nil, fmt.Errorf("error reading root configuration: %w", err)
-	}
-
-	// return the bundle path, we are done
-	return pb, nil
-}
-
-func setBundle(ctx context.Context, s logical.Storage, path string, pb pwmgrBundle) error {
-
-	if s == nil {
-		return nil
-	}
-
-	// TODO move this to a putBundle method
-	// Only after successfully completing previous step
-	// we will update the users. Even if the previous
-	// steps were partially completed, for example
-	newBundleEntry, err := logical.StorageEntryJSON(path, pb)
-
-	if err != nil {
-		return err
-	}
-
-	if err := s.Put(ctx, newBundleEntry); err != nil {
-		return err
-	}
-
-	// return the bundle path, we are done
-	return nil
-}
-
-func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (*pwmgrSharedBundles, error) {
-
-	if s == nil {
-		return nil, nil
-	}
-
-	entry, err := s.Get(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-
-	if entry == nil {
-		return nil, nil
-	}
-
-	sb := new(pwmgrSharedBundles)
-	if err := entry.DecodeJSON(&sb); err != nil {
-		return nil, fmt.Errorf("error reading shared bundles %w", err)
-	}
-
-	// return the bundle path, we are done
-	return sb, nil
-}
-
-func putSharedUserBundles(ctx context.Context, s logical.Storage, path string, sbp pwmgrSharedBundles) error {
-	//	TODO versioned writes
-	if s == nil {
-		return fmt.Errorf("error storage cannot be nil")
-	}
-
-	entry, err := logical.StorageEntryJSON(path, sbp)
-
-	if err != nil {
-		return err
-	}
-
-	if err := s.Put(ctx, entry); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // list bundles returns the list of user bundles
@@ -386,8 +224,60 @@ func (b *pwManagerBackend) listSharedBundles(ctx context.Context, s logical.Stor
 	return sharedBundles, nil
 }
 
-// bundles/<id>/users
+///////////////////////// bundle create /////////////////////////
 
+func (b *pwManagerBackend) bundleCreate(ctx context.Context, s logical.Storage, entityID string) (map[string]interface{}, error) {
+	newBundleUUID, err := uuid.GenerateUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	newBundleName := fmt.Sprintf("%s/%s", entityID, newBundleUUID)
+	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
+	newBundleSecretPath := fmt.Sprintf("bundles/data/%s", newBundleName)
+
+	pb := new(pwmgrBundle)
+	pb.Path = newBundleSecretPath
+	pb.Created = time.Now().Unix()
+	pb.OwnerEntityID = entityID
+	pb.ID = newBundleUUID
+
+	// under the bundles path we store user bundles lists under /bundles/<EntityID>/bundles/<BundleUUID>
+	// we need to specify a seconds bundles in the path because later we will add in shared with me path
+	// for all bundles that are shared with a user.
+	// Note user bundle mounts have the naming convention /bundles/<EntityID>/<UUID>.
+	newBundlePath := fmt.Sprintf("%s/%s/bundles/%s", BUNDLE_SCHEMA, entityID, newBundleUUID)
+	entry, err := logical.StorageEntryJSON(newBundlePath, pb)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.Put(ctx, entry); err != nil {
+
+		return nil, err
+	}
+
+	bundles, err := b.listBundles(ctx, s, entityID)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"bundles": bundles,
+		"path":    newBundleSecretPath,
+	}, nil
+
+}
+
+///////////////////////// bundle delete /////////////////////////
+
+// pathBundleDelete removes the configuration for the backend
+func (b *pwManagerBackend) pathBundleDelete(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return logical.ErrorResponse("not implemented"), nil
+}
+
+// /////////////////////// bundle create/update users /////////////////////////
 // pathBundleWrite updates the configuration for the backend
 func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ownerEntityID, ok := d.GetOk("owner_entity_id")
@@ -567,7 +457,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 				sbpm := *sbp
 				delete(sbpm, bundleID.(string))
 
-				err = putSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
+				err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
 
 				if err != nil {
 					sharedBundleLock.Unlock()
@@ -639,7 +529,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 				}
 			}
 
-			err = putSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
+			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
 
 			if err != nil {
 				sharedBundleLock.Unlock()
@@ -716,15 +606,126 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 }
 
+///////////////////////// bundle kv helper /////////////////////////
+
+func getBundle(ctx context.Context, s logical.Storage, path string) (*pwmgrBundle, error) {
+
+	if s == nil {
+		return nil, nil
+	}
+
+	entry, err := s.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if entry == nil {
+		// TODO this needs to return an error!!!!
+		return nil, nil
+	}
+
+	pb := new(pwmgrBundle)
+	if err := entry.DecodeJSON(&pb); err != nil {
+		return nil, fmt.Errorf("error reading root configuration: %w", err)
+	}
+
+	// return the bundle path, we are done
+	return pb, nil
+}
+
+func setBundle(ctx context.Context, s logical.Storage, path string, pb pwmgrBundle) error {
+
+	if s == nil {
+		return nil
+	}
+
+	// TODO move this to a putBundle method
+	// Only after successfully completing previous step
+	// we will update the users. Even if the previous
+	// steps were partially completed, for example
+	newBundleEntry, err := logical.StorageEntryJSON(path, pb)
+
+	if err != nil {
+		return err
+	}
+
+	if err := s.Put(ctx, newBundleEntry); err != nil {
+		return err
+	}
+
+	// return the bundle path, we are done
+	return nil
+}
+
+func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (*pwmgrSharedBundles, error) {
+
+	if s == nil {
+		return nil, nil
+	}
+
+	entry, err := s.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if entry == nil {
+		return nil, nil
+	}
+
+	sb := new(pwmgrSharedBundles)
+	if err := entry.DecodeJSON(&sb); err != nil {
+		return nil, fmt.Errorf("error reading shared bundles %w", err)
+	}
+
+	// return the bundle path, we are done
+	return sb, nil
+}
+
+func setSharedUserBundles(ctx context.Context, s logical.Storage, path string, sbp pwmgrSharedBundles) error {
+	//	TODO versioned writes
+	if s == nil {
+		return fmt.Errorf("error storage cannot be nil")
+	}
+
+	entry, err := logical.StorageEntryJSON(path, sbp)
+
+	if err != nil {
+		return err
+	}
+
+	if err := s.Put(ctx, entry); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bundles/<id>/users
+
+// pathBundleExistenceCheck verifies if the configuration exists.
+func (b *pwManagerBackend) pathBundleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+	out, err := req.Storage.Get(ctx, req.Path)
+	if err != nil {
+		return false, fmt.Errorf("existence check failed: %w", err)
+	}
+
+	return out != nil, nil
+}
+
+// admin template
+var adminTmpl = `
+{{range $index, $bundle := . }}
+path "bundles/data/{{$bundle.Path}}/*" {
+    capabilities = [{{$first := true}}{{range $bundle.Capabilities}}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{.}}"{{end}} ]
+}
+
+path "bundles/metadata/{{$bundle.Path}}/*" {
+    capabilities = [ {{$first := true}}{{range $bundle.Capabilities}}{{if $first}}{{$first = false}}{{else}}, {{end}}"{{.}}"{{end}} ]
+}
+{{end}}`
+
 // pathBundleHelpSynopsis summarizes the help text for the bundles
-const pathBundleHelpSynopsis = `Configure the Pwmgr backend.`
+const pathBundleHelpSynopsis = `bundles endpoints allow users to create and share bundles.`
 
 // pathBundleHelpDescription describes the help text for the bundles
-const pathBundleHelpDescription = `
-The Pwmgr secret backend requires credentials for managing
-JWTs issued to users working with the products API.
-
-You must sign up with a bundle_id and secret_id and
-specify the Vault AppRole address
-before using this secrets backend.
-`
+const pathBundleHelpDescription = `bundles endpoints allow users to create and share bundles.`

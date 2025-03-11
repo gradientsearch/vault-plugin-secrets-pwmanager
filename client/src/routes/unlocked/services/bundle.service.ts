@@ -18,7 +18,7 @@ import { userService } from './user.service';
  * a Category bundle.
  */
 export interface BundleService {
-	putEntry(pi: Entry, bm: BundleMetadata): Promise<Error | undefined>;
+	putEntry(pi: Entry, bm: BundleMetadata): Promise<[string | undefined, Error | undefined]>;
 	getMetadata(): Promise<[BundleMetadata | undefined, Error | undefined]>;
 	init(): Promise<Error | undefined>;
 }
@@ -228,31 +228,40 @@ export class KVBundleService implements BundleService {
 		return [bm, undefined];
 	}
 
-	async putEntry(e: Entry, metadata: BundleMetadata): Promise<Error | undefined> {
+	async putEntry(
+		e: Entry,
+		metadata: BundleMetadata
+	): Promise<[string | undefined, Error | undefined]> {
 		//store data in vault
 		// encrypt
+		let pathToReplace;
+
 		let newEntry = e.Metadata.ID.length === 0;
-		if (newEntry) {
-			let entryName = crypto.randomUUID();
-			e.Metadata.ID = entryName;
+		if (!newEntry) {
+			pathToReplace = e.Metadata.Path;
+			e.Metadata.Path = crypto.randomUUID();
+		} else {
+			e.Metadata.ID = crypto.randomUUID();
 			e.Metadata.Version = 0;
+			e.Metadata.Path = crypto.randomUUID();
 		}
 
-		let [data, err2] = await this.encryptPayload(e, e.Metadata.Version);
+		// CAS version is always zero since password entries are immutable.
+		let [data, err2] = await this.encryptPayload(e, 0);
 		if (err2 != undefined) {
-			return err2;
+			return [undefined, err2];
 		}
 
-		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.ID);
+		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.Path);
 		if (err3 !== undefined) {
-			return Error(`error putting entry:  ${err3.message}`);
+			return [undefined, Error(`error putting entry:  ${err3.message}`)];
 		}
 
 		// have to increment version
-		e.Metadata.Version = e.Metadata.Version++;
+		e.Metadata.Version = e.Metadata.Version + 1;
 
 		if (metadata === undefined) {
-			return Error('error metadata should be defined but was undefined');
+			return [undefined, Error('error metadata should be defined but was undefined')];
 		}
 
 		if (newEntry) {
@@ -275,16 +284,19 @@ export class KVBundleService implements BundleService {
 
 		let err4 = await this.zarf.Api.PutMetadata(this.bundle, ep);
 		if (err4 !== undefined) {
-			return Error('error putting metadata: ', err4);
+			await this.deleteEntry(e.Metadata.Path);
+			return [undefined, Error('error putting metadata: ', err4)];
 		}
 
-		// TODO if error delete entry
+		if (pathToReplace !== undefined) {
+			await this.deleteEntry(pathToReplace);
+		}
 		this.onEntriesChanged();
-		return undefined;
+		return [e.Metadata.Path, undefined];
 	}
 
 	async getEntry(m: Metadata): Promise<[Entry | undefined, Error | undefined]> {
-		let [hee, err] = await this.zarf.Api.GetEntry(this.bundle, m.ID);
+		let [hee, err] = await this.zarf.Api.GetEntry(this.bundle, m.Path);
 
 		if (err !== undefined) {
 			return [undefined, Error(`error getting entry: ${err}`)];

@@ -11,6 +11,7 @@ export interface Metadata {
 	Value: string;
 	ID: string; 
 	Version: number;
+	Path: string;
 }
 
 /**
@@ -57,7 +58,8 @@ export function newPasswordEntry(): Entry {
 			Type: 'password',
 			Value: '',
 			ID: '',
-			Version: 0
+			Version: 0,
+			Path: ''
 		},
 		Core: {
 			Items: [

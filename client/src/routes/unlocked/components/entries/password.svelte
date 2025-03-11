@@ -39,16 +39,21 @@ This is the component used to show the password Entry.
 			// Important to note that the 0 indexed value for Password item is username
 			// if this were to be the 1 index that would be the password!
 			Value: entry.Core.Items[0].Value,
-			ID: entry.Metadata.ID ? entry.Metadata.ID : ''
+			ID: entry.Metadata.ID ? entry.Metadata.ID : '',
+
+			Version: entry.Version,
+			Path: entry.Metadata.Path
 		};
 		entry.Metadata = meta;
 
-		let err = await bundleService.putEntry(entry, bundleMetadata);
+		let [path, err] = await bundleService.putEntry(entry, bundleMetadata);
 		if (err !== undefined) {
 			console.log('err: ', err);
 
 			// alert user there was a problem saving the password
 		} else {
+			entry.Version = entry.Version + 1;
+			entry.Path = entry.Metadata.Path = path
 			save();
 			mode = MODE.VIEW;
 		}

@@ -38,7 +38,6 @@
 			//TODO Toast error
 			return;
 		}
-
 		let currentLength = bundleMetadata?.entries?.length;
 		bundleMetadata = metadata;
 		entries = [...metadata.entries].reverse();
@@ -124,7 +123,7 @@
 				<button class="flex w-full flex-row items-center p-4">
 					<span class="pe-3 text-3xl">🔑</span>
 					<div class="flex flex-col text-start">
-						<span class="text-base font-bold text-foreground_strong"> {e.Name} {e.Version}</span>
+						<span class="text-base font-bold text-foreground_strong"> {e.Name}</span>
 						<span class="text-sm text-foreground_faint"> {e.Value}</span>
 					</div>
 				</button>

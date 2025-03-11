@@ -3,60 +3,81 @@
 	import Icon from '../../../components/icon.svelte';
 	import { KVBundleService } from '../services/bundle.service';
 	import Modal from '../../../components/modal.svelte';
-	import BundleModal from '../modals/createBundle.svelte';
+	import CreateModal from '../modals/createBundle.svelte';
 	import { userService } from '../services/user.service';
 
 	let { bundle = $bindable(), zarf = $bindable() } = $props();
+
 	let bundles: Bundle[] = $state([]);
 	let sharedBundles: Bundle[] = $state([]);
 	let showModal = $state(false);
 	let newBundle: Bundle | undefined = $state();
-	let username: string = $state('')
+	let username: string = $state('');
+
 	$effect(() => {
 		newBundle;
 		untrack(() => {
-			if (newBundle !== undefined) {
-				let copyBundle = Object.assign({}, newBundle);
-				bundles.push(copyBundle);
-				bundle = copyBundle;
-				newBundle = undefined;
-			}
+			addNewBundle();
 		});
 	});
 
 	onMount(() => {
-		let info = localStorage.getItem('loginInfo');
-		if (info !== null) {
-			let infoObj = JSON.parse(info);
+		username = userService.getUsername();
+		addPersonalBundle();
+		getBundles();
+	});
+
+	/**
+	 * addNewBundle is called when a user successfully
+	 * creates a new bundle.
+	 */
+	function addNewBundle() {
+		if (newBundle !== undefined) {
+			let copyBundle = Object.assign({}, newBundle);
+			bundles.push(copyBundle);
+			bundle = copyBundle;
+			newBundle = undefined;
+		}
+	}
+
+	/**
+	 * addPersonalBundle creates a users personal bundle
+	 */
+	function addPersonalBundle() {
+		let entityID = userService.getEntityID();
+		if (entityID !== undefined) {
 			let b: Bundle = {
 				Type: 'bundle',
-				Path: `bundles/data/${infoObj['entityID']}/${infoObj['entityID']}`,
+				Path: `bundles/data/${entityID}/${entityID}`,
 				Name: 'personal',
-				Owner: infoObj['entityID'],
+				Owner: entityID,
 				IsAdmin: true,
-				ID: infoObj['entityID'],
+				ID: entityID,
 				Users: []
 			};
 			bundles?.push(b);
 			bundle = b;
-			username = userService.getUsername()
+		}
+	}
+
+	/**
+	 * getBundles retrieves the users bundles from the pwmanager
+	 */
+	async function getBundles() {
+		let [bs, err] = await KVBundleService.getBundles(zarf);
+		if (err !== undefined) {
+			console.log(`error listing bundles ${err}`);
 		}
 
-		(async () => {
-			let [bs, err] = await KVBundleService.getBundles(zarf);
-			if (err !== undefined) {
-				console.log(`error listing bundles ${err}`);
-			}
+		if (bs !== undefined && bs.bundles) {
+			bundles = [...bundles, ...bs.bundles];
+		}
 
-			if (bs !== undefined && bs.bundles) {
-				bundles = [...bundles, ...bs.bundles];
-			}
+		if (bs !== undefined && bs.sharedBundles) {
+			sharedBundles = [...bs.sharedBundles];
+		}
+	}
 
-			if (bs !== undefined && bs.sharedBundles) {
-				sharedBundles = [...bs.sharedBundles];
-			}
-		})();
-	});
 </script>
 
 <div class="h-[100vh] w-full bg-token_side_nav_color_surface_primary md:max-w-64 lg:block">
@@ -68,10 +89,9 @@
 			<span class="flex flex-1"></span>
 			<div
 				class="height-[36px] px-[8px] py-[9px] text-sm font-bold text-token_side_nav_color_foreground_faint"
-
 			>
-			{username}
-		</div>
+				{username}
+			</div>
 		</div>
 		<ul class="h-[calc(100vh-64px)] overflow-hidden overflow-y-scroll">
 			<li
@@ -104,7 +124,7 @@
 						{#if b?.Name?.length === 0}
 							<div class="capitalize">bundle</div>
 						{:else}
-							<div class="capitalize">{b?.Name}</div>
+							<div class="">{b?.Name}</div>
 						{/if}
 					</li>
 				{/each}
@@ -130,7 +150,7 @@
 						{#if b?.Name?.length === 0}
 							<div class="capitalize">bundle</div>
 						{:else}
-							<div class="capitalize">{b?.Name}</div>
+							<div class="">{b?.Name}</div>
 						{/if}
 					</li>
 				{/each}
@@ -139,5 +159,5 @@
 	</div>
 </div>
 <Modal bind:showModal>
-	<BundleModal edit={true} bind:showModal bind:newBundle bind:zarf></BundleModal>
+	<CreateModal edit={true} bind:showModal bind:newBundle bind:zarf></CreateModal>
 </Modal>

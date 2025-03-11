@@ -23,12 +23,15 @@ func TestBundle(t *testing.T) {
 
 	t.Run("Test Bundle", func(t *testing.T) {
 		entityID, _ := uuid.GenerateUUID()
-		err := testBundleCreate(t, b, reqStorage, entityID)
+		bundleID, err := testBundleCreate(t, b, reqStorage, entityID)
 
 		assert.NoError(t, err)
 
 		err = testBundleRead(t, b, reqStorage, entityID)
 
+		assert.NoError(t, err)
+
+		err = testBundleUsersAdd(t, b, reqStorage, entityID, bundleID)
 		assert.NoError(t, err)
 		/*
 			err = testBundleUpdate(t, b, reqStorage, map[string]interface{}{
@@ -70,20 +73,55 @@ func testBundleDelete(t *testing.T, b logical.Backend, s logical.Storage, entity
 	return nil
 }
 
-func testBundleCreate(t *testing.T, b *pwManagerBackend, s logical.Storage, entityID string) error {
-
+func testBundleCreate(t *testing.T, b *pwManagerBackend, s logical.Storage, entityID string) (string, error) {
 	ctx := context.TODO()
 	data, err := b.bundleCreate(ctx, s, entityID)
 	if err != nil {
 		t.Errorf("error creating bundle %s", err)
 	}
+
 	if _, ok := data["bundles"]; !ok {
 		t.Errorf("bundles do not exist and should")
 	}
+
 	bundles := data["bundles"].([]pwmgrBundle)
 
 	if len(bundles) < 1 {
 		t.Errorf("bundles should have more than 0 entries")
+	}
+
+	return bundles[0].ID, nil
+}
+
+func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, entityID string, bundleID string) error {
+
+	ctx := context.TODO()
+
+	var user pwManagerUserEntry
+	user.UUK.PubKey = map[string]string{"test": "test"}
+
+	b.setUserByName(ctx, s, "stephen", entityID)
+	b.setUserByEntityID(ctx, s, entityID, &user)
+
+	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      fmt.Sprintf("bundles/%s/%s/users", entityID, bundleID),
+		Storage:   s,
+		EntityID:  entityID,
+		Data: map[string]interface{}{
+			"users": map[string]interface{}{
+				"users": []map[string]interface{}{{
+					"entity_name":  "stephen",
+					"is_admin":     true,
+					"capabilities": "create,read,update,patch,delete,list",
+				},
+				},
+			},
+		},
+	})
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		return resp.Error()
 	}
 
 	return nil

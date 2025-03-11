@@ -11,6 +11,7 @@ export interface Metadata {
 	Value: string;
 	ID: string; 
 	Version: number;
+	//TODO Update this to Key instead.
 	Path: string;
 }
 

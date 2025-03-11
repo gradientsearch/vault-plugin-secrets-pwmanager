@@ -495,13 +495,20 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error creating bundle: bundles should not be undefined`)];
 		}
 
+		let bundlePath = path.split('/')
+		let bundleID = ''
+
+		if (bundlePath.length === 4){
+			bundleID = bundlePath[3]
+		}
+
 		let b: Bundle = {
 			Type: 'bundle',
 			Path: path,
 			Name: name,
 			Owner: userService.getEntityID(),
 			IsAdmin: false,
-			ID: '',
+			ID: bundleID,
 			Users: []
 		};
 

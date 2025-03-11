@@ -3,7 +3,7 @@
 	import Button from '../../../../components/button.svelte';
 
 	let {
-		bundle = $bindable(),
+		bundle = $bindable<Bundle>(),
 		bundleService = $bindable(),
 		zarf = $bindable(),
 		cancel = $bindable(),
@@ -27,6 +27,7 @@
 
 	async function onSave() {
 		let bundleUsers: BundleUser[] = [];
+		let newUsers = [...JSON.parse(JSON.stringify(users))]
 		users.forEach((u) => {
 			let ucap: any = [];
 			Object.keys(u.Capabilities).forEach((c) => {
@@ -65,8 +66,10 @@
 				['encrypt']
 			);
 
-			bundleService.encryptBundleKey(pubkey, usersEntityID);
+			await bundleService.encryptBundleKey(pubkey, usersEntityID);
 		}
+
+		bundle.Users = newUsers
 
 		save();
 	}
@@ -248,7 +251,7 @@
 									fn={() => {
 										users.splice(idx, 1);
 										users = users;
-									}}>delete {idx}</Button
+									}}>delete</Button
 								>
 							</div>
 						</div>

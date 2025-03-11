@@ -16,6 +16,7 @@ This is the component used to show the password Entry.
 
 <script lang="ts">
 	import Button from '../../../../components/button.svelte';
+	import type { BundleMetadata } from '../../models/bundle/vault/metadata';
 	import { MODE, type Entry, type Metadata } from '../../models/entry';
 	import { DateInput, PasswordInput, TextInput, type Input } from '../../models/input';
 	import type { BundleService } from '../../services/bundle.service';
@@ -25,6 +26,7 @@ This is the component used to show the password Entry.
 	let {
 		entry = $bindable(),
 		bundleService = $bindable<BundleService>(),
+		bundleMetadata = $bindable<BundleMetadata>(),
 		mode = $bindable<MODE>(),
 		cancel = $bindable(),
 		save = () => {}
@@ -35,13 +37,13 @@ This is the component used to show the password Entry.
 			Name: entry.Name,
 			Type: 'password',
 			// Important to note that the 0 indexed value for Password item is username
-			// if this were to to the 1 index that would be the password!
+			// if this were to be the 1 index that would be the password!
 			Value: entry.Core.Items[0].Value,
 			ID: entry.Metadata.ID ? entry.Metadata.ID : ''
 		};
 		entry.Metadata = meta;
 
-		let err = await bundleService.putEntry(entry);
+		let err = await bundleService.putEntry(entry, bundleMetadata);
 		if (err !== undefined) {
 			console.log('err: ', err);
 

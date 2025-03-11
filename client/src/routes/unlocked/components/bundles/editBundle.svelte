@@ -68,9 +68,6 @@
 			bundleService.encryptBundleKey(pubkey, usersEntityID);
 		}
 
-		console.log(pubkeys);
-
-		//update bundle metadata
 		save();
 	}
 
@@ -91,8 +88,6 @@
 	let users: BundleUser[] = $state([]);
 	onMount(() => {
 		bundleName = bundle?.Name;
-		console.log(bundle);
-
 		users = [...bundle.Users];
 	});
 </script>

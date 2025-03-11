@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { base } from '$app/paths';
+	import type { BundleMetadata } from '../models/bundle/vault/metadata';
 	import Password from './password.svelte';
 
-	let { bundleService = $bindable(), showModal = $bindable() } = $props();
+	let {
+		bundleService = $bindable(),
+		bundleMetadata = $bindable<BundleMetadata>(),
+		showModal = $bindable()
+	} = $props();
 
 	let selectedType: any = $state(undefined);
 	let containerHeight: number | undefined = $state();
@@ -54,6 +59,7 @@
 		</header>
 		<Component
 			bind:bundleService
+			bind:bundleMetadata
 			bind:showModal
 			clientHeight={containerHeight - headerHeight}
 			cancel={() => {

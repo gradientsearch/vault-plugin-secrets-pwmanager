@@ -1,8 +1,9 @@
 <script lang="ts">
 	import Modal from '../../../components/modal.svelte';
 	import CreatePassword from '../modals/createPassword.svelte';
+	import type { BundleMetadata } from '../models/bundle/vault/metadata';
 
-	let { bundleService = $bindable() } = $props();
+	let { bundleService = $bindable(), bundleMetadata = $bindable<BundleMetadata>() } = $props();
 	let showModal: boolean = $state(false);
 	function createPassword() {
 		showModal = true;
@@ -20,5 +21,5 @@
 </header>
 
 <Modal bind:showModal>
-	<CreatePassword bind:bundleService bind:showModal></CreatePassword>
+	<CreatePassword bind:bundleMetadata bind:bundleService bind:showModal></CreatePassword>
 </Modal>

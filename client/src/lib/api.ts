@@ -231,9 +231,6 @@ export class Api {
 			}
 		};
 
-		console.log(JSON.stringify(data))
-
-
 		let response = await this.post(
 			`${this.mount}/bundles/${ownerEntityID}/${bundleID}/users`,
 			convertCase(data, true)

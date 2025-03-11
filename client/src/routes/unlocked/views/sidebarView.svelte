@@ -46,8 +46,6 @@
 				console.log(`error listing bundles ${err}`);
 			}
 
-			console.log(bs);
-
 			if (bs !== undefined && bs.bundles) {
 				bundles = [...bundles, ...bs.bundles];
 			}

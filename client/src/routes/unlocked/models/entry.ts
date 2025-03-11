@@ -10,6 +10,7 @@ export interface Metadata {
 	Type: string;
 	Value: string;
 	ID: string; 
+	Version: number;
 }
 
 /**
@@ -38,7 +39,6 @@ export interface Entry {
 	Core: Core;
 	More: More;
 	Tags: string[];
-	Version: number
 }
 
 export enum MODE {
@@ -56,7 +56,8 @@ export function newPasswordEntry(): Entry {
 			Name: 'Password',
 			Type: 'password',
 			Value: '',
-			ID: ''
+			ID: '',
+			Version: 0
 		},
 		Core: {
 			Items: [

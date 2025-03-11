@@ -18,7 +18,7 @@ import { userService } from './user.service';
  * a Category bundle.
  */
 export interface BundleService {
-	putEntry(pi: Entry): Promise<Error | undefined>;
+	putEntry(pi: Entry, bm: BundleMetadata): Promise<Error | undefined>;
 	getMetadata(): Promise<[BundleMetadata | undefined, Error | undefined]>;
 	init(): Promise<Error | undefined>;
 }
@@ -155,7 +155,10 @@ export class KVBundleService implements BundleService {
 		}
 	}
 
-	async encryptPayload(payload: any, version: number): Promise<[string | undefined, Error | undefined]> {
+	async encryptPayload(
+		payload: any,
+		version: number
+	): Promise<[string | undefined, Error | undefined]> {
 		// TODO refactor this class so this isn't necessary
 		if (this.symmetricKey === undefined) {
 			return [undefined, Error('bundle encryption key is undefined')];
@@ -225,17 +228,17 @@ export class KVBundleService implements BundleService {
 		return [bm, undefined];
 	}
 
-	async putEntry(e: Entry): Promise<Error | undefined> {
+	async putEntry(e: Entry, metadata: BundleMetadata): Promise<Error | undefined> {
 		//store data in vault
 		// encrypt
 		let newEntry = e.Metadata.ID.length === 0;
 		if (newEntry) {
 			let entryName = crypto.randomUUID();
 			e.Metadata.ID = entryName;
-			e.Version = 0;
+			e.Metadata.Version = 0;
 		}
 
-		let [data, err2] = await this.encryptPayload(e, e.Version);
+		let [data, err2] = await this.encryptPayload(e, e.Metadata.Version);
 		if (err2 != undefined) {
 			return err2;
 		}
@@ -245,10 +248,8 @@ export class KVBundleService implements BundleService {
 			return Error(`error putting entry:  ${err3.message}`);
 		}
 
-		let [metadata, err] = await this.getMetadata();
-		if (err !== undefined) {
-			return Error('error retrieving latest bundle metadata');
-		}
+		// have to increment version
+		e.Metadata.Version = e.Metadata.Version++;
 
 		if (metadata === undefined) {
 			return Error('error metadata should be defined but was undefined');
@@ -272,7 +273,6 @@ export class KVBundleService implements BundleService {
 
 		let ep = await this.encryptPayload(metadata, metadata.version);
 
-		// TODO add CAS version from
 		let err4 = await this.zarf.Api.PutMetadata(this.bundle, ep);
 		if (err4 !== undefined) {
 			return Error('error putting metadata: ', err4);

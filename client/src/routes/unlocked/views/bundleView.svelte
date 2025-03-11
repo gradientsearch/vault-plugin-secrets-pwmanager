@@ -12,12 +12,13 @@
 	let headerHeight = $state(0);
 	let showModal = $state(false);
 	let errorMessage: string | undefined = $state(undefined);
-	let usersEntityID: string  =''
+	let usersEntityID: string = '';
 
 	let {
 		bundle = $bindable(),
 		zarf = $bindable(),
 		bundleService = $bindable<BundleService>(),
+		bundleMetadata = $bindable<BundleMetadata>(),
 		selectedEntryMetadata = $bindable<Entry>(),
 		entries: entries = $bindable()
 	} = $props();
@@ -37,15 +38,18 @@
 			//TODO Toast error
 			return;
 		}
-		entries = metadata.entries.reverse();
 
-		let checkSelectedEntry = metadata.entries.filter((e: Metadata) => {
+		let currentLength = bundleMetadata?.entries?.length;
+		bundleMetadata = metadata;
+		entries = [...metadata.entries].reverse();
+
+		let checkSelectedEntry = metadata.entries.filter((e: Metadata, idx: number) => {
 			return selectedEntryMetadata?.ID === e.ID;
 		});
 
 		if (checkSelectedEntry.length === 0 && selectedEntryMetadata !== undefined) {
 			selectedEntryMetadata = undefined;
-		} else if (entries.length > 0) {
+		} else if (currentLength !== entries.length) {
 			selectedEntryMetadata = entries[0];
 		}
 	}
@@ -58,12 +62,13 @@
 				errorMessage = err;
 				alert(err);
 			}
-			let [vm, err2] = await bundleService.getMetadata();
+			let [metadata, err2] = await bundleService.getMetadata();
 
 			if (err2 !== undefined) {
 				errorMessage = 'Error loading entries';
 			}
-			entries = (vm as BundleMetadata).entries.reverse();
+			bundleMetadata = metadata;
+			entries = [...metadata.entries].reverse();
 		}
 	}
 
@@ -71,9 +76,9 @@
 		selectedEntryMetadata = e;
 	}
 
-	onMount(()=>{
-		usersEntityID = userService.getEntityID()
-	})
+	onMount(() => {
+		usersEntityID = userService.getEntityID();
+	});
 </script>
 
 <div
@@ -86,7 +91,7 @@
 		<h1 class="flex items-end text-base capitalize">{bundle?.Name} {bundle?.Type}</h1>
 		<span class="flex flex-1"></span>
 		{#if !(bundle?.Path.split('/')[3] === usersEntityID)}
-			{#if bundle?.isAdmin ||  bundle?.Path.split('/')[2] === usersEntityID}
+			{#if bundle?.isAdmin || bundle?.Path.split('/')[2] === usersEntityID}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<span
@@ -119,7 +124,7 @@
 				<button class="flex w-full flex-row items-center p-4">
 					<span class="pe-3 text-3xl">🔑</span>
 					<div class="flex flex-col text-start">
-						<span class="text-base font-bold text-foreground_strong"> {e.Name}</span>
+						<span class="text-base font-bold text-foreground_strong"> {e.Name} {e.Version}</span>
 						<span class="text-sm text-foreground_faint"> {e.Value}</span>
 					</div>
 				</button>

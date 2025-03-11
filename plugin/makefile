@@ -71,6 +71,7 @@ config:
 
 secretMount:
 	vault secrets enable -version=2 -path=bundles kv
+	vault write bundles/config cas_required=true
 
 userpass:
 	vault auth enable userpass

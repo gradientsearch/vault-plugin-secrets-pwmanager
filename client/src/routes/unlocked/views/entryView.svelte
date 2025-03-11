@@ -3,10 +3,12 @@
 	import { type Metadata, type Entry, MODE } from '../models/entry';
 	import { getPasswordComponent } from '../components/entries/components';
 	import type { BundleService } from '../services/bundle.service';
+	import type { BundleMetadata } from '../models/bundle/vault/metadata';
 
 	let {
 		selectedEntryMetadata = $bindable<Metadata>(),
-		bundleService = $bindable<BundleService>()
+		bundleService = $bindable<BundleService>(),
+		bundleMetadata = $bindable<BundleMetadata>()
 	} = $props();
 
 	let originalEntry: Entry | undefined = $state();
@@ -43,7 +45,7 @@
 	{#if copyOfSelectedEntry}
 		{@const Component = getPasswordComponent(copyOfSelectedEntry?.Type)}
 		<div class="h-[100%] w-full">
-			<Component bind:entry={copyOfSelectedEntry} bind:bundleService bind:mode cancel={cancel}
+			<Component bind:entry={copyOfSelectedEntry} bind:bundleMetadata bind:bundleService bind:mode cancel={cancel}
 			></Component>
 		</div>
 	{/if}

@@ -22,18 +22,15 @@ func TestBundle(t *testing.T) {
 	b, reqStorage := getTestBackend(t)
 
 	t.Run("Test Bundle", func(t *testing.T) {
-		err := testBundleCreate(t, b, reqStorage)
+		entityID, _ := uuid.GenerateUUID()
+		err := testBundleCreate(t, b, reqStorage, entityID)
 
 		assert.NoError(t, err)
 
+		err = testBundleRead(t, b, reqStorage, entityID)
+
+		assert.NoError(t, err)
 		/*
-			err = testBundleRead(t, b, reqStorage, map[string]interface{}{
-				"role_id": bundleRoleID,
-				"url":     bundleUrl,
-			})
-
-			assert.NoError(t, err)
-
 			err = testBundleUpdate(t, b, reqStorage, map[string]interface{}{
 				"role_id": bundleRoleID,
 				"url":     "http://pwmgr:19090",
@@ -55,11 +52,12 @@ func TestBundle(t *testing.T) {
 	})
 }
 
-func testBundleDelete(t *testing.T, b logical.Backend, s logical.Storage) error {
+func testBundleDelete(t *testing.T, b logical.Backend, s logical.Storage, entityID string) error {
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.DeleteOperation,
 		Path:      configStoragePath,
 		Storage:   s,
+		EntityID:  entityID,
 	})
 
 	if err != nil {
@@ -72,8 +70,8 @@ func testBundleDelete(t *testing.T, b logical.Backend, s logical.Storage) error 
 	return nil
 }
 
-func testBundleCreate(t *testing.T, b *pwManagerBackend, s logical.Storage) error {
-	entityID, _ := uuid.GenerateUUID()
+func testBundleCreate(t *testing.T, b *pwManagerBackend, s logical.Storage, entityID string) error {
+
 	ctx := context.TODO()
 	data, err := b.bundleCreate(ctx, s, entityID)
 	if err != nil {
@@ -109,18 +107,19 @@ func testBundleUpdate(t *testing.T, b logical.Backend, s logical.Storage, d map[
 	return nil
 }
 
-func testBundleRead(t *testing.T, b logical.Backend, s logical.Storage, expected map[string]interface{}) error {
+func testBundleRead(t *testing.T, b logical.Backend, s logical.Storage, entityID string) error {
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.ReadOperation,
-		Path:      configStoragePath,
+		Path:      "bundles",
 		Storage:   s,
+		EntityID:  entityID,
 	})
 
 	if err != nil {
 		return err
 	}
 
-	if resp == nil && expected == nil {
+	if resp == nil {
 		return nil
 	}
 
@@ -128,17 +127,19 @@ func testBundleRead(t *testing.T, b logical.Backend, s logical.Storage, expected
 		return resp.Error()
 	}
 
-	if len(expected) != len(resp.Data) {
-		return fmt.Errorf("read data mismatch (expected %d values, got %d)", len(expected), len(resp.Data))
+	if v, ok := resp.Data["bundles"]; !ok {
+		return fmt.Errorf("should have bundles")
+	} else {
+		if len(v.([]pwmgrBundle)) != 1 {
+			return fmt.Errorf("should have 1 bundles")
+		}
 	}
 
-	for k, expectedV := range expected {
-		actualV, ok := resp.Data[k]
-
-		if !ok {
-			return fmt.Errorf(`expected data["%s"] = %v but was not included in read output"`, k, expectedV)
-		} else if expectedV != actualV {
-			return fmt.Errorf(`expected data["%s"] = %v, instead got %v"`, k, expectedV, actualV)
+	if v, ok := resp.Data["shared_bundles"]; !ok {
+		return fmt.Errorf("should have bundles")
+	} else {
+		if len(v.([]pwmgrSharedBundle)) != 0 {
+			return fmt.Errorf("should have 0 shared_bundles")
 		}
 	}
 

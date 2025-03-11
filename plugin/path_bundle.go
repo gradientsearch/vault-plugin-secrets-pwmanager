@@ -148,33 +148,17 @@ func (b *pwManagerBackend) pathBundleExistenceCheck(ctx context.Context, req *lo
 	return out != nil, nil
 }
 
-// pathBundleRead reads the configuration and outputs non-sensitive information.
+// pathBundleRead returns the users owned and shared with me bundles
 func (b *pwManagerBackend) pathBundleRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	bundles, err := b.listBundles(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err
 	}
 
-	userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, req.EntityID)
-	sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
-
+	sharedBundles, err := b.listSharedBundles(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return nil, err
 	}
-
-	if sbp == nil {
-		sbp = &pwmgrSharedBundles{}
-	}
-
-	sharedBundles := []pwmgrSharedBundle{}
-
-	for _, v := range *sbp {
-		sharedBundles = append(sharedBundles, v)
-	}
-
-	sort.Slice(sharedBundles, func(i, j int) bool {
-		return sharedBundles[i].Created < sharedBundles[j].Created
-	})
 
 	return &logical.Response{
 		Data: map[string]interface{}{
@@ -375,6 +359,31 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 	})
 
 	return userBundles, nil
+}
+
+func (b *pwManagerBackend) listSharedBundles(ctx context.Context, s logical.Storage, entityID string) ([]pwmgrSharedBundle, error) {
+	userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, entityID)
+	sbp, err := getSharedUserBundles(ctx, s, userSharedBundlePath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if sbp == nil {
+		sbp = &pwmgrSharedBundles{}
+	}
+
+	sharedBundles := []pwmgrSharedBundle{}
+
+	for _, v := range *sbp {
+		sharedBundles = append(sharedBundles, v)
+	}
+
+	sort.Slice(sharedBundles, func(i, j int) bool {
+		return sharedBundles[i].Created < sharedBundles[j].Created
+	})
+
+	return sharedBundles, nil
 }
 
 // bundles/<id>/users

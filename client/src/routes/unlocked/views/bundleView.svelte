@@ -1,58 +1,82 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { newPasswordEntry as newPasswordEntry, type Entry, type Metadata } from '../models/entry';
+	import { type Metadata } from '../models/entry';
 	import { KVBundleService, type BundleService } from '../services/bundle.service';
-	import { base } from '$app/paths';
 	import type { BundleMetadata } from '../models/bundle/vault/metadata';
 	import Modal from '../../../components/modal.svelte';
-	import CreatePassword from '../modals/createPassword.svelte';
 	import { userService } from '../services/user.service';
 	import EditBundle from '../modals/editBundle.svelte';
+	import type { Zarf } from '../models/zarf';
 
+	let entriesMetadata: Metadata[] = $state([]);
+	let errorMessage: string | undefined = $state(undefined);
 	let headerHeight = $state(0);
 	let showModal = $state(false);
-	let errorMessage: string | undefined = $state(undefined);
-	let usersEntityID: string = '';
+	let usersEntityID: string = $state('');
+	let currentBundleEntryLength = 0;
 
 	let {
-		bundle = $bindable(),
-		zarf = $bindable(),
 		bundleService = $bindable<BundleService>(),
+		bundle = $bindable<Bundle>(),
 		bundleMetadata = $bindable<BundleMetadata>(),
-		selectedEntryMetadata = $bindable<Entry>(),
-		entries: entries = $bindable()
+		selectedEntryMetadata = $bindable<Metadata>(),
+		zarf = $bindable<Zarf>()
 	} = $props();
+
+	onMount(() => {
+		usersEntityID = userService.getEntityID();
+	});
 
 	$effect(() => {
 		bundle;
-
 		untrack(() => {
 			selectedEntryMetadata = undefined;
 			setBundleService();
 		});
 	});
 
+	/**
+	 * onEntriesChanged is called when entries in a bundle have been updated.
+	 */
 	async function onEntriesChanged() {
 		let [metadata, err] = await bundleService.getMetadata();
 		if (err !== undefined) {
 			//TODO Toast error
 			return;
 		}
-		let currentLength = bundleMetadata?.entries?.length;
+
+		entriesMetadata = [...metadata.entries].reverse();
 		bundleMetadata = metadata;
-		entries = [...metadata.entries].reverse();
 
-		let checkSelectedEntry = metadata.entries.filter((e: Metadata, idx: number) => {
-			return selectedEntryMetadata?.ID === e.ID;
-		});
-
-		if (checkSelectedEntry.length === 0 && selectedEntryMetadata !== undefined) {
+		if (wasEntryDeleted(metadata.entries.length)) {
 			selectedEntryMetadata = undefined;
-		} else if (currentLength !== entries.length) {
-			selectedEntryMetadata = entries[0];
+		} else if (wasEntryAdded(metadata.entries.length)) {
+			selectedEntryMetadata = entriesMetadata[0];
 		}
+
+		currentBundleEntryLength = entriesMetadata.length;
 	}
 
+	/**
+	 * wasEntryDeleted determines if an entry was deleted
+	 * @param updatedLength number of new entries
+	 */
+	function wasEntryDeleted(updatedLength: number) {
+		return updatedLength < currentBundleEntryLength;
+	}
+
+	/**
+	 * wasEntryAdded determines if an entry was added
+	 * @param updatedLength number of new entries
+	 */
+	function wasEntryAdded(updatedLength: number) {
+		return updatedLength > currentBundleEntryLength;
+	}
+
+	/**
+	 * setBundleService updates the bundleService. Note the bundle service
+	 * is a bound object to the other views.
+	 */
 	async function setBundleService() {
 		if (bundle?.Type === 'bundle') {
 			bundleService = new KVBundleService(zarf, bundle, onEntriesChanged);
@@ -67,17 +91,18 @@
 				errorMessage = 'Error loading entries';
 			}
 			bundleMetadata = metadata;
-			entries = [...metadata.entries].reverse();
+			entriesMetadata = [...metadata.entries].reverse();
+			currentBundleEntryLength = entriesMetadata.length;
 		}
 	}
 
-	function onSelectedEntry(e: Entry) {
-		selectedEntryMetadata = e;
+	/**
+	 * onSelectedEntry sets the entry Metadata for the entry view.
+	 * @param m entry Metadata
+	 */
+	function onSelectedEntry(m: Metadata) {
+		selectedEntryMetadata = m;
 	}
-
-	onMount(() => {
-		usersEntityID = userService.getEntityID();
-	});
 </script>
 
 <div
@@ -106,8 +131,8 @@
 	</header>
 
 	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
-	{#if entries}
-		{#each entries as e}
+	{#if entriesMetadata}
+		{#each entriesMetadata as e}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div

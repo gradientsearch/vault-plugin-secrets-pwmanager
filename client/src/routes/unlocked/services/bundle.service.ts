@@ -495,11 +495,11 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error creating bundle: bundles should not be undefined`)];
 		}
 
-		let bundlePath = path.split('/')
+		let pathSplit = path.split('/')
 		let bundleID = ''
 
-		if (bundlePath.length === 4){
-			bundleID = bundlePath[3]
+		if (pathSplit.length === 4){
+			bundleID = pathSplit[3]
 		}
 
 		let b: Bundle = {

@@ -91,10 +91,10 @@ func pathBundle(b *pwManagerBackend) []*framework.Path {
 					Callback: b.pathBundleRead,
 				},
 				logical.CreateOperation: &framework.PathOperation{
-					Callback: b.pathBundleWrite,
+					Callback: b.pathBundleCreate,
 				},
 				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.pathBundleWrite,
+					Callback: b.pathBundleCreate,
 				},
 				logical.DeleteOperation: &framework.PathOperation{
 					Callback: b.pathBundleDelete,
@@ -184,9 +184,9 @@ func (b *pwManagerBackend) pathBundleRead(ctx context.Context, req *logical.Requ
 	}, nil
 }
 
-// pathBundleWrite updates the configuration for the backend
-func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	d, err := b.bundleWrite(ctx, req.Storage, req.EntityID)
+// pathBundleCreate updates the configuration for the backend
+func (b *pwManagerBackend) pathBundleCreate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	d, err := b.bundleCreate(ctx, req.Storage, req.EntityID)
 	if err != nil {
 		return logical.ErrorResponse("error creating bundle"), nil
 	}
@@ -195,7 +195,7 @@ func (b *pwManagerBackend) pathBundleWrite(ctx context.Context, req *logical.Req
 	}, nil
 }
 
-func (b *pwManagerBackend) bundleWrite(ctx context.Context, s logical.Storage, entityID string) (map[string]interface{}, error) {
+func (b *pwManagerBackend) bundleCreate(ctx context.Context, s logical.Storage, entityID string) (map[string]interface{}, error) {
 	newBundleUUID, err := uuid.GenerateUUID()
 	if err != nil {
 		return nil, err
@@ -204,23 +204,6 @@ func (b *pwManagerBackend) bundleWrite(ctx context.Context, s logical.Storage, e
 	newBundleName := fmt.Sprintf("%s/%s", entityID, newBundleUUID)
 	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
 	newBundleSecretPath := fmt.Sprintf("bundles/data/%s", newBundleName)
-
-	// There are some pros and cons to creating new secret mounts for new user vaults.
-	// A pro with distinct kv-v2 stores data is separate and metadata per mount is easily
-	// available. A major con is the limit of secret mounts in vault is set to 14000
-	// https://developer.hashicorp.com/vault/docs/internals/limits#mount-point-limits
-	// even tho vault kv-v2 stores are multiplexed there may still be overhead for the additional
-	// mounts. Right now, i've pivoted to just use a single kv-v2 store and use policies to control
-	// access. In the future, we can always pivot back if necessary.
-
-	// mi := api.MountInput{
-	// 	Type: "kv-v2",
-	// }
-	// err = b.c.c.Sys().Mount(newBundleMountPath, &mi)
-
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	pb := new(pwmgrBundle)
 	pb.Path = newBundleSecretPath

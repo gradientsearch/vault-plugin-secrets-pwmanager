@@ -243,7 +243,7 @@ export class Api {
 
 		let bs = await response.json();
 		// TODO update to keys
-		return [bs.data.pubkey, undefined];
+		return [bs.data.pubkeys, undefined];
 	}
 }
 

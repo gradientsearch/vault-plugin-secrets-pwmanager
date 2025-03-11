@@ -97,6 +97,8 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 
 	ctx := context.TODO()
 
+	b.policyService = &MockPolicyService{}
+
 	var user pwManagerUserEntry
 	user.UUK.PubKey = map[string]string{"test": "test"}
 
@@ -122,6 +124,14 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 
 	if err != nil || (resp != nil && resp.IsError()) {
 		return resp.Error()
+	}
+
+	if p, ok := resp.Data["pubkeys"]; ok {
+		for _, v := range p.(map[string]map[string]string) {
+			if v["test"] != "test" {
+				return fmt.Errorf("should return pubkey with value `test`")
+			}
+		}
 	}
 
 	return nil
@@ -181,5 +191,14 @@ func testBundleRead(t *testing.T, b logical.Backend, s logical.Storage, entityID
 		}
 	}
 
+	return nil
+}
+
+type MockPolicyService struct {
+	CallCount int
+}
+
+func (m *MockPolicyService) PutPolicy(name, rules string) error {
+	m.CallCount++
 	return nil
 }

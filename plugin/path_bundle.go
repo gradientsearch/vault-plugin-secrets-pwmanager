@@ -600,7 +600,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"pubkey": usersPubKeys,
+			"pubkeys": usersPubKeys,
 		},
 	}, nil
 

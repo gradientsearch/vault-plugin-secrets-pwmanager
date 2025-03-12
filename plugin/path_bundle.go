@@ -575,7 +575,7 @@ func (b *pwManagerBackend) updateModifiedUsers(ctx context.Context, s logical.St
 			}
 
 			if sbs == nil {
-				sbs := pwmgrSharedBundles{}
+				sbs = pwmgrSharedBundles{}
 				sbs[pb.ID] = pwmgrSharedBundle{
 					ID:            pb.ID,
 					OwnerEntityID: pb.OwnerEntityID,

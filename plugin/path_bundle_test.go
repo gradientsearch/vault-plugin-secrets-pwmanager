@@ -137,6 +137,16 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 		return fmt.Errorf("expected call count to equal 1")
 	}
 
+	sb, err := b.listSharedBundles(ctx, s, entityID)
+
+	if err != nil {
+		return err
+	}
+
+	if len(sb) != 1 {
+		return fmt.Errorf("should have 1 shared bundle")
+	}
+
 	resp, err = b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.CreateOperation,
 		Path:      fmt.Sprintf("bundles/%s/%s/users", entityID, bundleID),

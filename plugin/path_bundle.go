@@ -417,6 +417,47 @@ func (b *pwManagerBackend) getUpdatedBundleUsers(pb pwmgrBundle, newUsers []pwmg
 	return users
 }
 
+func (b *pwManagerBackend) removeBundleUsers(ctx context.Context, s logical.Storage, pb pwmgrBundle, users []pwmgrUser) error {
+	usersToRemove := map[string]pwmgrUser{}
+	for _, u := range pb.Users {
+		usersToRemove[u.EntityID] = u
+	}
+
+	for _, u := range users {
+		delete(usersToRemove, u.EntityID)
+	}
+
+	for _, u := range usersToRemove {
+		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, u.EntityID)
+		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
+		{
+
+			sbs, err := getSharedUserBundles(ctx, s, userSharedBundlePath)
+
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return fmt.Errorf("error reading users shared bundles")
+			}
+
+			delete(sbs, pb.ID)
+
+			err = setSharedUserBundles(ctx, s, userSharedBundlePath, sbs)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return err
+			}
+
+			err = b.UpdateUserPolicy(sbs, u.EntityName)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return err
+			}
+		}
+		sharedBundleLock.Unlock()
+	}
+	return nil
+}
+
 // pathBundleWrite updates the configuration for the backend
 func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ownerEntityID, ok := d.GetOk("owner_entity_id")
@@ -491,42 +532,10 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	users := b.getUpdatedBundleUsers(*pb, newUsers)
 
 	/////////// delete users ////////////////
-	deletedUsers := map[string]pwmgrUser{}
-	for _, u := range pb.Users {
-		deletedUsers[u.EntityID] = u
-	}
 
-	for _, u := range users {
-		delete(deletedUsers, u.EntityID)
-	}
-
-	for _, v := range deletedUsers {
-		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, v.EntityID)
-		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
-		{
-
-			sbs, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
-
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return logical.ErrorResponse("error reading users shared bundles"), err
-			}
-
-			delete(sbs, bundleID.(string))
-
-			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, sbs)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return nil, err
-			}
-
-			err = b.UpdateUserPolicy(sbs, v.EntityName)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return nil, err
-			}
-		}
-		sharedBundleLock.Unlock()
+	err = b.removeBundleUsers(ctx, req.Storage, *pb, users)
+	if err != nil {
+		return logical.ErrorResponse(err.Error()), nil
 	}
 
 	for _, mu := range modifiedUsers {

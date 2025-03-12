@@ -339,6 +339,84 @@ func (b *pwManagerBackend) isUserBundleAdmin(entityID string, ownerEntityID stri
 	return nil
 }
 
+func (b *pwManagerBackend) getModifiedBundleUsers(pb pwmgrBundle, newUsers []pwmgrUser) []pwmgrUser {
+	modifiedUsers := []pwmgrUser{}
+
+	for _, nu := range newUsers {
+		// TODO think through workflow .
+		// how will a user be modified?
+		// we go ahead and update the users policy to allow
+		// if users declines invitation we can delete the bundle
+		// and recreate the policy for that user
+		var userMatch *pwmgrUser
+
+		for _, u := range pb.Users {
+			if u.EntityID == nu.EntityID {
+				userMatch = &u
+			}
+		}
+
+		if userMatch != nil {
+
+			// copy over
+			nu.SharedTimestamp = userMatch.SharedTimestamp
+
+			// check if modified
+			modified := false
+
+			// If pervious request did not finish we'll update all user
+			if pb.WALEntry {
+				modified = true
+			}
+
+			if nu.Capabilities != userMatch.Capabilities {
+				modified = true
+			}
+
+			if nu.IsAdmin != userMatch.IsAdmin {
+				modified = true
+			}
+
+			if nu.EntityName != userMatch.EntityName {
+				modified = true
+			}
+
+			if modified {
+				modifiedUsers = append(modifiedUsers, nu)
+			}
+
+		} else {
+			// grab the entity of the new user
+			nu.SharedTimestamp = time.Now().Unix()
+			modifiedUsers = append(modifiedUsers, nu)
+		}
+
+	}
+	return modifiedUsers
+}
+
+func (b *pwManagerBackend) getUpdatedBundleUsers(pb pwmgrBundle, newUsers []pwmgrUser) []pwmgrUser {
+	users := []pwmgrUser{}
+
+	for _, nu := range newUsers {
+		var userMatch *pwmgrUser
+		for _, u := range pb.Users {
+			if u.EntityID == nu.EntityID {
+				userMatch = &u
+			}
+		}
+
+		if userMatch != nil {
+			nu.SharedTimestamp = userMatch.SharedTimestamp
+		} else {
+			nu.SharedTimestamp = time.Now().Unix()
+		}
+		users = append(users, nu)
+	}
+
+	return users
+}
+
 // pathBundleWrite updates the configuration for the backend
 func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ownerEntityID, ok := d.GetOk("owner_entity_id")
@@ -409,61 +487,8 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		return logical.ErrorResponse(err.Error()), nil
 	}
 
-	modifiedUsers := []pwmgrUser{}
-	users := []pwmgrUser{}
-
-	for _, nu := range newUsers {
-		// TODO think through workflow .
-		// how will a user be modified?
-		// we go ahead and update the users policy to allow
-		// if users declines invitation we can delete the bundle
-		// and recreate the policy for that user
-		var userMatch *pwmgrUser
-
-		for _, u := range pb.Users {
-			if u.EntityID == nu.EntityID {
-				userMatch = &u
-			}
-		}
-
-		if userMatch != nil {
-
-			// copy over
-			nu.SharedTimestamp = userMatch.SharedTimestamp
-
-			// check if modified
-			modified := false
-
-			// If pervious request did not finish we'll update all user
-			if pb.WALEntry {
-				modified = true
-			}
-
-			if nu.Capabilities != userMatch.Capabilities {
-				modified = true
-			}
-
-			if nu.IsAdmin != userMatch.IsAdmin {
-				modified = true
-			}
-
-			if nu.EntityName != userMatch.EntityName {
-				modified = true
-			}
-
-			if modified {
-				modifiedUsers = append(modifiedUsers, nu)
-			}
-
-		} else {
-			// grab the entity of the new user
-			nu.SharedTimestamp = time.Now().Unix()
-			modifiedUsers = append(modifiedUsers, nu)
-		}
-
-		users = append(users, nu)
-
-	}
+	modifiedUsers := b.getModifiedBundleUsers(*pb, newUsers)
+	users := b.getUpdatedBundleUsers(*pb, newUsers)
 
 	/////////// delete users ////////////////
 	deletedUsers := map[string]pwmgrUser{}

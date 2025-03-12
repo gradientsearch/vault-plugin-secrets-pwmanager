@@ -96,8 +96,8 @@ func testBundleCreate(t *testing.T, b *pwManagerBackend, s logical.Storage, enti
 func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, entityID string, bundleID string) error {
 
 	ctx := context.TODO()
-
-	b.policyService = &MockPolicyService{}
+	mockPolicyService := &MockPolicyService{}
+	b.policyService = mockPolicyService
 
 	var user pwManagerUserEntry
 	user.UUK.PubKey = map[string]string{"test": "test"}
@@ -132,6 +132,41 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 				return fmt.Errorf("should return pubkey with value `test`")
 			}
 		}
+	}
+
+	if mockPolicyService.CallCount != 1 {
+		return fmt.Errorf("expected call count to equal 1")
+	}
+
+	resp, err = b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      fmt.Sprintf("bundles/%s/%s/users", entityID, bundleID),
+		Storage:   s,
+		EntityID:  entityID,
+		Data: map[string]interface{}{
+			"users": map[string]interface{}{
+				"users": []map[string]interface{}{},
+			},
+		},
+	})
+
+	if err != nil || (resp != nil && resp.IsError()) {
+		return resp.Error()
+	}
+
+	keys := []string{}
+	if p, ok := resp.Data["pubkeys"]; ok {
+		for k := range p.(map[string]map[string]string) {
+			keys = append(keys, k)
+		}
+	}
+
+	if len(keys) != 0 {
+		return fmt.Errorf("expected 0 pubkeys to be returned")
+	}
+
+	if mockPolicyService.CallCount != 2 {
+		return fmt.Errorf("expected call count to equal 2")
 	}
 
 	return nil

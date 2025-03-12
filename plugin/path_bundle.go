@@ -430,51 +430,44 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	}
 
 	/////////// delete users ////////////////
-	deletedUsers := map[string]bool{}
+	deletedUsers := map[string]pwmgrUser{}
 	for _, u := range pb.Users {
-		deletedUsers[u.EntityID] = true
+		deletedUsers[u.EntityID] = u
 	}
 
 	for _, u := range users {
-		deletedUsers[u.EntityID] = false
+		delete(deletedUsers, u.EntityID)
 	}
 
-	for k, v := range deletedUsers {
-		if v {
-			// add bundle to users shared bundles (duplicate data is ok)
+	for _, v := range deletedUsers {
+		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, v.EntityID)
+		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
+		{
+			var sbp *pwmgrSharedBundles
+			sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
 
-			userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, k)
-			sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
-			{
-				var sbp *pwmgrSharedBundles
-				sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
-
-				if err != nil {
-					sharedBundleLock.Unlock()
-					return logical.ErrorResponse("error reading users shared bundles"), err
-				}
-
-				sbpm := *sbp
-				delete(sbpm, bundleID.(string))
-
-				err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
-
-				if err != nil {
-					sharedBundleLock.Unlock()
-					return nil, err
-				}
-
+			if err != nil {
 				sharedBundleLock.Unlock()
-				// TODO update user policy
-				// template new policy
-				// post to vault
-
-				// TODO remove user key from bundle
-				//
-
+				return logical.ErrorResponse("error reading users shared bundles"), err
 			}
 
+			sbpm := *sbp
+			delete(sbpm, bundleID.(string))
+
+			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return nil, err
+			}
+
+			err = b.UpdateUserPolicy(sbp, v.EntityName)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return nil, err
+			}
 		}
+		sharedBundleLock.Unlock()
+
 	}
 
 	for _, mu := range modifiedUsers {
@@ -530,51 +523,13 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 			}
 
 			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
-
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return nil, err
 			}
 
 			//TODO move this out of loop
-			tmpl, err := template.New("test").Parse(adminTmpl)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return nil, err
-			}
-
-			sharedBundles := []interface{}{}
-			for _, v := range *sbp {
-				// update users policy
-				paths := strings.Split(v.Path, `/data/`)
-				if len(paths) != 2 {
-					sharedBundleLock.Unlock()
-					return nil, fmt.Errorf("bundle path is invalid: %s", v.Path)
-				}
-
-				caps := strings.Split(v.Capabilities, `,`)
-
-				b := struct {
-					Path         string
-					Capabilities []string
-				}{Path: paths[1], Capabilities: caps}
-
-				sharedBundles = append(sharedBundles, b)
-
-			}
-
-			var tpl bytes.Buffer
-			err = tmpl.Execute(&tpl, sharedBundles)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return nil, err
-			}
-
-			// TODO find out if backend knows the mount we currently are in. if not we can
-			// add it to the config
-			policyName := fmt.Sprintf("%s/entity/%s", "pwmanager", mu.EntityName)
-			err = b.policyService.PutPolicy(policyName, tpl.String())
-
+			err = b.UpdateUserPolicy(sbp, mu.EntityName)
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return logical.ErrorResponse(fmt.Sprintf("error updating user policy: %s", err)), nil
@@ -604,6 +559,43 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		},
 	}, nil
 
+}
+
+func (b *pwManagerBackend) UpdateUserPolicy(sbp *pwmgrSharedBundles, entityName string) error {
+	tmpl, err := template.New("test").Parse(adminTmpl)
+	if err != nil {
+		return err
+	}
+
+	sharedBundles := []interface{}{}
+	for _, v := range *sbp {
+		paths := strings.Split(v.Path, `/data/`)
+		if len(paths) != 2 {
+			return fmt.Errorf("bundle path is invalid: %s", v.Path)
+		}
+
+		caps := strings.Split(v.Capabilities, `,`)
+
+		b := struct {
+			Path         string
+			Capabilities []string
+		}{Path: paths[1], Capabilities: caps}
+
+		sharedBundles = append(sharedBundles, b)
+	}
+
+	var tpl bytes.Buffer
+	err = tmpl.Execute(&tpl, sharedBundles)
+	if err != nil {
+		return err
+	}
+
+	// TODO find out if backend knows the mount we currently are in. if not we can
+	backendMount := "pwmanager"
+	policyName := fmt.Sprintf("%s/entity/%s", backendMount, entityName)
+	err = b.policyService.PutPolicy(policyName, tpl.String())
+
+	return err
 }
 
 ///////////////////////// bundle kv helper /////////////////////////

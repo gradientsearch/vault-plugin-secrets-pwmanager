@@ -201,19 +201,19 @@ func (b *pwManagerBackend) listBundles(ctx context.Context, s logical.Storage, e
 
 func (b *pwManagerBackend) listSharedBundles(ctx context.Context, s logical.Storage, entityID string) ([]pwmgrSharedBundle, error) {
 	userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, entityID)
-	sbp, err := getSharedUserBundles(ctx, s, userSharedBundlePath)
+	sb, err := getSharedUserBundles(ctx, s, userSharedBundlePath)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if sbp == nil {
-		sbp = &pwmgrSharedBundles{}
+	if sb == nil {
+		sb = pwmgrSharedBundles{}
 	}
 
 	sharedBundles := []pwmgrSharedBundle{}
 
-	for _, v := range *sbp {
+	for _, v := range sb {
 		sharedBundles = append(sharedBundles, v)
 	}
 
@@ -443,31 +443,29 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, v.EntityID)
 		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
 		{
-			var sbp *pwmgrSharedBundles
-			sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
+
+			sbs, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
 
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return logical.ErrorResponse("error reading users shared bundles"), err
 			}
 
-			sbpm := *sbp
-			delete(sbpm, bundleID.(string))
+			delete(sbs, bundleID.(string))
 
-			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
+			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, sbs)
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return nil, err
 			}
 
-			err = b.UpdateUserPolicy(sbp, v.EntityName)
+			err = b.UpdateUserPolicy(sbs, v.EntityName)
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return nil, err
 			}
 		}
 		sharedBundleLock.Unlock()
-
 	}
 
 	for _, mu := range modifiedUsers {
@@ -476,18 +474,16 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
 		{
-			var sbp *pwmgrSharedBundles
-			sbp, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
+			sbs, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
 
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return logical.ErrorResponse("error reading users shared bundles"), err
 			}
 
-			if sbp == nil {
-				sbm := make(pwmgrSharedBundles)
-
-				sbm[bundleID.(string)] = pwmgrSharedBundle{
+			if sbs == nil {
+				sbs := pwmgrSharedBundles{}
+				sbs[bundleID.(string)] = pwmgrSharedBundle{
 					ID:            pb.ID,
 					OwnerEntityID: pb.OwnerEntityID,
 					Path:          pb.Path,
@@ -497,10 +493,8 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 					Capabilities:  mu.Capabilities,
 				}
 
-				sbp = &sbm
 			} else {
-				sbsm := *sbp
-				sb, ok := sbsm[bundleID.(string)]
+				sb, ok := sbs[bundleID.(string)]
 
 				if !ok {
 					sb = pwmgrSharedBundle{
@@ -512,39 +506,32 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 						IsAdmin:       mu.IsAdmin,
 						Capabilities:  mu.Capabilities,
 					}
-					sbsm[bundleID.(string)] = sb
+					sbs[bundleID.(string)] = sb
 
 				} else {
 					sb.Capabilities = mu.Capabilities
 					sb.IsAdmin = mu.IsAdmin
 					sb.Created = time.Now().Unix()
-					sbsm[bundleID.(string)] = sb
+					sbs[bundleID.(string)] = sb
 				}
 			}
 
-			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, *sbp)
+			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, sbs)
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return nil, err
 			}
 
 			//TODO move this out of loop
-			err = b.UpdateUserPolicy(sbp, mu.EntityName)
+			err = b.UpdateUserPolicy(sbs, mu.EntityName)
 			if err != nil {
 				sharedBundleLock.Unlock()
 				return logical.ErrorResponse(fmt.Sprintf("error updating user policy: %s", err)), nil
 			}
 			sharedBundleLock.Unlock()
 		}
-
-		//// pull in all user shared bundles
-		// error handling to undo if not successful
 	}
 
-	// TODO move this to a putBundle method
-	// Only after successfully completing previous step
-	// we will update the users. Even if the previous
-	// steps were partially completed, for example
 	pb.Users = users
 	pb.WALEntry = false
 
@@ -561,14 +548,14 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 
 }
 
-func (b *pwManagerBackend) UpdateUserPolicy(sbp *pwmgrSharedBundles, entityName string) error {
+func (b *pwManagerBackend) UpdateUserPolicy(sbs pwmgrSharedBundles, entityName string) error {
 	tmpl, err := template.New("test").Parse(adminTmpl)
 	if err != nil {
 		return err
 	}
 
 	sharedBundles := []interface{}{}
-	for _, v := range *sbp {
+	for _, v := range sbs {
 		paths := strings.Split(v.Path, `/data/`)
 		if len(paths) != 2 {
 			return fmt.Errorf("bundle path is invalid: %s", v.Path)
@@ -649,7 +636,7 @@ func setBundle(ctx context.Context, s logical.Storage, path string, pb pwmgrBund
 	return nil
 }
 
-func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (*pwmgrSharedBundles, error) {
+func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (pwmgrSharedBundles, error) {
 
 	if s == nil {
 		return nil, nil
@@ -664,7 +651,7 @@ func getSharedUserBundles(ctx context.Context, s logical.Storage, path string) (
 		return nil, nil
 	}
 
-	sb := new(pwmgrSharedBundles)
+	sb := pwmgrSharedBundles{}
 	if err := entry.DecodeJSON(&sb); err != nil {
 		return nil, fmt.Errorf("error reading shared bundles %w", err)
 	}

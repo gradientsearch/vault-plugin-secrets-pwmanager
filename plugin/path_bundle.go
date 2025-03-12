@@ -105,7 +105,7 @@ func pathBundle(b *pwManagerBackend) []*framework.Path {
 					Required:    true,
 				},
 				"users": {
-					Type:        framework.TypeMap,
+					Type:        framework.TypeSlice,
 					Description: "users for this bundle",
 					Required:    false,
 				},
@@ -278,6 +278,45 @@ func (b *pwManagerBackend) pathBundleDelete(ctx context.Context, req *logical.Re
 }
 
 // /////////////////////// bundle create/update users /////////////////////////
+
+func (b *pwManagerBackend) setUsersEntityID(ctx context.Context, s logical.Storage, newUsers []pwmgrUser) ([]pwmgrUser, error) {
+	users := []pwmgrUser{}
+	for _, nu := range newUsers {
+		userEntityID, err := b.getUserEntityIDByName(ctx, s, nu.EntityName)
+		if err != nil || len(userEntityID) == 0 {
+			return []pwmgrUser{}, fmt.Errorf("error retrieving new users entityID")
+		}
+
+		nu.EntityID = userEntityID
+		users = append(users, nu)
+	}
+	return users, nil
+}
+
+// getUserPubKeys retrieves the users public key from the KV store
+// will return error if the user pubkey
+func (b *pwManagerBackend) getUserPubKeys(ctx context.Context, s logical.Storage, newUsers []pwmgrUser) (map[string]PubKey, error) {
+	usersPubKeys := map[string]PubKey{}
+
+	for i := range newUsers {
+		nu := &newUsers[i]
+		userEntityID, err := b.getUserEntityIDByName(ctx, s, nu.EntityName)
+		nu.EntityID = userEntityID
+
+		if err != nil {
+			return map[string]PubKey{}, fmt.Errorf("error retrieving new users entityID")
+		}
+
+		userUUK, err := b.getUser(ctx, s, nu.EntityID)
+		if err != nil || userUUK == nil {
+			return map[string]PubKey{}, fmt.Errorf("error retrieving new users public key")
+		}
+		usersPubKeys[nu.EntityID] = userUUK.UUK.PubKey
+	}
+
+	return usersPubKeys, nil
+}
+
 // pathBundleWrite updates the configuration for the backend
 func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ownerEntityID, ok := d.GetOk("owner_entity_id")
@@ -290,37 +329,23 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 		return logical.ErrorResponse("missing bundle id "), nil
 	}
 
-	newUsers := pwmgrUsers{}
-
-	// TODO add WAL Write
-
-	if users, ok := d.GetOk("users"); ok {
-		if err := mapstructure.Decode(users, &newUsers); err != nil {
+	newUsers := []pwmgrUser{}
+	if usersMap, ok := d.GetOk("users"); ok {
+		if err := mapstructure.Decode(usersMap, &newUsers); err != nil {
 			return logical.ErrorResponse("error decoding users"), nil
 		}
 	} else {
 		return logical.ErrorResponse("missing users"), nil
 	}
 
-	usersPubKeys := map[string]map[string]string{}
+	newUsers, err := b.setUsersEntityID(ctx, req.Storage, newUsers)
+	if err != nil {
+		return logical.ErrorResponse(err.Error()), nil
+	}
 
-	for i := range newUsers.Users {
-		nu := &newUsers.Users[i]
-		// make sure entity name and entity id have integrity
-		userEntityID, err := b.getUserEntityIDByName(ctx, req.Storage, nu.EntityName)
-		nu.EntityID = userEntityID
-
-		if err != nil {
-			return logical.ErrorResponse("error retrieving new users entityID"), nil
-		}
-
-		// grab the public key of user
-		userUUK, err := b.getUser(ctx, req.Storage, nu.EntityID)
-
-		if err != nil || userUUK == nil {
-			return logical.ErrorResponse("error retrieving new users public key"), nil
-		}
-		usersPubKeys[nu.EntityID] = userUUK.UUK.PubKey
+	usersPubKeys, err := b.getUserPubKeys(ctx, req.Storage, newUsers)
+	if err != nil {
+		return logical.ErrorResponse(err.Error()), nil
 	}
 
 	//TODO parameterize bundles in config - bundles is the kv-v2 store used to store user bundles.
@@ -376,7 +401,7 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	modifiedUsers := []pwmgrUser{}
 	users := []pwmgrUser{}
 
-	for _, nu := range newUsers.Users {
+	for _, nu := range newUsers {
 		// TODO think through workflow .
 		// how will a user be modified?
 		// we go ahead and update the users policy to allow

@@ -21,6 +21,8 @@ type pwManagerUserEntry struct {
 	UUK      pwManagerUUKEntry `json:"uuk" mapstructure:"uuk"`
 }
 
+type PubKey map[string]string
+
 // pwManagerUUKEntry defines the data required
 // for a Vault register to access and call the PwManager
 // token endpoints
@@ -34,7 +36,7 @@ type pwManagerUUKEntry struct {
 	// priv key used to encrypt `Safe` data
 	EncPriKey EncPriKey `json:"enc_pri_key" mapstructure:"enc_pri_key"`
 	// pub key of the private key
-	PubKey map[string]string `json:"pub_key" mapstructure:"pub_key"`
+	PubKey PubKey `json:"pub_key" mapstructure:"pub_key"`
 }
 
 // toResponseData returns response data for a user

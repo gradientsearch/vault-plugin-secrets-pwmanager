@@ -111,12 +111,11 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 		Storage:   s,
 		EntityID:  entityID,
 		Data: map[string]interface{}{
-			"users": map[string]interface{}{
-				"users": []map[string]interface{}{{
-					"entity_name":  "stephen",
-					"is_admin":     true,
-					"capabilities": "create,read,update,patch,delete,list",
-				},
+			"users": []pwmgrUser{
+				{
+					EntityName:   "stephen",
+					IsAdmin:      true,
+					Capabilities: "create,read,update,patch,delete,list",
 				},
 			},
 		},
@@ -127,7 +126,7 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 	}
 
 	if p, ok := resp.Data["pubkeys"]; ok {
-		for _, v := range p.(map[string]map[string]string) {
+		for _, v := range p.(map[string]PubKey) {
 			if v["test"] != "test" {
 				return fmt.Errorf("should return pubkey with value `test`")
 			}
@@ -144,9 +143,7 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 		Storage:   s,
 		EntityID:  entityID,
 		Data: map[string]interface{}{
-			"users": map[string]interface{}{
-				"users": []map[string]interface{}{},
-			},
+			"users": []pwmgrUser{},
 		},
 	})
 
@@ -156,7 +153,7 @@ func testBundleUsersAdd(t *testing.T, b *pwManagerBackend, s logical.Storage, en
 
 	keys := []string{}
 	if p, ok := resp.Data["pubkeys"]; ok {
-		for k := range p.(map[string]map[string]string) {
+		for k := range p.(map[string]PubKey) {
 			keys = append(keys, k)
 		}
 	}

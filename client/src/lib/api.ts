@@ -122,7 +122,7 @@ export class Api {
 		return [vsk, undefined];
 	}
 
-	async PutUserKey(b: Bundle, entityID: string, data:any): Promise<Error | undefined> {
+	async PutUserKey(b: Bundle, entityID: string, data: any): Promise<Error | undefined> {
 		let response = await this.post(`${b.Path}/keys/${entityID}`, JSON.stringify(data));
 
 		if (response.status != 200) {
@@ -226,9 +226,7 @@ export class Api {
 		users: any
 	): Promise<[any[] | undefined, Error | undefined]> {
 		let data = {
-			users: {
-				users: users
-			}
+			users: users
 		};
 
 		let response = await this.post(

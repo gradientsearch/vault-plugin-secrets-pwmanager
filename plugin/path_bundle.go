@@ -293,171 +293,6 @@ func (b *pwManagerBackend) setUsersEntityID(ctx context.Context, s logical.Stora
 	return users, nil
 }
 
-// getUserPubKeys retrieves the users public key from the KV store
-// will return error if the user pubkey
-func (b *pwManagerBackend) getUserPubKeys(ctx context.Context, s logical.Storage, newUsers []pwmgrUser) (map[string]PubKey, error) {
-	usersPubKeys := map[string]PubKey{}
-
-	for i := range newUsers {
-		nu := &newUsers[i]
-		userEntityID, err := b.getUserEntityIDByName(ctx, s, nu.EntityName)
-		nu.EntityID = userEntityID
-
-		if err != nil {
-			return map[string]PubKey{}, fmt.Errorf("error retrieving new users entityID")
-		}
-
-		userUUK, err := b.getUser(ctx, s, nu.EntityID)
-		if err != nil || userUUK == nil {
-			return map[string]PubKey{}, fmt.Errorf("error retrieving new users public key")
-		}
-		usersPubKeys[nu.EntityID] = userUUK.UUK.PubKey
-	}
-
-	return usersPubKeys, nil
-}
-
-func (b *pwManagerBackend) isUserBundleAdmin(entityID string, ownerEntityID string, bundleUsers []pwmgrUser) error {
-
-	// validate user has perms to manipulate vault users
-	isAdmin := false
-	if entityID == ownerEntityID {
-		isAdmin = true
-	} else {
-		for _, u := range bundleUsers {
-			if u.IsAdmin && u.EntityID == entityID {
-				isAdmin = true
-				break
-			}
-		}
-	}
-
-	if !isAdmin {
-		return fmt.Errorf("not authorized")
-	}
-
-	return nil
-}
-
-func (b *pwManagerBackend) getModifiedBundleUsers(pb pwmgrBundle, newUsers []pwmgrUser) []pwmgrUser {
-	modifiedUsers := []pwmgrUser{}
-
-	for _, nu := range newUsers {
-		// TODO think through workflow .
-		// how will a user be modified?
-		// we go ahead and update the users policy to allow
-		// if users declines invitation we can delete the bundle
-		// and recreate the policy for that user
-		var userMatch *pwmgrUser
-
-		for _, u := range pb.Users {
-			if u.EntityID == nu.EntityID {
-				userMatch = &u
-			}
-		}
-
-		if userMatch != nil {
-
-			// copy over
-			nu.SharedTimestamp = userMatch.SharedTimestamp
-
-			// check if modified
-			modified := false
-
-			// If pervious request did not finish we'll update all user
-			if pb.WALEntry {
-				modified = true
-			}
-
-			if nu.Capabilities != userMatch.Capabilities {
-				modified = true
-			}
-
-			if nu.IsAdmin != userMatch.IsAdmin {
-				modified = true
-			}
-
-			if nu.EntityName != userMatch.EntityName {
-				modified = true
-			}
-
-			if modified {
-				modifiedUsers = append(modifiedUsers, nu)
-			}
-
-		} else {
-			// grab the entity of the new user
-			nu.SharedTimestamp = time.Now().Unix()
-			modifiedUsers = append(modifiedUsers, nu)
-		}
-
-	}
-	return modifiedUsers
-}
-
-func (b *pwManagerBackend) getUpdatedBundleUsers(pb pwmgrBundle, newUsers []pwmgrUser) []pwmgrUser {
-	users := []pwmgrUser{}
-
-	for _, nu := range newUsers {
-		var userMatch *pwmgrUser
-		for _, u := range pb.Users {
-			if u.EntityID == nu.EntityID {
-				userMatch = &u
-			}
-		}
-
-		if userMatch != nil {
-			nu.SharedTimestamp = userMatch.SharedTimestamp
-		} else {
-			nu.SharedTimestamp = time.Now().Unix()
-		}
-		users = append(users, nu)
-	}
-
-	return users
-}
-
-func (b *pwManagerBackend) removeBundleUsers(ctx context.Context, s logical.Storage, pb pwmgrBundle, users []pwmgrUser) error {
-	usersToRemove := map[string]pwmgrUser{}
-	for _, u := range pb.Users {
-		usersToRemove[u.EntityID] = u
-	}
-
-	for _, u := range users {
-		delete(usersToRemove, u.EntityID)
-	}
-
-	for _, u := range usersToRemove {
-		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, u.EntityID)
-		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
-		{
-
-			sbs, err := getSharedUserBundles(ctx, s, userSharedBundlePath)
-
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return fmt.Errorf("error reading users shared bundles")
-			}
-
-			delete(sbs, pb.ID)
-
-			err = setSharedUserBundles(ctx, s, userSharedBundlePath, sbs)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return err
-			}
-
-			err = b.UpdateUserPolicy(sbs, u.EntityName)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return err
-			}
-		}
-		sharedBundleLock.Unlock()
-	}
-	return nil
-}
-
 // pathBundleWrite updates the configuration for the backend
 func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ownerEntityID, ok := d.GetOk("owner_entity_id")
@@ -531,75 +366,15 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	modifiedUsers := b.getModifiedBundleUsers(*pb, newUsers)
 	users := b.getUpdatedBundleUsers(*pb, newUsers)
 
-	/////////// delete users ////////////////
-
 	err = b.removeBundleUsers(ctx, req.Storage, *pb, users)
 	if err != nil {
 		return logical.ErrorResponse(err.Error()), nil
 	}
 
-	for _, mu := range modifiedUsers {
-		// add bundle to users shared bundles (duplicate data is ok)
-		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, mu.EntityID)
-
-		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
-		{
-			sbs, err := getSharedUserBundles(ctx, req.Storage, userSharedBundlePath)
-
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return logical.ErrorResponse("error reading users shared bundles"), err
-			}
-
-			if sbs == nil {
-				sbs := pwmgrSharedBundles{}
-				sbs[bundleID.(string)] = pwmgrSharedBundle{
-					ID:            pb.ID,
-					OwnerEntityID: pb.OwnerEntityID,
-					Path:          pb.Path,
-					Created:       time.Now().Unix(),
-					HasAccepted:   false,
-					IsAdmin:       mu.IsAdmin,
-					Capabilities:  mu.Capabilities,
-				}
-
-			} else {
-				sb, ok := sbs[bundleID.(string)]
-
-				if !ok {
-					sb = pwmgrSharedBundle{
-						ID:            pb.ID,
-						OwnerEntityID: pb.OwnerEntityID,
-						Path:          pb.Path,
-						Created:       time.Now().Unix(),
-						HasAccepted:   false,
-						IsAdmin:       mu.IsAdmin,
-						Capabilities:  mu.Capabilities,
-					}
-					sbs[bundleID.(string)] = sb
-
-				} else {
-					sb.Capabilities = mu.Capabilities
-					sb.IsAdmin = mu.IsAdmin
-					sb.Created = time.Now().Unix()
-					sbs[bundleID.(string)] = sb
-				}
-			}
-
-			err = setSharedUserBundles(ctx, req.Storage, userSharedBundlePath, sbs)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return nil, err
-			}
-
-			//TODO move this out of loop
-			err = b.UpdateUserPolicy(sbs, mu.EntityName)
-			if err != nil {
-				sharedBundleLock.Unlock()
-				return logical.ErrorResponse(fmt.Sprintf("error updating user policy: %s", err)), nil
-			}
-			sharedBundleLock.Unlock()
-		}
+	/// modified users
+	err = b.updateModifiedUsers(ctx, req.Storage, *pb, modifiedUsers)
+	if err != nil {
+		return logical.ErrorResponse(err.Error()), nil
 	}
 
 	pb.Users = users
@@ -615,7 +390,238 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 			"pubkeys": usersPubKeys,
 		},
 	}, nil
+}
 
+// getUserPubKeys retrieves the users public key from the KV store
+func (b *pwManagerBackend) getUserPubKeys(ctx context.Context, s logical.Storage, newUsers []pwmgrUser) (map[string]PubKey, error) {
+	usersPubKeys := map[string]PubKey{}
+
+	for i := range newUsers {
+		nu := &newUsers[i]
+		userEntityID, err := b.getUserEntityIDByName(ctx, s, nu.EntityName)
+		nu.EntityID = userEntityID
+
+		if err != nil {
+			return map[string]PubKey{}, fmt.Errorf("error retrieving new users entityID")
+		}
+
+		userUUK, err := b.getUser(ctx, s, nu.EntityID)
+		if err != nil || userUUK == nil {
+			return map[string]PubKey{}, fmt.Errorf("error retrieving new users public key")
+		}
+		usersPubKeys[nu.EntityID] = userUUK.UUK.PubKey
+	}
+
+	return usersPubKeys, nil
+}
+
+// isUserBundleAdmin checks to see if the user updating the bundle users is the owner or is an admin
+// for this bundle.
+func (b *pwManagerBackend) isUserBundleAdmin(entityID string, ownerEntityID string, bundleUsers []pwmgrUser) error {
+
+	// validate user has perms to manipulate vault users
+	isAdmin := false
+	if entityID == ownerEntityID {
+		isAdmin = true
+	} else {
+		for _, u := range bundleUsers {
+			if u.IsAdmin && u.EntityID == entityID {
+				isAdmin = true
+				break
+			}
+		}
+	}
+
+	if !isAdmin {
+		return fmt.Errorf("not authorized")
+	}
+
+	return nil
+}
+
+// getModifiedBundleUsers will return the list of users that were modified or new users. The modified
+// users will have their shared bundles document updated as well as their policy.
+func (b *pwManagerBackend) getModifiedBundleUsers(pb pwmgrBundle, newUsers []pwmgrUser) []pwmgrUser {
+	modifiedUsers := []pwmgrUser{}
+
+	for _, nu := range newUsers {
+		var userMatch *pwmgrUser
+
+		for _, u := range pb.Users {
+			if u.EntityID == nu.EntityID {
+				userMatch = &u
+			}
+		}
+
+		if userMatch != nil {
+
+			// copy over
+			nu.SharedTimestamp = userMatch.SharedTimestamp
+
+			// check if modified
+			modified := false
+
+			// If pervious request did not finish we'll update all user
+			if pb.WALEntry {
+				modified = true
+			}
+
+			if nu.Capabilities != userMatch.Capabilities {
+				modified = true
+			}
+
+			if nu.IsAdmin != userMatch.IsAdmin {
+				modified = true
+			}
+
+			if nu.EntityName != userMatch.EntityName {
+				modified = true
+			}
+
+			if modified {
+				modifiedUsers = append(modifiedUsers, nu)
+			}
+
+		} else {
+			// grab the entity of the new user
+			nu.SharedTimestamp = time.Now().Unix()
+			modifiedUsers = append(modifiedUsers, nu)
+		}
+
+	}
+	return modifiedUsers
+}
+
+// getUpdatedBundleUsers will return the updated list of bundle users.
+func (b *pwManagerBackend) getUpdatedBundleUsers(pb pwmgrBundle, newUsers []pwmgrUser) []pwmgrUser {
+	users := []pwmgrUser{}
+
+	for _, nu := range newUsers {
+		var userMatch *pwmgrUser
+		for _, u := range pb.Users {
+			if u.EntityID == nu.EntityID {
+				userMatch = &u
+			}
+		}
+
+		if userMatch != nil {
+			nu.SharedTimestamp = userMatch.SharedTimestamp
+		} else {
+			nu.SharedTimestamp = time.Now().Unix()
+		}
+		users = append(users, nu)
+	}
+
+	return users
+}
+
+// removeBundleUsers will remove the bundle from the users shared bundle document and update the user policy
+// to remove access to the bundle.
+func (b *pwManagerBackend) removeBundleUsers(ctx context.Context, s logical.Storage, pb pwmgrBundle, users []pwmgrUser) error {
+	usersToRemove := map[string]pwmgrUser{}
+	for _, u := range pb.Users {
+		usersToRemove[u.EntityID] = u
+	}
+
+	for _, u := range users {
+		delete(usersToRemove, u.EntityID)
+	}
+
+	for _, u := range usersToRemove {
+		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, u.EntityID)
+		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
+		{
+
+			sbs, err := getSharedUserBundles(ctx, s, userSharedBundlePath)
+
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return fmt.Errorf("error reading users shared bundles")
+			}
+
+			delete(sbs, pb.ID)
+
+			err = setSharedUserBundles(ctx, s, userSharedBundlePath, sbs)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return err
+			}
+
+			err = b.UpdateUserPolicy(sbs, u.EntityName)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return err
+			}
+		}
+		sharedBundleLock.Unlock()
+	}
+	return nil
+}
+
+// updateModifiedUsers will add the bundles to a users shared bundles document or update the existing
+// document as well as updating the user policy to access the bundle.
+func (b *pwManagerBackend) updateModifiedUsers(ctx context.Context, s logical.Storage, pb pwmgrBundle, modifiedUsers []pwmgrUser) error {
+	for _, mu := range modifiedUsers {
+		// add bundle to users shared bundles (duplicate data is ok)
+		userSharedBundlePath := fmt.Sprintf("%s/%s/sharedWithMe", BUNDLE_SCHEMA, mu.EntityID)
+
+		sharedBundleLock := bundleMapOfMu.Lock(userSharedBundlePath)
+		{
+			sbs, err := getSharedUserBundles(ctx, s, userSharedBundlePath)
+
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return fmt.Errorf("error reading users shared bundles")
+			}
+
+			if sbs == nil {
+				sbs := pwmgrSharedBundles{}
+				sbs[pb.ID] = pwmgrSharedBundle{
+					ID:            pb.ID,
+					OwnerEntityID: pb.OwnerEntityID,
+					Path:          pb.Path,
+					Created:       time.Now().Unix(),
+					HasAccepted:   false,
+					IsAdmin:       mu.IsAdmin,
+					Capabilities:  mu.Capabilities,
+				}
+
+			} else {
+				sb, ok := sbs[pb.ID]
+
+				if !ok {
+					sb = pwmgrSharedBundle{
+						ID:            pb.ID,
+						OwnerEntityID: pb.OwnerEntityID,
+						Path:          pb.Path,
+						Created:       time.Now().Unix(),
+						HasAccepted:   false,
+						IsAdmin:       mu.IsAdmin,
+						Capabilities:  mu.Capabilities,
+					}
+					sbs[pb.ID] = sb
+				} else {
+					sb.Capabilities = mu.Capabilities
+					sb.IsAdmin = mu.IsAdmin
+					sbs[pb.ID] = sb
+				}
+			}
+
+			err = setSharedUserBundles(ctx, s, userSharedBundlePath, sbs)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return err
+			}
+
+			err = b.UpdateUserPolicy(sbs, mu.EntityName)
+			if err != nil {
+				sharedBundleLock.Unlock()
+				return fmt.Errorf("error updating user policy: %s", err)
+			}
+			sharedBundleLock.Unlock()
+		}
+	}
+	return nil
 }
 
 func (b *pwManagerBackend) UpdateUserPolicy(sbs pwmgrSharedBundles, entityName string) error {

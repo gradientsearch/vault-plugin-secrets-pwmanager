@@ -317,6 +317,28 @@ func (b *pwManagerBackend) getUserPubKeys(ctx context.Context, s logical.Storage
 	return usersPubKeys, nil
 }
 
+func (b *pwManagerBackend) isUserBundleAdmin(entityID string, ownerEntityID string, bundleUsers []pwmgrUser) error {
+
+	// validate user has perms to manipulate vault users
+	isAdmin := false
+	if entityID == ownerEntityID {
+		isAdmin = true
+	} else {
+		for _, u := range bundleUsers {
+			if u.IsAdmin && u.EntityID == entityID {
+				isAdmin = true
+				break
+			}
+		}
+	}
+
+	if !isAdmin {
+		return fmt.Errorf("not authorized")
+	}
+
+	return nil
+}
+
 // pathBundleWrite updates the configuration for the backend
 func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ownerEntityID, ok := d.GetOk("owner_entity_id")
@@ -374,28 +396,17 @@ func (b *pwManagerBackend) pathBundleUsersWrite(ctx context.Context, req *logica
 	// 1. If a user was added but the server crashed the users pubkey
 	// was not returned to encrypt the bundle key.
 	// 2. If a user was deleted the user will still show up
-	// in list of bundle users.
+	// in list of bundle users but will not show up as a shared bundle
+	// for the user.
 	//
 	// In the future we can write to a WAL log and then
-	// revert to the previous well known state.
+	// revert to the previous well known state on boot.
 	pb.WALEntry = true
 	setBundle(ctx, req.Storage, bundlePath, *pb)
 
-	// validate user has perms to manipulate vault users
-	isAdmin := false
-	if req.EntityID == ownerEntityID {
-		isAdmin = true
-	} else {
-		for _, u := range pb.Users {
-			if u.IsAdmin && u.EntityID == req.EntityID {
-				isAdmin = true
-				break
-			}
-		}
-	}
-
-	if !isAdmin {
-		return logical.ErrorResponse("not authorized"), nil
+	err = b.isUserBundleAdmin(req.EntityID, ownerEntityID.(string), pb.Users)
+	if err != nil {
+		return logical.ErrorResponse(err.Error()), nil
 	}
 
 	modifiedUsers := []pwmgrUser{}

@@ -9,8 +9,8 @@ export async function exportJwkKey(key: CryptoKey): Promise<JsonWebKey> {
 	return await crypto.subtle.exportKey('jwk', key);
 }
 
-export async function importJWKkey(jwk: JsonWebKey): Promise<CryptoKey>{
-	return await crypto.subtle.importKey('jwk', jwk, 'AES-GCM', false, ['encrypt', 'decrypt']);
+export async function importJWKkey(jwk: JsonWebKey): Promise<CryptoKey> {
+	return await crypto.subtle.importKey('jwk', jwk, 'AES-GCM', true, ['encrypt', 'decrypt']);
 }
 
 export async function symmetricEncrypt(
@@ -23,10 +23,8 @@ export async function symmetricEncrypt(
 	return [bytesToHex(iv), bytesToHex(new Uint8Array(encrypted))];
 }
 
-
 // TODO should this return an error?
 export async function symmetricDecrypt(
-
 	payload: string,
 	iv: string,
 	symmetricKey: CryptoKey

@@ -10,6 +10,9 @@ export interface Metadata {
 	Type: string;
 	Value: string;
 	ID: string; 
+	Version: number;
+	//TODO Update this to Key instead.
+	Path: string;
 }
 
 /**
@@ -55,7 +58,9 @@ export function newPasswordEntry(): Entry {
 			Name: 'Password',
 			Type: 'password',
 			Value: '',
-			ID: ''
+			ID: '',
+			Version: 0,
+			Path: ''
 		},
 		Core: {
 			Items: [

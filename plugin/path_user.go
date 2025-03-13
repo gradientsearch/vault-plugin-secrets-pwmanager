@@ -21,6 +21,8 @@ type pwManagerUserEntry struct {
 	UUK      pwManagerUUKEntry `json:"uuk" mapstructure:"uuk"`
 }
 
+type PubKey map[string]string
+
 // pwManagerUUKEntry defines the data required
 // for a Vault register to access and call the PwManager
 // token endpoints
@@ -34,7 +36,7 @@ type pwManagerUUKEntry struct {
 	// priv key used to encrypt `Safe` data
 	EncPriKey EncPriKey `json:"enc_pri_key" mapstructure:"enc_pri_key"`
 	// pub key of the private key
-	PubKey map[string]string `json:"pub_key" mapstructure:"pub_key"`
+	PubKey PubKey `json:"pub_key" mapstructure:"pub_key"`
 }
 
 // toResponseData returns response data for a user
@@ -122,8 +124,8 @@ func pathUser(b *pwManagerBackend) []*framework.Path {
 		{
 			Pattern: fmt.Sprintf("%s/?$", USER_SCHEMA),
 			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.ListOperation: &framework.PathOperation{
-					Callback: b.pathUsersList,
+				logical.ReadOperation: &framework.PathOperation{
+					Callback: b.pathUsersGetUsers,
 				},
 			},
 			HelpSynopsis:    pathUserListHelpSynopsis,
@@ -132,14 +134,27 @@ func pathUser(b *pwManagerBackend) []*framework.Path {
 	}
 }
 
-// pathUsersList makes a request to Vault storage to retrieve a list of users for the backend
-func (b *pwManagerBackend) pathUsersList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entries, err := req.Storage.List(ctx, fmt.Sprintf("%s/", USER_SCHEMA))
+// pathUsersGetUsers makes a request to Vault storage to retrieve a list of users for the backend
+func (b *pwManagerBackend) pathUsersGetUsers(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	entriesByEntityID, err := req.Storage.List(ctx, fmt.Sprintf("%s/byEntityID/", USER_SCHEMA))
 	if err != nil {
 		return nil, err
 	}
 
-	return logical.ListResponse(entries), nil
+	entriesByName, err := req.Storage.List(ctx, fmt.Sprintf("%s/byName/", USER_SCHEMA))
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string]interface{}{
+		"by_name":      entriesByName,
+		"by_entity_id": entriesByEntityID,
+	}
+
+	return &logical.Response{
+		Data: data,
+	}, nil
+
 }
 
 // pathUsersRead makes a request to Vault storage to read a user and return response data
@@ -188,15 +203,15 @@ func (b *pwManagerBackend) pathUsersWrite(ctx context.Context, req *logical.Requ
 		return nil, fmt.Errorf("missing username in user")
 	}
 
-	if uuk, ok := d.GetOk("uk"); ok {
+	if uuk, ok := d.GetOk("uuk"); ok {
 		if err := mapstructure.Decode(uuk, &userEntry.UUK); err != nil {
 			return logical.ErrorResponse("error decoding uuk"), nil
 		}
 	} else if !ok && createOperation {
-		return nil, fmt.Errorf("missing username in user")
+		return nil, fmt.Errorf("missing uuk")
 	}
 
-	if err := b.setUser(ctx, req.Storage, req.EntityID, userEntry); err != nil {
+	if err := b.setUserByEntityID(ctx, req.Storage, req.EntityID, userEntry); err != nil {
 		return nil, err
 	}
 
@@ -268,7 +283,7 @@ func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.
 	userEntry.EntityID = req.EntityID
 	userEntry.UUK = registerEntry
 
-	if err := b.setUser(ctx, req.Storage, req.EntityID, &userEntry); err != nil {
+	if err := b.setUserByEntityID(ctx, req.Storage, req.EntityID, &userEntry); err != nil {
 		return nil, err
 	}
 
@@ -279,6 +294,13 @@ func (b *pwManagerBackend) pathRegistersWrite(ctx context.Context, req *logical.
 	// }
 	// err = b.c.c.Sys().Mount(usersDefaultMountPath, &mi)
 	// //	TODO Delete user on error creating private vault
+
+	entity, err := b.c.Identity().EntityByID(req.EntityID)
+	if err != nil {
+		return logical.ErrorResponse("error retrieving users Entity Name"), nil
+	}
+
+	err = b.setUserByName(ctx, req.Storage, entity.Name, req.EntityID)
 
 	return nil, err
 }
@@ -294,8 +316,8 @@ func (b *pwManagerBackend) pathUserExistenceCheck(ctx context.Context, req *logi
 }
 
 // setRegister adds the register to the Vault storage API
-func (b *pwManagerBackend) setUser(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwManagerUserEntry) error {
-	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/%s", USER_SCHEMA, entityID), registerEntry)
+func (b *pwManagerBackend) setUserByEntityID(ctx context.Context, s logical.Storage, entityID string, registerEntry *pwManagerUserEntry) error {
+	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/byEntityID/%s", USER_SCHEMA, entityID), registerEntry)
 	if err != nil {
 		return err
 	}
@@ -311,18 +333,38 @@ func (b *pwManagerBackend) setUser(ctx context.Context, s logical.Storage, entit
 	return nil
 }
 
+// setRegister adds the register to the Vault storage API
+func (b *pwManagerBackend) setUserByName(ctx context.Context, s logical.Storage, entityName string, entityID string) error {
+
+	entry, err := logical.StorageEntryJSON(fmt.Sprintf("%s/byName/%s", USER_SCHEMA, entityName), map[string]string{"id": entityID})
+	if err != nil {
+		return err
+	}
+
+	if entry == nil {
+		return fmt.Errorf("failed to create storage entry for user name id map")
+	}
+
+	if err := s.Put(ctx, entry); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // getUser gets the register from the Vault storage API
 func (b *pwManagerBackend) getUser(ctx context.Context, s logical.Storage, entityID string) (*pwManagerUserEntry, error) {
 	if entityID == "" {
 		return nil, fmt.Errorf("missing register entity ID")
 	}
 
-	entry, err := s.Get(ctx, fmt.Sprintf("%s/%s", USER_SCHEMA, entityID))
+	entry, err := s.Get(ctx, fmt.Sprintf("%s/byEntityID/%s", USER_SCHEMA, entityID))
 	if err != nil {
 		return nil, err
 	}
 
 	if entry == nil {
+		// TODO this needs to return an error!!!!
 		return nil, nil
 	}
 
@@ -332,6 +374,31 @@ func (b *pwManagerBackend) getUser(ctx context.Context, s logical.Storage, entit
 	}
 
 	return register, nil
+}
+
+// getUser gets the register from the Vault storage API
+func (b *pwManagerBackend) getUserEntityIDByName(ctx context.Context, s logical.Storage, entityName string) (string, error) {
+	if entityName == "" {
+		return "", fmt.Errorf("missing register entity ID")
+	}
+
+	entry, err := s.Get(ctx, fmt.Sprintf("%s/byName/%s", USER_SCHEMA, entityName))
+	if err != nil {
+		return "", err
+	}
+
+	if entry == nil {
+		// TODO this needs to return an error!!!!
+		return "", fmt.Errorf("entity name `%s` does not exist", entityName)
+	}
+
+	id := map[string]string{}
+
+	if err := entry.DecodeJSON(&id); err != nil {
+		return "", err
+	}
+
+	return id["id"], nil
 }
 
 const (

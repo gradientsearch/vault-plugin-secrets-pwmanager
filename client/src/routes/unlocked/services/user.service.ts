@@ -6,6 +6,14 @@ class UserService {
             return  infoObj['entityID']
 		}
 	}
+
+	getUsername() {
+		let info = localStorage.getItem('loginInfo');
+		if (info !== null) {
+			let infoObj = JSON.parse(info);
+            return  infoObj['username']
+		}
+	}
 }
 
 

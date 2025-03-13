@@ -122,13 +122,7 @@ export class Api {
 		return [vsk, undefined];
 	}
 
-	async PutUserKey(b: Bundle, entityID: string, key: string): Promise<Error | undefined> {
-		// TODO move this up to bundle service
-		let data = {
-			data: {
-				key: key
-			}
-		};
+	async PutUserKey(b: Bundle, entityID: string, data: any): Promise<Error | undefined> {
 		let response = await this.post(`${b.Path}/keys/${entityID}`, JSON.stringify(data));
 
 		if (response.status != 200) {
@@ -149,9 +143,9 @@ export class Api {
 
 	async DestroyEntry(b: Bundle, id: string): Promise<Error | undefined> {
 		// In vault the metadata path is needed to destroy an entry
-		// the naming convention makes this save since the paths will only be 
+		// the naming convention makes this save since the paths will only be
 		// <EntityID>/<UUID>
-		let metadataPath = b.Path.replace('/data/', '/metadata/')
+		let metadataPath = b.Path.replace('/data/', '/metadata/');
 		let response = await this.delete(`${metadataPath}/entries/${id}`);
 
 		if (response.status != 204) {
@@ -191,7 +185,7 @@ export class Api {
 	}
 
 	// bundles
-	async GetBundles(): Promise<[HvBundle[] | undefined, Error | undefined]> {
+	async GetBundles(): Promise<[any | undefined, Error | undefined]> {
 		let response = await this.get(`${this.mount}/bundles`);
 
 		if (response.status === 404) {
@@ -211,8 +205,7 @@ export class Api {
 			return [undefined, Error(`error - bundles is undefined`)];
 		}
 
-		let bundles = bs.data.bundles;
-		return [bundles, undefined];
+		return [bs.data, undefined];
 	}
 
 	async CreateBundle(): Promise<[string | undefined, Error | undefined]> {
@@ -224,9 +217,32 @@ export class Api {
 		}
 
 		let bs = await response.json();
-		return [bs.data.path, undefined]
+		return [bs.data.path, undefined];
 	}
 
+	async updateSharedBundleUsers(
+		ownerEntityID: string,
+		bundleID: string,
+		users: any
+	): Promise<[any[] | undefined, Error | undefined]> {
+		let data = {
+			users: users
+		};
+
+		let response = await this.post(
+			`${this.mount}/bundles/${ownerEntityID}/${bundleID}/users`,
+			convertCase(data, true)
+		);
+
+		if (response.status != 200) {
+			let err = await response.text();
+			return [undefined, new Error(`error registering: ${err}`)];
+		}
+
+		let bs = await response.json();
+		// TODO update to keys
+		return [bs.data.pubkeys, undefined];
+	}
 }
 
 export function getAPI() {

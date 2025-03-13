@@ -11,6 +11,7 @@
 	import type { Entry, Metadata } from './models/entry';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
+	import type { BundleMetadata } from './models/bundle/vault/metadata';
 
 	let kp: KeyPair | undefined;
 	let zarf: Zarf | undefined = $state(undefined);
@@ -18,7 +19,11 @@
 	let bundle: Bundle | null = $state(null);
 	let bundleService: BundleService | undefined = $state(undefined);
 	let selectedEntryMetadata: Metadata | undefined = $state();
-	let entries: Entry[] = $state([]);
+	let bundleMetadata: BundleMetadata = $state({
+		entries: [],
+		bundleName: '',
+		version: 0
+	});
 
 	onMount(async () => {
 		kp = await storedKeyPair.get();
@@ -41,11 +46,16 @@
 	{#if zarf !== undefined}
 		<SidebarView bind:bundle bind:zarf></SidebarView>
 		<div class="h-full w-full flex-col">
-			<HeaderView bind:bundleService></HeaderView>
+			<HeaderView bind:bundleMetadata bind:bundleService></HeaderView>
 			<div class="flex h-[calc(100vh-48px)] w-full">
-				<BundleView bind:zarf bind:bundleService bind:bundle bind:selectedEntryMetadata bind:entries
+				<BundleView
+					bind:zarf
+					bind:bundleMetadata
+					bind:bundleService
+					bind:bundle
+					bind:selectedEntryMetadata
 				></BundleView>
-				<EntryView bind:selectedEntryMetadata bind:bundleService></EntryView>
+				<EntryView bind:bundleMetadata bind:selectedEntryMetadata bind:bundleService></EntryView>
 			</div>
 		</div>
 	{/if}

@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "approle",
+        "mapstructure",
         "pwmanager",
         "pwmanagerkv",
         "testcache",

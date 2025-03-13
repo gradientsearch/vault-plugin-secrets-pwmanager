@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { Api } from '$lib/api';
-	import {  decryptEncPriKey } from '$lib/uuk';
+	import { decryptEncPriKey } from '$lib/uuk';
 	import Button from '../../../components/button.svelte';
 	import CardContainer from '../../../components/cardContainer.svelte';
 	import Title from '../../../components/title.svelte';
@@ -10,8 +10,8 @@
 	import IconAndText from '../../../components/iconAndText.svelte';
 	import { storedKeyPair, type KeyPair } from '$lib/asym_key_store';
 	import { hexToBytes } from '$lib/helper';
+	import { onMount } from 'svelte';
 
-    
 	class SignIn {
 		mount: string = 'pwmanager';
 		url: string = 'http://localhost:8200';
@@ -23,31 +23,33 @@
 	let errorText: string | undefined;
 
 	let isSigningIn = false;
-    
+
 	async function onSignIn() {
-        
 		isSigningIn = true;
 		let secretKeyHex = localStorage.getItem('secretkey');
 
-		if (secretKeyHex == null) {
+		if (secretKeyHex === null) {
 			goto(`${base}/`);
 			return;
 		}
 
 		let secretKey = new TextDecoder().decode(hexToBytes(secretKeyHex));
-		
+
 		let api = new Api(signIn.token, signIn.url, signIn.mount);
 		let tokenInfo = await api.tokenLookup();
 		let entityID = tokenInfo['data']['entity_id'];
 
-		let [uuk,err] = await api.uuk(entityID);
+		// TODO update when using different auth methods
+		let username = tokenInfo['data']['meta']['username'];
+
+		let [uuk, err] = await api.uuk(entityID);
 		if (err != undefined || uuk == undefined) {
 			errorText = 'error retrieving UUK';
 			isSigningIn = false;
 			return;
 		}
 
-        let encoder = new TextEncoder();
+		let encoder = new TextEncoder();
 		encoder.encode(signIn.password);
 		encoder.encode(signIn.mount);
 		encoder.encode(secretKey);
@@ -67,11 +69,27 @@
 		};
 
 		storedKeyPair.set(keypair);
-		localStorage.setItem('loginInfo', JSON.stringify({token: signIn.token, url: signIn.url, mount: signIn.mount, entityID: entityID}))
-		
+		localStorage.setItem(
+			'loginInfo',
+			JSON.stringify({
+				token: signIn.token,
+				url: signIn.url,
+				mount: signIn.mount,
+				entityID: entityID,
+				username: username
+			})
+		);
+
 		goto(`${base}/unlocked`);
 		isSigningIn = false;
 	}
+
+	onMount(() => {
+		let secretKeyHex = localStorage.getItem('secretkey');
+		if (secretKeyHex === null) {
+			goto(`${base}/`);
+		}
+	});
 </script>
 
 <div class="flex h-full w-full justify-center">

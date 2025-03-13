@@ -3,6 +3,7 @@ import type { Metadata as EntryMetadata } from '../../entry';
 export interface BundleMetadata {
 	entries: EntryMetadata[];
 	bundleName: string;
+	version: number
 }
 
 /** TODO Prepend Hv to all Hashicorp Vault DAOs */

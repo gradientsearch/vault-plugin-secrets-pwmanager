@@ -22,3 +22,12 @@ path "bundles/metadata/{{ identity.entity.id }}/*" {
 path "pwmanager/bundles" {
     capabilities = ["create", "read", "update", "patch", "delete", "list"]
 }
+
+path "pwmanager/bundles/+/+/users" {
+    capabilities = ["create", "read", "update", "patch", "list"]
+}
+
+// User needs to know what their entity name is. 
+path "identity/entity/id/{{ identity.entity.id }}" {
+    capabilities = ["read"]
+}

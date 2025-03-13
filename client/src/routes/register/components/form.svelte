@@ -48,6 +48,8 @@
 			encoder.encode(entityID)
 		);
 
+		
+
 		let err = await api.register(uuk);
 		if (err != undefined) {
 			errorText = err.message;

@@ -18,7 +18,7 @@ import { userService } from './user.service';
  * a Category bundle.
  */
 export interface BundleService {
-	putEntry(pi: Entry): Promise<Error | undefined>;
+	putEntry(pi: Entry, bm: BundleMetadata): Promise<[string | undefined, Error | undefined]>;
 	getMetadata(): Promise<[BundleMetadata | undefined, Error | undefined]>;
 	init(): Promise<Error | undefined>;
 }
@@ -53,18 +53,22 @@ export class KVBundleService implements BundleService {
 		let entityID = userService.getEntityID();
 		let [key, err] = await this.zarf.Api.getBundleSymmetricKey(this.bundle, entityID);
 		if (err?.toString().includes('404 not found')) {
-			let [key, err] = await this.createBundleEncryptionKey(entityID);
+			if (this.bundle.Owner === entityID) {
+				let [key, err] = await this.createBundleEncryptionKey(entityID);
 
-			if (err !== undefined) {
-				return err;
-			}
+				if (err !== undefined) {
+					return err;
+				}
 
-			err = await this.createBundleMetadata();
-			if (err != undefined) {
-				return err;
+				err = await this.createBundleMetadata();
+				if (err != undefined) {
+					return err;
+				}
+			} else {
+				alert('no bundle key available for user');
+				return;
 			}
 		}
-
 		// TODO this is a little messy. Let's try and clean this up.
 		if (key !== undefined && this.zarf.Keypair.PriKey) {
 			let encryptedSymmetricKey = key.data.data.key;
@@ -93,31 +97,68 @@ export class KVBundleService implements BundleService {
 			new TextEncoder().encode(JSON.stringify(jwk)),
 			this.zarf.Keypair.PubKey
 		);
-		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, encrypted);
+
+		let data = {
+			data: {
+				key: encrypted
+			},
+			options: {
+				cas: 0
+			}
+		};
+		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, data);
 		if (err !== undefined) {
-			return [undefined, Error('error retrieving bundle symmetric key : ', err)];
+			return [undefined, Error('error creating bundle encryption key: ', err)];
 		}
 		this.symmetricKey = key;
 		return [key, undefined];
 	}
 
+	async encryptBundleKey(pubkey: CryptoKey, entityID: string): Promise<Error | undefined> {
+		if (!pubkey) {
+			return Error('public key is undefined');
+		}
+
+		if (this.symmetricKey === undefined) {
+			return Error('bundle key is undefined');
+		}
+		// TODO make this a version CAS version 0 only operation. Never want to overwrite a bundle symmetric key
+		let jwk = await exportJwkKey(this.symmetricKey);
+		let encrypted = await pubkeyEncrypt(new TextEncoder().encode(JSON.stringify(jwk)), pubkey);
+		let data = {
+			data: {
+				key: encrypted
+			},
+			options: {
+				cas: 0
+			}
+		};
+		let err = await this.zarf.Api.PutUserKey(this.bundle, entityID, data);
+		if (err !== undefined) {
+			return Error(`error setting bundle symmetric key for ${entityID}`);
+		}
+	}
+
 	async createBundleMetadata(): Promise<Error | undefined> {
 		let metadata: BundleMetadata = {
 			entries: [],
-			bundleName: this.bundle.Name
+			bundleName: this.bundle.Name,
+			version: 0
 		};
-		let [data, err] = await this.encryptPayload(metadata);
-		if (err !== undefined) {
+		let [data, err] = await this.encryptPayload(metadata, 0);
+		if (err !== undefined || data === undefined) {
 			return Error('error encrypted bundle metadata');
 		}
-
 		err = await this.zarf.Api.PutMetadata(this.bundle, data);
 		if (err !== undefined) {
 			return Error('error creating encrypted bundle metadata');
 		}
 	}
 
-	async encryptPayload(payload: any): Promise<[string | undefined, Error | undefined]> {
+	async encryptPayload(
+		payload: any,
+		version: number
+	): Promise<[string | undefined, Error | undefined]> {
 		// TODO refactor this class so this isn't necessary
 		if (this.symmetricKey === undefined) {
 			return [undefined, Error('bundle encryption key is undefined')];
@@ -134,7 +175,10 @@ export class KVBundleService implements BundleService {
 		};
 
 		let data = {
-			data: ed
+			data: ed,
+			options: {
+				cas: version
+			}
 		};
 
 		return [JSON.stringify(data), undefined];
@@ -161,6 +205,15 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error('no data returned from server')];
 		}
 
+		if (err !== undefined) {
+			console.log(`err getting bundle metadata: ${err}`);
+		}
+
+		// Write latest encrypted bundle metadata to localstorage
+		if (md !== undefined) {
+			localStorage.setItem(`${this.bundle.Path}/metadata`, JSON.stringify(md.data));
+		}
+
 		let [plaintext, err2] = await this.decryptPayload(md.data.data);
 		if (err2 !== undefined) {
 			return [undefined, err2];
@@ -169,38 +222,46 @@ export class KVBundleService implements BundleService {
 		if (plaintext === undefined) {
 			return [undefined, Error('decrypted metadata entry undefined')];
 		}
-		let vm = JSON.parse(plaintext) as BundleMetadata;
+		let bm = JSON.parse(plaintext) as BundleMetadata;
+		bm.version = md.data.metadata.version;
 
-		return [vm, undefined];
+		return [bm, undefined];
 	}
 
-	// TODO: rename this to put entry
-	async putEntry(e: Entry): Promise<Error | undefined> {
+	async putEntry(
+		e: Entry,
+		metadata: BundleMetadata
+	): Promise<[string | undefined, Error | undefined]> {
 		//store data in vault
 		// encrypt
+		let pathToReplace;
+
 		let newEntry = e.Metadata.ID.length === 0;
-		if (newEntry) {
-			let entryName = crypto.randomUUID();
-			e.Metadata.ID = entryName;
+		if (!newEntry) {
+			pathToReplace = e.Metadata.Path;
+			e.Metadata.Path = crypto.randomUUID();
+		} else {
+			e.Metadata.ID = crypto.randomUUID();
+			e.Metadata.Version = 0;
+			e.Metadata.Path = crypto.randomUUID();
 		}
 
-		let [data, err2] = await this.encryptPayload(e);
+		// CAS version is always zero since password entries are immutable.
+		let [data, err2] = await this.encryptPayload(e, 0);
 		if (err2 != undefined) {
-			return err2;
+			return [undefined, err2];
 		}
 
-		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.ID);
+		let err3 = await this.zarf.Api.PutEntry(this.bundle, data, e.Metadata.Path);
 		if (err3 !== undefined) {
-			return Error(`error putting entry:  ${err3.message}`);
+			return [undefined, Error(`error putting entry:  ${err3.message}`)];
 		}
 
-		let [metadata, err] = await this.getMetadata();
-		if (err !== undefined) {
-			return Error('error retrieving latest bundle metadata');
-		}
+		// have to increment version
+		e.Metadata.Version = e.Metadata.Version + 1;
 
 		if (metadata === undefined) {
-			return Error('error metadata should be defined but was undefined');
+			return [undefined, Error('error metadata should be defined but was undefined')];
 		}
 
 		if (newEntry) {
@@ -219,21 +280,23 @@ export class KVBundleService implements BundleService {
 			metadata.entries = updatedMetadata;
 		}
 
-		let ep = await this.encryptPayload(metadata);
+		let ep = await this.encryptPayload(metadata, metadata.version);
 
-		// TODO add CAS version from
 		let err4 = await this.zarf.Api.PutMetadata(this.bundle, ep);
 		if (err4 !== undefined) {
-			return Error('error putting metadata: ', err4);
+			await this.deleteEntry(e.Metadata.Path);
+			return [undefined, Error('error putting metadata: ', err4)];
 		}
 
-		// TODO if error delete entry
+		if (pathToReplace !== undefined) {
+			await this.deleteEntry(pathToReplace);
+		}
 		this.onEntriesChanged();
-		return undefined;
+		return [e.Metadata.Path, undefined];
 	}
 
 	async getEntry(m: Metadata): Promise<[Entry | undefined, Error | undefined]> {
-		let [hee, err] = await this.zarf.Api.GetEntry(this.bundle, m.ID);
+		let [hee, err] = await this.zarf.Api.GetEntry(this.bundle, m.Path);
 
 		if (err !== undefined) {
 			return [undefined, Error(`error getting entry: ${err}`)];
@@ -250,6 +313,8 @@ export class KVBundleService implements BundleService {
 		}
 
 		let e = JSON.parse(payload);
+		e.Version = hee.data.metadata.version;
+
 		return [e, undefined];
 	}
 
@@ -274,7 +339,7 @@ export class KVBundleService implements BundleService {
 
 		metadata.entries = updatedMetadata;
 
-		let ep = await this.encryptPayload(metadata);
+		let ep = await this.encryptPayload(metadata, metadata.version);
 
 		// TODO add CAS version from
 		let err2 = await this.zarf.Api.PutMetadata(this.bundle, ep);
@@ -302,11 +367,30 @@ export class KVBundleService implements BundleService {
 
 		for (let i = 0; i < hvBundles.length; i++) {
 			let hvb = hvBundles[i];
+
+			let users: BundleUser[] = [];
+			hvb.users?.forEach((u) => {
+				let caps: any = {};
+				u.capabilities.split(',').forEach((c) => {
+					caps[c] = true;
+				});
+				let bu: BundleUser = {
+					EntityName: u.entity_name,
+					EntityId: u.entity_id,
+					Capabilities: caps,
+					IsAdmin: u.is_admin
+				};
+				users.push(bu);
+			});
+
 			let b: Bundle = {
 				Type: 'bundle',
 				Path: hvb.path,
 				Name: '',
-				Owner: ''
+				Owner: hvb.owner_entity_id,
+				IsAdmin: false,
+				ID: hvb.id,
+				Users: users
 			};
 
 			let bundleService = new KVBundleService(zarf, b, () => {});
@@ -319,7 +403,8 @@ export class KVBundleService implements BundleService {
 
 			let m: BundleMetadata = {
 				entries: [],
-				bundleName: ''
+				bundleName: '',
+				version: 0
 			};
 			if (encryptedCachedMetadata) {
 				let json = JSON.parse(encryptedCachedMetadata);
@@ -339,7 +424,7 @@ export class KVBundleService implements BundleService {
 
 				if (bm !== undefined) {
 					m = bm;
-					let [em, err] = await bundleService.encryptPayload(m);
+					let [em, err] = await bundleService.encryptPayload(m, m.version);
 					if (err !== undefined || em === undefined) {
 						//TODO Handle error
 					} else {
@@ -356,7 +441,7 @@ export class KVBundleService implements BundleService {
 	}
 
 	// getBundles retrieves all bundles and bundle metadata.
-	static async getBundles(zarf: Zarf): Promise<[Bundle[] | undefined, Error | undefined]> {
+	static async getBundles(zarf: Zarf): Promise<[any | undefined, Error | undefined]> {
 		let [hvBundles, err] = await zarf.Api.GetBundles();
 
 		if (err !== undefined) {
@@ -367,7 +452,34 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error getting bundles: bundles should not be undefined`)];
 		}
 
-		return KVBundleService.initBundles(zarf, hvBundles);
+		let [bundles, err2] = await KVBundleService.initBundles(zarf, hvBundles.bundles);
+
+		if (err2 !== undefined) {
+			return [undefined, Error(`error getting bundles: ${err2}`)];
+		}
+
+		let sharedBundles: HvBundle[] = [];
+		if (hvBundles.shared_bundles !== undefined) {
+			Object.keys(hvBundles.shared_bundles).forEach((k) => {
+				let sb = hvBundles.shared_bundles[k];
+				let b: HvBundle = {
+					created: sb.created,
+					path: sb.path,
+					id: sb.id,
+					owner_entity_id: sb.owner_entity_id,
+					users: []
+				};
+				sharedBundles.push(b);
+			});
+		}
+
+		let [sbs, err3] = await KVBundleService.initBundles(zarf, sharedBundles);
+
+		if (err3 !== undefined) {
+			return [undefined, Error(`error getting bundles: ${err3}`)];
+		}
+
+		return [{ bundles: bundles, sharedBundles: sbs }, undefined];
 	}
 
 	static async createBundle(
@@ -383,17 +495,45 @@ export class KVBundleService implements BundleService {
 			return [undefined, Error(`error creating bundle: bundles should not be undefined`)];
 		}
 
+		let pathSplit = path.split('/')
+		let bundleID = ''
+
+		if (pathSplit.length === 4){
+			bundleID = pathSplit[3]
+		}
+
 		let b: Bundle = {
 			Type: 'bundle',
 			Path: path,
 			Name: name,
-			Owner: ''
+			Owner: userService.getEntityID(),
+			IsAdmin: false,
+			ID: bundleID,
+			Users: []
 		};
 
 		let bundleService = new KVBundleService(zarf, b, () => {});
 		await bundleService.init();
 
 		return [b, undefined];
+	}
+
+	async updateSharedBundleUsers(
+		zarf: Zarf,
+		ownerEntityID: string,
+		bundleID: string,
+		users: BundleUser[]
+	): Promise<[any[] | undefined, Error | undefined]> {
+		let [pubkey, err] = await zarf.Api.updateSharedBundleUsers(ownerEntityID, bundleID, users);
+		if (err !== undefined) {
+			return [undefined, Error(`error updating bundle users: ${err}`)];
+		}
+
+		if (pubkey === undefined) {
+			return [undefined, Error(`error updating shared bundle: bundles should return pubkeys`)];
+		}
+
+		return [pubkey, undefined];
 	}
 }
 

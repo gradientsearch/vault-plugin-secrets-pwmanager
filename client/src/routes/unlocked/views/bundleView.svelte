@@ -1,49 +1,82 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import { newPasswordEntry as newPasswordEntry, type Entry, type Metadata } from '../models/entry';
+	import { onMount, untrack } from 'svelte';
+	import { type Metadata } from '../models/entry';
 	import { KVBundleService, type BundleService } from '../services/bundle.service';
-	import { base } from '$app/paths';
 	import type { BundleMetadata } from '../models/bundle/vault/metadata';
+	import Modal from '../../../components/modal.svelte';
+	import { userService } from '../services/user.service';
+	import EditBundle from '../modals/editBundle.svelte';
+	import type { Zarf } from '../models/zarf';
 
-	let headerHeight = $state(0);
+	let entriesMetadata: Metadata[] = $state([]);
 	let errorMessage: string | undefined = $state(undefined);
+	let headerHeight = $state(0);
+	let showModal = $state(false);
+	let usersEntityID: string = $state('');
+	let currentBundleEntryLength = 0;
 
 	let {
-		bundle = $bindable(),
-		zarf = $bindable(),
 		bundleService = $bindable<BundleService>(),
-		selectedEntryMetadata = $bindable<Entry>(),
-		entries: entries = $bindable()
+		bundle = $bindable<Bundle>(),
+		bundleMetadata = $bindable<BundleMetadata>(),
+		selectedEntryMetadata = $bindable<Metadata>(),
+		zarf = $bindable<Zarf>()
 	} = $props();
+
+	onMount(() => {
+		usersEntityID = userService.getEntityID();
+	});
 
 	$effect(() => {
 		bundle;
-
 		untrack(() => {
 			selectedEntryMetadata = undefined;
 			setBundleService();
 		});
 	});
 
+	/**
+	 * onEntriesChanged is called when entries in a bundle have been updated.
+	 */
 	async function onEntriesChanged() {
 		let [metadata, err] = await bundleService.getMetadata();
 		if (err !== undefined) {
 			//TODO Toast error
 			return;
 		}
-		entries = metadata.entries.reverse();
 
-		let checkSelectedEntry = metadata.entries.filter((e: Metadata) => {
-			return selectedEntryMetadata?.ID === e.ID;
-		});
+		entriesMetadata = [...metadata.entries].reverse();
+		bundleMetadata = metadata;
 
-		if (checkSelectedEntry.length === 0 && selectedEntryMetadata !== undefined) {
+		if (wasEntryDeleted(metadata.entries.length)) {
 			selectedEntryMetadata = undefined;
-		} else if (entries.length > 0) {
-			selectedEntryMetadata = entries[0];
+		} else if (wasEntryAdded(metadata.entries.length)) {
+			selectedEntryMetadata = entriesMetadata[0];
 		}
+
+		currentBundleEntryLength = entriesMetadata.length;
 	}
 
+	/**
+	 * wasEntryDeleted determines if an entry was deleted
+	 * @param updatedLength number of new entries
+	 */
+	function wasEntryDeleted(updatedLength: number) {
+		return updatedLength < currentBundleEntryLength;
+	}
+
+	/**
+	 * wasEntryAdded determines if an entry was added
+	 * @param updatedLength number of new entries
+	 */
+	function wasEntryAdded(updatedLength: number) {
+		return updatedLength > currentBundleEntryLength;
+	}
+
+	/**
+	 * setBundleService updates the bundleService. Note the bundle service
+	 * is a bound object to the other views.
+	 */
 	async function setBundleService() {
 		if (bundle?.Type === 'bundle') {
 			bundleService = new KVBundleService(zarf, bundle, onEntriesChanged);
@@ -52,17 +85,23 @@
 				errorMessage = err;
 				alert(err);
 			}
-			let [vm, err2] = await bundleService.getMetadata();
+			let [metadata, err2] = await bundleService.getMetadata();
 
 			if (err2 !== undefined) {
 				errorMessage = 'Error loading entries';
 			}
-			entries = (vm as BundleMetadata).entries.reverse();
+			bundleMetadata = metadata;
+			entriesMetadata = [...metadata.entries].reverse();
+			currentBundleEntryLength = entriesMetadata.length;
 		}
 	}
 
-	function onSelectedEntry(e: Entry) {
-		selectedEntryMetadata = e;
+	/**
+	 * onSelectedEntry sets the entry Metadata for the entry view.
+	 * @param m entry Metadata
+	 */
+	function onSelectedEntry(m: Metadata) {
+		selectedEntryMetadata = m;
 	}
 </script>
 
@@ -73,12 +112,27 @@
 		bind:clientHeight={headerHeight}
 		class="absolute top-0 flex w-full border-b-2 border-border_primary p-2"
 	>
-		<h1 class="text-base capitalize">{bundle?.Name} {bundle?.Type}</h1>
+		<h1 class="flex items-end text-base capitalize">{bundle?.Name} {bundle?.Type}</h1>
+		<span class="flex flex-1"></span>
+		{#if !(bundle?.Path.split('/')[3] === usersEntityID)}
+			{#if bundle?.isAdmin || bundle?.Path.split('/')[2] === usersEntityID}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<span
+					onclick={() => {
+						showModal = true;
+					}}
+					class="flex items-end px-2 text-sm hover:cursor-pointer hover:bg-surface_interactive_hover hover:text-blue-300"
+				>
+					Edit
+				</span>
+			{/if}
+		{/if}
 	</header>
 
 	<span style="min-height: {headerHeight}px;" class="flex flex-1"></span>
-	{#if entries}
-		{#each entries as e}
+	{#if entriesMetadata}
+		{#each entriesMetadata as e}
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
@@ -102,3 +156,6 @@
 		{/each}
 	{/if}
 </div>
+<Modal bind:showModal>
+	<EditBundle bind:bundle bind:bundleService bind:zarf bind:showModal></EditBundle>
+</Modal>

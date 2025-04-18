@@ -64,3 +64,20 @@ export function bytesToHex(bytes: Uint8Array): string {
 	}
 	return hex.join('');
 }
+
+export function getSecureRandomString(length: number): string {
+	const charset =
+		'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}<>?/';
+	const charsetLength = charset.length;
+	const result: string[] = [];
+
+	const randomValues = new Uint32Array(length);
+	crypto.getRandomValues(randomValues);
+
+	for (let i = 0; i < length; i++) {
+		const index = randomValues[i] % charsetLength;
+		result.push(charset.charAt(index));
+	}
+
+	return result.join('');
+}

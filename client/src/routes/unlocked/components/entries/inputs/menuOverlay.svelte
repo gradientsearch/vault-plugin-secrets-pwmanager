@@ -189,12 +189,15 @@
 				<label for="generated">
 					<span class="text-gray-700 text-sm font-medium"> Generated </span>
 
-					<input
-						type="text"
-						id="generated"
-						bind:value={generatedPassword}
-						class="border-gray-300 rounded shadow-sm sm:text-sm"
-					/>
+					<div class="flex flex-row">
+						<input
+							type="text"
+							id="generated"
+							bind:value={generatedPassword}
+							class="border-gray-300 rounded shadow-sm sm:text-sm"
+						/>
+						<button onclick={onGeneratePassword} class="text-lg p-2">🔄</button>
+					</div>
 				</label>
 
 				<div>
@@ -210,15 +213,7 @@
 					</label>
 				</div>
 
-				<div>
-					<button
-						class="font-bol z-50 inline-block
-				 w-[76px] rounded border
-					bg-blue-200 py-2 pt-2 text-center text-sm hover:bg-blue-400"
-						onclick={onGeneratePassword}
-					>
-						Generate
-					</button>
+				<div class="pt-4">
 					<button
 						class=" font-bol z-50
 			 inline-block w-[76px] rounded
@@ -226,6 +221,13 @@
 						onclick={onUseGeneratedPassword}
 					>
 						Use
+					</button>
+					<button
+						class="rounded z-50 w-[76px]
+			 border border-border_strong bg-surface_faint py-2 text-center text-sm font-bold text-foreground_primary hover:bg-foreground_high_contrast"
+						onclick={() => (showGeneratePasswordMenu = false)}
+					>
+						Cancel
 					</button>
 				</div>
 			</div>

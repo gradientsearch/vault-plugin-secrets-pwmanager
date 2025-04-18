@@ -2,6 +2,8 @@
 	import { onMount, untrack } from 'svelte';
 	import { MODE } from '../../../models/entry';
 	import type { Input } from '../../../models/input';
+	import { getSecureRandomString } from '$lib/helper';
+	import Button from '../../../../../components/button.svelte';
 
 	let {
 		input = $bindable<Input>(),
@@ -15,8 +17,11 @@
 	} = $props();
 
 	let showMenu = $state(false);
+	let showGeneratePasswordMenu = $state(false);
 	let reveal = $state(false);
 
+	let generatedPassword = $state('');
+	let generatedPasswordLength = $state(20);
 	$effect(() => {
 		id;
 		untrack(() => {
@@ -33,6 +38,18 @@
 				console.error('Async: Could not copy text: ', err);
 			}
 		);
+	}
+
+	function onGeneratePassword() {
+		showMenu = false;
+		showGeneratePasswordMenu = true;
+
+		generatedPassword = getSecureRandomString(generatedPasswordLength);
+	}
+
+	function onUseGeneratedPassword() {
+		input.Value = generatedPassword;
+		showGeneratePasswordMenu = false;
 	}
 </script>
 
@@ -90,7 +107,7 @@
 	{#if showMenu}
 		<div
 			style="transform: translate3d(-10px, -{inputHeight / 4}px, 0px);"
-			class="border-gray-100 bg-white absolute end-0 z-50 w-32 rounded-md border bg-page_faint shadow-lg"
+			class="border-gray-100 bg-white absolute end-0 z-50 w-64 rounded-md border bg-page_faint shadow-lg"
 			role="menu"
 		>
 			<div class="">
@@ -132,6 +149,17 @@
 						</button>
 					{/if}
 				{/if}
+				{#if mode === MODE.EDIT && input.Type === 'password'}
+					<button
+						onclick={() => {
+							onGeneratePassword();
+						}}
+						class="text-gray-500 hover:text-gray-700 block w-full rounded-md rounded-b-none px-4 py-2 text-start text-sm hover:bg-surface_interactive_hover"
+						role="menuitem"
+					>
+						Generate Password
+					</button>
+				{/if}
 				{#if !isCore && mode === MODE.EDIT}
 					<button
 						onclick={() => {
@@ -144,6 +172,62 @@
 						Delete
 					</button>
 				{/if}
+			</div>
+		</div>
+	{/if}
+
+	{#if showGeneratePasswordMenu}
+		<div
+			style="min-height: {inputHeight}px"
+			class="flex-column z-10 flex h-full w-10 items-center justify-center hover:cursor-pointer"
+		>
+			<div
+				style="transform: translate3d(-10px, -{inputHeight / 4}px, 0px);"
+				class="border-gray-100 bg-white absolute end-0 z-50 w-64 rounded-md border bg-page_faint p-2 shadow-lg"
+				role="menu"
+			>
+				<label for="generated">
+					<span class="text-gray-700 text-sm font-medium"> Generated </span>
+
+					<input
+						type="text"
+						id="generated"
+						bind:value={generatedPassword}
+						class="border-gray-300 rounded shadow-sm sm:text-sm"
+					/>
+				</label>
+
+				<div>
+					<label for="length">
+						<span class="text-gray-700 text-sm font-medium"> Length </span>
+
+						<input
+							type="number"
+							id="length"
+							bind:value={generatedPasswordLength}
+							class="border-gray-300 rounded shadow-sm sm:text-sm"
+						/>
+					</label>
+				</div>
+
+				<div>
+					<button
+						class="font-bol z-50 inline-block
+				 w-[76px] rounded border
+					bg-blue-200 py-2 pt-2 text-center text-sm hover:bg-blue-400"
+						onclick={onGeneratePassword}
+					>
+						Generate
+					</button>
+					<button
+						class=" font-bol z-50
+			 inline-block w-[76px] rounded
+				border bg-blue-200 py-2 text-center text-sm hover:bg-blue-400"
+						onclick={onUseGeneratedPassword}
+					>
+						Use
+					</button>
+				</div>
 			</div>
 		</div>
 	{/if}
